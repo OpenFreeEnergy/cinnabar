@@ -1,5 +1,8 @@
+import numpy as np
+
+
+
 def plot_DDGs(results,method_name='',target_name='',symmetrise=False):
-    import numpy as np
     import matplotlib.pylab as plt
     import stats
     # data
