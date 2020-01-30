@@ -7,7 +7,7 @@ def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
                  method_name='', target_name='',
                  guidelines=True, origins=True,
-                 statistics=['RMSE', 'MUE']):
+                 statistics=['RMSE', 'MUE'], filename=None):
     nsamples = len(x)
     # aesthetics
     plt.figure(figsize=(10, 10))
@@ -46,9 +46,12 @@ def _master_plot(x, y, title='',
     long_title = f'{title} \n {target_name} (N = {nsamples}) \n {statistics_string}'
 
     plt.title(long_title, fontsize=11, loc='right', horizontalalignment='right', family='monospace')
-    plt.show()
+    if filename is None:
+        plt.show()
+    else:
+        plt.savefig(filename)
 
-def plot_DDGs(results,method_name='',target_name='',title='',map_positive=False):
+def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None):
     # data
     if not map_positive:
         x_data = np.asarray([x.exp_DDG for x in results])
@@ -69,48 +72,51 @@ def plot_DDGs(results,method_name='',target_name='',title='',map_positive=False)
     yerr = np.asarray([x.dcalc_DDG for x in results])
 
     _master_plot(x_data, y_data,
-                 xerr=xerr, yerr=yerr,
+                 xerr=xerr, yerr=yerr, filename=filename,
                  title=title, method_name=method_name, target_name=target_name)
 
 
-def plot_DGs(results, method_name='', target_name='', title=''):
-    from freeenergyframework import absolute
+def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     # data
-    x_data, y_data, xerr, yerr = absolute.generate_absolute_values(results)
+    x_data = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
+    y_data = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
+    xerr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
+    yerr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
 
     _master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
-                 origins=False,statistics=['RMSE','MUE','R2','rho'],
-                 title=title, method_name=method_name, target_name=target_name)
+                 origins=False, statistics=['RMSE','MUE','R2','rho'],
+                 title=title, method_name=method_name, target_name=target_name, filename=filename)
 
 
-def plot_all_DDGs(results,method_name='',target_name='',title=''):
-    from freeenergyframework import absolute
-    import itertools
-    # data
-    x_abs, y_abs, xabserr, yabserr = absolute.generate_absolute_values(results)
-
-    # do all to plot_all
-    x_data = []
-    y_data = []
-    xerr = []
-    yerr = []
-    for a, b in itertools.combinations(range(len(x_abs)),2):
-        x = x_abs[a] - x_abs[b]
-        x_data.append(x)
-        x_data.append(-x)
-        err = (xabserr[a]**2 + xabserr[b]**2)**0.5
-        xerr.append(err)
-        xerr.append(err)
-        y = y_abs[a] - y_abs[b]
-        y_data.append(y)
-        y_data.append(-y)
-        err = (yabserr[a]**2 + yabserr[b]**2)**0.5
-        yerr.append(err)
-        yerr.append(err)
-    x_data = np.asarray(x_data)
-    y_data = np.asarray(y_data)
-
-    _master_plot(x_data, y_data,
-                 xerr=xerr, yerr=yerr,
-                 title=title, method_name=method_name, target_name=target_name)
+#def plot_all_DDGs(results, method_name='', target_name='', title='', filename=None):
+#    from freeenergyframework import absolute
+#    import itertools
+#    # data
+#    x_abs, y_abs, xabserr, yabserr = absolute.generate_absolute_values(results)
+#
+#    # do all to plot_all
+#    x_data = []
+#    y_data = []
+#    xerr = []
+#    yerr = []
+#    for a, b in itertools.combinations(range(len(x_abs)),2):
+#        x = x_abs[a] - x_abs[b]
+#        x_data.append(x)
+#        x_data.append(-x)
+#        err = (xabserr[a]**2 + xabserr[b]**2)**0.5
+#        xerr.append(err)
+#        xerr.append(err)
+#        y = y_abs[a] - y_abs[b]
+#        y_data.append(y)
+#        y_data.append(-y)
+#        err = (yabserr[a]**2 + yabserr[b]**2)**0.5
+#        yerr.append(err)
+#        yerr.append(err)
+#    x_data = np.asarray(x_data)
+#    y_data = np.asarray(y_data)
+#
+#    _master_plot(x_data, y_data,
+#                 xerr=xerr, yerr=yerr,
+#                 title=title, method_name=method_name,
+#                 filename=filename, target_name=target_name)
