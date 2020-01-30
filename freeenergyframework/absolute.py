@@ -1,6 +1,6 @@
 def generate_absolute_values(results):
     import networkx as nx
-    import stats
+    from freeenergyframework import stats
     import numpy as np
     name_to_id = {}
     id = 0
