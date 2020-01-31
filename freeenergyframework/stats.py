@@ -99,8 +99,13 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 
 def mle(g,factor='f_ij'):
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
+    The number 'factor' is the node attribute on which the MLE will be calculated,
+    where d'factor' will be used as the standard error of the factor
 
     We assume the free energy of node 0 is zero.
+
+    Reference : https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528
+    Xu, Huafeng. "Optimal measurement network of pairwise differences." Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
 
     Parameters
     ----------
@@ -109,7 +114,8 @@ def mle(g,factor='f_ij'):
         Each edge must have attributes 'f_ij' and 'df_ij' for the free energy and uncertainty estimate
         Will have 'bayesian_f_ij' and 'bayesian_df_ij' added to each edge
         and 'bayesian_f_i' and 'bayesian_df_i' added to each node.
-
+    factor : string, default = 'f_ij'
+        node attribute of nx.Graph that will be used for MLE
     Returns
     -------
     f_i : np.array with shape (n_ligands,)
