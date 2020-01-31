@@ -23,6 +23,7 @@ class FEMap(object):
     def __init__(self, results):
         self.results = results
         self.graph = nx.DiGraph()
+        self.n_edges = len(results)
 
         self.generate_graph_from_results()
 
@@ -44,6 +45,9 @@ class FEMap(object):
             self.graph.add_edge(self._name_to_id[result.ligandA], self._name_to_id[result.ligandB],
             exp_DDG=result.exp_DDG, dexp_DDG=result.dexp_DDG,
             calc_DDG=result.calc_DDG, dcalc_DDG=result.dcalc_DDG)
+
+        self.n_ligands = self.graph.number_of_nodes()
+        self.degree = self.graph.number_of_edges() / self.n_ligands
 
 
         # check the graph has minimal connectivity
@@ -78,11 +82,12 @@ class FEMap(object):
         for i, j in self._name_to_id.items():
             self._id_to_name[j] = i
         nx.draw_circular(self.graph, labels=self._id_to_name, node_color='hotpink', node_size=250)
-        plt.title(title)
+        long_title = f'{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}'
+        plt.title(long_title)
         if filename is None:
             plt.show()
         else:
-            plt.savefig(filename)
+            plt.savefig(filename, bbox_inches='tight')
 
 
 def read_csv(filename):
