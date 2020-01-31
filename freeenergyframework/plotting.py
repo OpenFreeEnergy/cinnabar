@@ -7,7 +7,7 @@ def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
                  method_name='', target_name='',
                  guidelines=True, origins=True,
-                 statistics=['RMSE', 'MUE'], filename=None):
+                 statistics=['RMSE',  'MUE'], filename=None):
     nsamples = len(x)
     # aesthetics
     plt.figure(figsize=(10, 10))
@@ -49,7 +49,7 @@ def _master_plot(x, y, title='',
     if filename is None:
         plt.show()
     else:
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches='tight')
 
 def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None):
     # data
@@ -82,6 +82,11 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     y_data = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
     xerr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
     yerr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
+
+    # centralising
+    # this should be replaced by providing one experimental result
+    x_data = x_data - np.mean(x_data)
+    y_data = y_data - np.mean(y_data)
 
     _master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,

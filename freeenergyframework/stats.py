@@ -2,7 +2,7 @@ import numpy as np
 
 def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 1000, plot_type='dG'):
     import sklearn.metrics
-    import scipy.stats
+    import scipy
     """Compute mean and confidence intervals of specified statistic.
 
     Parameters
@@ -42,16 +42,25 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 
             Statistic, one of ['RMSE', 'MUE', 'R2', 'rho']
 
         """
+
+        def calc_RAE(y_true_sample, y_pred_sample):
+            MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
+            mean = np.mean(y_true_sample)
+            MAD = np.sum([np.abs(mean-i) for i in y_true_sample]) / float(len(y_true_sample))
+            return MAE / MAD
+
         if statistic == 'RMSE':
             return np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
         elif statistic == 'MUE':
             return sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
         elif statistic == 'R2':
-#             return sklearn.metrics.r2_score(y_true_sample, y_pred_sample)
             slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_true_sample, y_pred_sample)
             return r_value**2
         elif statistic == 'rho':
             return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
+        elif statistic == 'RAE':
+            return calc_RAE(y_true_sample, y_pred_sample)
+            return sklearn.metrics.relative_absolute_error(y_true_sample, y_pred_sample)
         else:
             raise Exception("unknown statistic '{}'".format(statistic))
 

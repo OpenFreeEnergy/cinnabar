@@ -7,8 +7,8 @@ class Result(object):
     def __init__(self, ligandA, ligandB,
                  exp_DDG, exp_dDDG,
                  calc_DDG, mbar_error, other_error):
-        self.ligandA = str(ligandA)
-        self.ligandB = str(ligandB)
+        self.ligandA = str(ligandA).strip()
+        self.ligandB = str(ligandB).strip()
         self.exp_DDG = float(exp_DDG)
         self.dexp_DDG = float(exp_dDDG)
         # scope for an experimental dDDG?
