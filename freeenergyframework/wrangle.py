@@ -61,12 +61,14 @@ class FEMap(object):
     def generate_absolute_values(self):
         if self.weakly_connected:
             f_i_exp, C_exp = stats.mle(self.graph, factor='exp_DDG')
-            for i, (f_i, df_i) in enumerate(zip(f_i_exp, np.diagonal(C_exp))):
+            variance = np.diagonal(C_exp)
+            for i, (f_i, df_i) in enumerate(zip(f_i_exp, variance**0.5)):
                 self.graph.node[i]['f_i_exp'] = f_i
                 self.graph.node[i]['df_i_exp'] = df_i
 
             f_i_calc, C_calc = stats.mle(self.graph, factor='calc_DDG')
-            for i, (f_i, df_i) in enumerate(zip(f_i_calc, np.diagonal(C_calc))):
+            variance = np.diagonal(C_calc)
+            for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
                 self.graph.node[i]['f_i_calc'] = f_i
                 self.graph.node[i]['df_i_calc'] = df_i
 
