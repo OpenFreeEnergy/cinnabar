@@ -5,14 +5,14 @@ from freeenergyframework import stats
 
 def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
-                 method_name='', target_name='',
+                 method_name='', target_name='', plot_type='',
                  guidelines=True, origins=True,
                  statistics=['RMSE',  'MUE'], filename=None):
     nsamples = len(x)
     # aesthetics
     plt.figure(figsize=(10, 10))
-    plt.xlabel(f'Experimental / kcal mol$^{-1}$')
-    plt.ylabel(f'Calculated {method_name} / kcal mol$^{-1}$')
+    plt.xlabel(f'Experimental {plot_type} / kcal mol$^{-1}$')
+    plt.ylabel(f'Calculated {plot_type} {method_name} / kcal mol$^{-1}$')
 
     ax_min = min(min(x), min(y)) - 0.5
     ax_max = max(max(x), max(y)) + 0.5
@@ -72,7 +72,7 @@ def plot_DDGs(results, method_name='', target_name='', title='', map_positive=Fa
     yerr = np.asarray([x.dcalc_DDG for x in results])
 
     _master_plot(x_data, y_data,
-                 xerr=xerr, yerr=yerr, filename=filename,
+                 xerr=xerr, yerr=yerr, filename=filename, plot_type=f'$\Delta \Delta G$',
                  title=title, method_name=method_name, target_name=target_name)
 
 
@@ -81,16 +81,16 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     x_data = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_data = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
     xerr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
-    yerr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
+    yerr = np.asarray([node[1]['df_i_calc'] for node in graph.nodes(data=True)])
 
     # centralising
-    # this should be replaced by providing one experimental result
+    # TODO this should be replaced by providing one experimental result
     x_data = x_data - np.mean(x_data)
     y_data = y_data - np.mean(y_data)
 
     _master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
-                 origins=False, statistics=['RMSE','MUE','R2','rho'],
+                 origins=False, statistics=['RMSE','MUE','R2','rho'], plot_type=f'$\Delta G$',
                  title=title, method_name=method_name, target_name=target_name, filename=filename)
 
 
