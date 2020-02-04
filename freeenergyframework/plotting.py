@@ -40,8 +40,12 @@ def _master_plot(x, y, title='',
                          [ax_min + small_dist * 2, ax_max + small_dist * 2],
                          color='grey', alpha=0.2)
     # actual plotting
-    plt.scatter(x, y, color='hotpink')
-    plt.errorbar(x, y, xerr=xerr, yerr=yerr, color='hotpink', linewidth=0., elinewidth=1.)
+    cm = plt.get_cmap('coolwarm')
+    clr = np.abs(x-y)
+    # 2.372 kcal / mol = 4 RT
+    clr = cm(clr / 2.372)
+    plt.errorbar(x, y, xerr=xerr, yerr=yerr, color='gray', linewidth=0., elinewidth=2., zorder=1)
+    plt.scatter(x, y,color=clr, s=10, marker='o', zorder=2)
 
     # stats and title
     statistics_string = ''
