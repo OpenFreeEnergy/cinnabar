@@ -10,9 +10,15 @@ def _master_plot(x, y, title='',
                  statistics=['RMSE',  'MUE'], filename=None):
     nsamples = len(x)
     # aesthetics
-    plt.figure(figsize=(10, 10))
-    plt.xlabel(f'Experimental {plot_type} / kcal mol$^{-1}$')
-    plt.ylabel(f'Calculated {plot_type} {method_name} / kcal mol$^{-1}$')
+    plt.rcParams['xtick.labelsize'] = 12
+    plt.rcParams['ytick.labelsize'] = 12
+    plt.rcParams['font.size'] = 12
+
+    plt.figure(figsize=(6, 6))
+    plt.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
+
+    plt.xlabel(f'Experimental {plot_type} ' + r'$[\mathrm{kcal\,mol^{-1}}]$')
+    plt.ylabel(f'Calculated {plot_type} {method_name} ' + r'$[\mathrm{kcal\,mol^{-1}}]$')
 
     ax_min = min(min(x), min(y)) - 0.5
     ax_max = max(max(x), max(y)) + 0.5
@@ -20,32 +26,34 @@ def _master_plot(x, y, title='',
 
     plt.xlim(scale)
     plt.ylim(scale)
+    
     if origins:
         plt.plot([0, 0], scale, 'gray')
         plt.plot(scale, [0, 0], 'gray')
     plt.plot(scale, scale, 'k:')
     if guidelines:
         small_dist = 0.5
-        plt.fill_between(scale, [ax_min-small_dist, ax_max-small_dist],
-                         [ax_min+small_dist, ax_max+small_dist],
+        plt.fill_between(scale, [ax_min - small_dist, ax_max - small_dist],
+                         [ax_min + small_dist, ax_max + small_dist],
                          color='grey', alpha=0.2)
-        plt.fill_between(scale, [ax_min-small_dist*2, ax_max-small_dist*2],
-                         [ax_min+small_dist*2, ax_max+small_dist*2],
+        plt.fill_between(scale, [ax_min - small_dist * 2, ax_max - small_dist * 2],
+                         [ax_min + small_dist * 2, ax_max + small_dist * 2],
                          color='grey', alpha=0.2)
     # actual plotting
-    plt.scatter(x, y,color='hotpink')
-    plt.errorbar(x, y, xerr=xerr, yerr=yerr, color='hotpink', linewidth=0., elinewidth=2.)
+    plt.scatter(x, y, color='hotpink')
+    plt.errorbar(x, y, xerr=xerr, yerr=yerr, color='hotpink', linewidth=0., elinewidth=1.)
 
     # stats and title
     statistics_string = ''
     for statistic in statistics:
         s = stats.bootstrap_statistic(x, y, statistic=statistic)
-        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] kcal mol$^-$$^1$ \n"
+        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + r"$\mathrm{kcal\,mol^{-^1}}$" + "\n"
         statistics_string += string
 
     long_title = f'{title} \n {target_name} (N = {nsamples}) \n {statistics_string}'
 
-    plt.title(long_title, fontsize=11, loc='right', horizontalalignment='right', family='monospace')
+    plt.title(long_title, fontsize=12, loc='right', horizontalalignment='right', family='monospace')
+
     if filename is None:
         plt.show()
     else:
