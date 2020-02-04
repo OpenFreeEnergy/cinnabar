@@ -5,7 +5,7 @@ from freeenergyframework import stats
 
 def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
-                 method_name='', target_name='',
+                 method_name='', target_name='',plot_type=rf'$\Delta \Delta$ G',
                  guidelines=True, origins=True,
                  statistics=['RMSE',  'MUE'], filename=None):
     nsamples = len(x)
@@ -61,7 +61,7 @@ def _master_plot(x, y, title='',
     if filename is None:
         plt.show()
     else:
-        plt.savefig(filename)
+        plt.savefig(filename,bbox_inches='tight')
 
 def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None):
     # data
@@ -97,10 +97,12 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
 
     # centralising
     # this should be replaced by providing one experimental result
+    x_data = x_data - np.mean(x_data)
+    y_data = y_data - np.mean(y_data)
 
     _master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
-                 origins=False, statistics=['RMSE','MUE','R2','rho'],
+                 origins=False, statistics=['RMSE','MUE','R2','rho'],plot_type=rf'$\Delta$ G',
                  title=title, method_name=method_name, target_name=target_name, filename=filename)
 
 
