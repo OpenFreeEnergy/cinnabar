@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pylab as plt
 from freeenergyframework import stats
-
+import itertools
 
 def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
