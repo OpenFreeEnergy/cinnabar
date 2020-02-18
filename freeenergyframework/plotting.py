@@ -63,11 +63,14 @@ def _master_plot(x, y, title='',
     else:
         plt.savefig(filename,bbox_inches='tight')
 
-def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None, plotly=False):
+def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None,symmetrise=False, plotly=False):
     # data
     if not map_positive:
         x_data = np.asarray([x.exp_DDG for x in results])
         y_data = np.asarray([x.calc_DDG for x in results])
+    elif symmetrise:
+        x_data = np.asarray([x.exp_DDG for x in results]+[-x.exp_DDG for x in results])
+        y_data = np.asarray([x.calc_DDG for x in results]+[-x.calc_DDG for x in results])
     else:
         x_data = []
         y_data = []
