@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 1000, plot_type='dG'):
     import sklearn.metrics
     import scipy
@@ -60,7 +61,6 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 
             return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
         elif statistic == 'RAE':
             return calc_RAE(y_true_sample, y_pred_sample)
-            return sklearn.metrics.relative_absolute_error(y_true_sample, y_pred_sample)
         else:
             raise Exception("unknown statistic '{}'".format(statistic))
 
