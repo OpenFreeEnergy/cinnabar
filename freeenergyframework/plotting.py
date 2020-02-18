@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
-from freeenergyframework import stats
+from freeenergyframework import stats, plotlying
 import itertools
 
 def _master_plot(x, y, title='',
@@ -63,7 +63,7 @@ def _master_plot(x, y, title='',
     else:
         plt.savefig(filename,bbox_inches='tight')
 
-def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None):
+def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None, plotly=False):
     # data
     if not map_positive:
         x_data = np.asarray([x.exp_DDG for x in results])
@@ -83,12 +83,17 @@ def plot_DDGs(results, method_name='', target_name='', title='', map_positive=Fa
     xerr = np.asarray([x.dexp_DDG for x in results])
     yerr = np.asarray([x.dcalc_DDG for x in results])
 
-    _master_plot(x_data, y_data,
+    if plotly:
+        plotlying._master_plot(x_data, y_data,
+                 xerr=xerr, yerr=yerr, filename=filename, plot_type='ΔΔG',
+                 title=title, method_name=method_name, target_name=target_name)
+    else:
+        _master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr, filename=filename,
                  title=title, method_name=method_name, target_name=target_name)
 
 
-def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
+def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=True):
     # data
     x_data = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_data = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
@@ -100,13 +105,19 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     x_data = x_data - np.mean(x_data)
     y_data = y_data - np.mean(y_data)
 
-    _master_plot(x_data, y_data,
+    if plotly:
+        plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
-                 origins=False, statistics=['RMSE','MUE','R2','rho'],plot_type=rf'$\Delta$ G',
+                 origins=False, statistics=['RMSE','MUE','R2','rho'],plot_type='ΔG',
                  title=title, method_name=method_name, target_name=target_name, filename=filename)
+    else:
+        _master_plot(x_data, y_data,
+                                   xerr=xerr, yerr=yerr,
+                                   origins=False, statistics=['RMSE', 'MUE', 'R2', 'rho'], plot_type=rf'$\Delta$ G',
+                                   title=title, method_name=method_name, target_name=target_name, filename=filename)
 
 
-def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None):
+def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=True):
     x_abs = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_abs = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
     xabserr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
@@ -132,7 +143,13 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
     x_data = np.asarray(x_data)
     y_data = np.asarray(y_data)
 
-    _master_plot(x_data, y_data,
+    if plotly:
+        plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
-                 title=title, method_name=method_name,
+                 title=title, method_name=method_name,  plot_type='ΔΔG',
                  filename=filename, target_name=target_name)
+    else:
+        _master_plot(x_data, y_data,
+                     xerr=xerr, yerr=yerr,
+                     title=title, method_name=method_name,
+                     filename=filename, target_name=target_name)
