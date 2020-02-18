@@ -3,8 +3,7 @@ from freeenergyframework import wrangle, plotting
 
 
 def run_analysis(csv, prefix='out', target_name=''):
-    raw_results = wrangle.read_csv(csv)
-    network = wrangle.FEMap(raw_results)
+    network = wrangle.FEMap(csv)
 
     # this generates the three plots that we need
     network.draw_graph(filename=f'{prefix}-{target_name}-network.png',title=f'{target_name}')

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from freeenergyframework import stats
 
+
 class Result(object):
     def __init__(self, ligandA, ligandB,
                  exp_DDG, exp_dDDG,
@@ -15,15 +16,15 @@ class Result(object):
         self.calc_DDG = float(calc_DDG)
         self.mbar_dDDG = float(mbar_error)
         self.other_dDDG = float(other_error)
-        self.dcalc_DDG = self.mbar_dDDG+self.other_dDDG  # is this definitely always additive?
+        self.dcalc_DDG = self.mbar_dDDG+self.other_dDDG  # HBM - is this definitely always additive?
 
 
 class FEMap(object):
 
-    def __init__(self, results):
-        self.results = results
+    def __init__(self, csv):
+        self.results = read_csv(csv)
         self.graph = nx.DiGraph()
-        self.n_edges = len(results)
+        self.n_edges = len(self.results)
 
         self.generate_graph_from_results()
 
@@ -43,12 +44,11 @@ class FEMap(object):
             if result.dexp_DDG == 0.0:
                 result.dexp_DDG = 0.01
             self.graph.add_edge(self._name_to_id[result.ligandA], self._name_to_id[result.ligandB],
-            exp_DDG=result.exp_DDG, dexp_DDG=result.dexp_DDG,
-            calc_DDG=result.calc_DDG, dcalc_DDG=result.dcalc_DDG)
+                                exp_DDG=result.exp_DDG, dexp_DDG=result.dexp_DDG,
+                                calc_DDG=result.calc_DDG, dcalc_DDG=result.dcalc_DDG)
 
         self.n_ligands = self.graph.number_of_nodes()
         self.degree = self.graph.number_of_edges() / self.n_ligands
-
 
         # check the graph has minimal connectivity
         self.check_weakly_connected()
@@ -92,7 +92,7 @@ class FEMap(object):
 
 def read_csv(filename):
     raw_results = []
-    with open(filename,'r') as f:
+    with open(filename, 'r') as f:
         for line in f:
             if line[0] != '#':
                 raw_results.append(Result(*line.split(',')))
