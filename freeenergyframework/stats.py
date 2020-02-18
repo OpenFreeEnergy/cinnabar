@@ -50,6 +50,13 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap=10
             MAD = np.sum([np.abs(mean-i) for i in y_true_sample]) / float(len(y_true_sample))
             return MAE / MAD
 
+        def calc_RRMSE(y_true_sample, y_pred_sample):
+            rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
+            mean_exp = np.mean(y_true_sample)
+            mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(len(y_true_sample))
+            rrmse = np.sqrt(rmse ** 2 / mds)
+            return rrmse
+
         if statistic == 'RMSE':
             return np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
         elif statistic == 'MUE':
@@ -61,6 +68,8 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap=10
             return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
         elif statistic == 'RAE':
             return calc_RAE(y_true_sample, y_pred_sample)
+        elif statistic == 'KTAU':
+            return scipy.stats.kendalltau(y_true_sample, y_pred_sample)[0]
         else:
             raise Exception("unknown statistic '{}'".format(statistic))
 
