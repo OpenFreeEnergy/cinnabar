@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 1000, plot_type='dG'):
+def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap=1000, plot_type='dG'):
     import sklearn.metrics
     import scipy
     """Compute mean and confidence intervals of specified statistic.
