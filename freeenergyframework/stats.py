@@ -1,6 +1,6 @@
 import numpy as np
 
-def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 1000, plot_type='dG'):
+def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, statistic='RMSE', nbootstrap = 1000, plot_type='dG'):
     import sklearn.metrics
     import scipy
     """Compute mean and confidence intervals of specified statistic.
@@ -11,6 +11,10 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 
         True values
     y_pred : ndarray with shape (N,)
         Predicted values
+    dy_true : ndarray with shape (N,) or None
+        Errors of true values. If None, the values are assumed to have no errors
+    dy_pred : ndarray with shape (N,) or None
+        Errors of predicted values. If None, the values are assumed to have no errors
     ci : float, optional, default=0.95
         Interval for CI
     statistic : str
@@ -69,15 +73,27 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 
         N = len(x)
         return np.array( [ (x[i] - x[j]) for i in range(N) for j in range(N) if (i != j) ] )
 
+    if dy_true is None:
+        dy_true = np.zeros_like(y_true)
+    if dy_pred is None:
+        dy_pred = np.zeros_like(y_pred)
     assert len(y_true) == len(y_pred)
+    assert len(y_true) == len(dy_true)
+    assert len(y_true) == len(dy_pred)
     sample_size = len(y_true)
     s_n = np.zeros([nbootstrap], np.float64) # s_n[n] is the statistic computed for bootstrap sample n
     for replicate in range(nbootstrap):
-        indices = np.random.choice(np.arange(sample_size), size=[sample_size])
+        y_true_sample = np.zeros_like(y_true)
+        y_pred_sample = np.zeros_like(y_pred)
         if plot_type == 'dG':
-            y_true_sample, y_pred_sample = y_true[indices], y_pred[indices]
-        elif plot_type == 'ddG':
-            y_true_sample, y_pred_sample = unique_differences(y_true[indices]), unique_differences(y_pred[indices])
+            for i in np.random.choice(np.arange(sample_size), size=[sample_size], replace=True):
+                y_true_sample[i] = np.random.normal(loc=y_true[i], scale=np.fabs(dy_true[i]), size=1)
+                y_pred_sample[i] = np.random.normal(loc=y_pred[i], scale=np.fabs(dy_pred[i]), size=1)
+        if plot_type == 'ddG':
+            for i in np.random.choice(np.arange(sample_size), size=[sample_size], replace=True):
+                y_true_sample[i] = np.random.normal(loc=y_true[i], scale=np.fabs(dy_true[i]), size=1)
+                y_pred_sample[i] = np.random.normal(loc=y_pred[i], scale=np.fabs(dy_pred[i]), size=1)
+            y_true_sample, y_pred_sample = unique_differences(y_true_sample), unique_differences(y_pred_sample)
         s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
 
     rmse_stats = dict()
