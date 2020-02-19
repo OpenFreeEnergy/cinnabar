@@ -8,6 +8,39 @@ def _master_plot(x, y, title='',
                  method_name='', target_name='',plot_type=rf'$\Delta \Delta$ G',
                  guidelines=True, origins=True,
                  statistics=['RMSE',  'MUE'], filename=None):
+    """ Handles the aesthetics of the plots in one place.
+
+    Parameters
+    ----------
+    x : list
+        Values to plot on the x axis
+    y : list
+        Values to plot on the y axis
+    title : string, default = ''
+        Title for the plot
+    xerr : list , default = None
+        Error bars for x values
+    yerr : list , default = None
+        Error bars for y values
+    method_name : string, optional
+        name of method associated with results, e.g. 'perses'
+    target_name : string, optional
+        name of system for results, e.g. 'Thrombin'
+    plot_type : string, default = rf'$\Delta \Delta$ G'
+        String of data being plotted for axis labels
+    guidelines : bool, default = True
+        toggles plotting of grey 0.5 and 1 kcal/mol error zone
+    origins : bool, default = True
+        toggles plotting of x and y axis
+    statistics : list(str), default = ['RMSE',  'MUE']
+        list of statistics to calculate and report on the plot
+    filename : str, default = None
+        filename for plot
+
+    Returns
+    -------
+
+    """
     nsamples = len(x)
     # aesthetics
     plt.rcParams['xtick.labelsize'] = 12
@@ -26,13 +59,17 @@ def _master_plot(x, y, title='',
 
     plt.xlim(scale)
     plt.ylim(scale)
-    
+
+    # plots x-axis and y-axis
     if origins:
         plt.plot([0, 0], scale, 'gray')
         plt.plot(scale, [0, 0], 'gray')
+
+    #plots x=y line
     plt.plot(scale, scale, 'k:')
     if guidelines:
         small_dist = 0.5
+        # plots grey region around x=y line
         plt.fill_between(scale, [ax_min - small_dist, ax_max - small_dist],
                          [ax_min + small_dist, ax_max + small_dist],
                          color='grey', alpha=0.2)
@@ -62,8 +99,36 @@ def _master_plot(x, y, title='',
         plt.show()
     else:
         plt.savefig(filename,bbox_inches='tight')
+    return
 
-def plot_DDGs(results, method_name='', target_name='', title='', map_positive=False, filename=None,symmetrise=False, plotly=False):
+
+def plot_DDGs(results, method_name='', target_name='', title='',
+              map_positive=False, filename=None, symmetrise=False):
+    """ Function to plot relative free energies
+
+    Parameters
+    ----------
+    results : nx.DiGraph
+        graph object with relative free energy edges
+    method_name : string, optional
+        name of method associated with results, e.g. 'perses'
+    target_name : string, optional
+        name of system for results, e.g. 'Thrombin'
+    title : string, default = ''
+        Title for the plot
+    map_positive : bool, default=False
+        whether to map all DDGs to the positive x values.
+        this is an aesthetic choice
+    filename : str, default = None
+        filename for plot
+    symmetrise : bool, default = False
+        whether to plot each datapoint twice, both
+        positive and negative
+
+    Returns
+    -------
+
+    """
     # data
     if not map_positive:
         x_data = np.asarray([x.exp_DDG for x in results])
@@ -95,8 +160,31 @@ def plot_DDGs(results, method_name='', target_name='', title='', map_positive=Fa
                  xerr=xerr, yerr=yerr, filename=filename,
                  title=title, method_name=method_name, target_name=target_name)
 
+    return
 
-def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=True):
+
+
+def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
+    """Function to plot absolute free energies.
+
+    Parameters
+    ----------
+    graph : nx.DiGraph
+        graph object with relative free energy edges
+    method_name : string, optional
+        name of method associated with results, e.g. 'perses'
+    target_name : string, optional
+        name of system for results, e.g. 'Thrombin'
+    title : string, default = ''
+        Title for the plot
+    filename : str, default = None
+        filename for plot
+
+    Returns
+    -------
+
+    """
+
     # data
     x_data = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_data = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
@@ -119,8 +207,33 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plo
                                    origins=False, statistics=['RMSE', 'MUE', 'R2', 'rho'], plot_type=rf'$\Delta$ G',
                                    title=title, method_name=method_name, target_name=target_name, filename=filename)
 
+    return
+
 
 def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=True):
+    """Plots relative free energies between all ligands, which is calculated from
+    the differences between all the absolute free energies. This data is different to `plot_DGs`
+
+    Parameters
+    ----------
+    graph : nx.DiGraph
+        graph object with relative free energy edges
+    method_name : string, optional
+        name of method associated with results, e.g. 'perses'
+    target_name : string, optional
+        name of system for results, e.g. 'Thrombin'
+    title : string, default = ''
+        Title for the plot
+    filename : str, default = None
+        filename for plot
+    plotly : bool, default = True
+        whether to use plotly for the plotting
+
+    Returns
+    -------
+
+    """
+
     x_abs = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_abs = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
     xabserr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
@@ -151,6 +264,7 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
                  xerr=xerr, yerr=yerr,
                  title=title, method_name=method_name,  plot_type='ΔΔG',
                  filename=filename, target_name=target_name)
+
     else:
         _master_plot(x_data, y_data,
                      xerr=xerr, yerr=yerr,

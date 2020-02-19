@@ -4,6 +4,7 @@ import numpy as np
 from freeenergyframework import stats
 import pandas as pd
 
+
 class Result(object):
     def __init__(self, ligandA, ligandB,
                  exp_DDG, exp_dDDG,
@@ -16,8 +17,10 @@ class Result(object):
         self.calc_DDG = float(calc_DDG)
         self.mbar_dDDG = float(mbar_error)
         self.other_dDDG = float(other_error)
+
         self.dcalc_DDG = self.mbar_dDDG+self.other_dDDG  # is this definitely always additive?
     def toDF(self):
+      # TODO - can we do the handling of the dataframe in a different way? Or inside the plotting function that needs it?
         return pd.DataFrame({'ligandA': self.ligandA,
                              'ligandB': self.ligandB,
                              'exp_DDG': self.exp_DDG,
@@ -29,13 +32,12 @@ class Result(object):
 
 
 
-
 class FEMap(object):
 
-    def __init__(self, results):
-        self.results = results
+    def __init__(self, csv):
+        self.results = read_csv(csv)
         self.graph = nx.DiGraph()
-        self.n_edges = len(results)
+        self.n_edges = len(self.results)
 
         self.generate_graph_from_results()
 
@@ -55,12 +57,11 @@ class FEMap(object):
             if result.dexp_DDG == 0.0:
                 result.dexp_DDG = 0.01
             self.graph.add_edge(self._name_to_id[result.ligandA], self._name_to_id[result.ligandB],
-            exp_DDG=result.exp_DDG, dexp_DDG=result.dexp_DDG,
-            calc_DDG=result.calc_DDG, dcalc_DDG=result.dcalc_DDG)
+                                exp_DDG=result.exp_DDG, dexp_DDG=result.dexp_DDG,
+                                calc_DDG=result.calc_DDG, dcalc_DDG=result.dcalc_DDG)
 
         self.n_ligands = self.graph.number_of_nodes()
         self.degree = self.graph.number_of_edges() / self.n_ligands
-
 
         # check the graph has minimal connectivity
         self.check_weakly_connected()
@@ -79,14 +80,14 @@ class FEMap(object):
             f_i_exp, C_exp = stats.mle(self.graph, factor='exp_DDG')
             variance = np.diagonal(C_exp)
             for i, (f_i, df_i) in enumerate(zip(f_i_exp, variance**0.5)):
-                self.graph.node[i]['f_i_exp'] = f_i
-                self.graph.node[i]['df_i_exp'] = df_i
+                self.graph.nodes[i]['f_i_exp'] = f_i
+                self.graph.nodes[i]['df_i_exp'] = df_i
 
             f_i_calc, C_calc = stats.mle(self.graph, factor='calc_DDG')
             variance = np.diagonal(C_calc)
             for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
-                self.graph.node[i]['f_i_calc'] = f_i
-                self.graph.node[i]['df_i_calc'] = df_i
+                self.graph.nodes[i]['f_i_calc'] = f_i
+                self.graph.nodes[i]['df_i_calc'] = df_i
 
     def draw_graph(self, title='', filename=None):
         plt.figure(figsize=(10, 10))
@@ -104,7 +105,7 @@ class FEMap(object):
 
 def read_csv(filename):
     raw_results = []
-    with open(filename,'r') as f:
+    with open(filename, 'r') as f:
         for line in f:
             if line[0] != '#':
                 raw_results.append(Result(*line.split(',')))
