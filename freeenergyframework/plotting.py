@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pylab as plt
-from freeenergyframework import stats
+from freeenergyframework import stats, plotlying
+import itertools
 
 def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
@@ -86,7 +87,7 @@ def _master_plot(x, y, title='',
     # stats and title
     statistics_string = ''
     for statistic in statistics:
-        s = stats.bootstrap_statistic(x, y, statistic=statistic)
+        s = stats.bootstrap_statistic(x, y, xerr, yerr, statistic=statistic)
         string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + r"$\mathrm{kcal\,mol^{-^1}}$" + "\n"
         statistics_string += string
 
@@ -98,7 +99,6 @@ def _master_plot(x, y, title='',
         plt.show()
     else:
         plt.savefig(filename,bbox_inches='tight')
-
     return
 
 
@@ -151,11 +151,17 @@ def plot_DDGs(results, method_name='', target_name='', title='',
     xerr = np.asarray([x.dexp_DDG for x in results])
     yerr = np.asarray([x.dcalc_DDG for x in results])
 
-    _master_plot(x_data, y_data,
+    if plotly:
+        plotlying._master_plot(x_data, y_data,
+                 xerr=xerr, yerr=yerr, filename=filename, plot_type='ΔΔG',
+                 title=title, method_name=method_name, target_name=target_name)
+    else:
+        _master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr, filename=filename,
                  title=title, method_name=method_name, target_name=target_name)
 
     return
+
 
 
 def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
@@ -178,6 +184,7 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     -------
 
     """
+
     # data
     x_data = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_data = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
@@ -189,15 +196,21 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     x_data = x_data - np.mean(x_data)
     y_data = y_data - np.mean(y_data)
 
-    _master_plot(x_data, y_data,
+    if plotly:
+        plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
-                 origins=False, statistics=['RMSE','MUE','R2','rho'],plot_type=rf'$\Delta$ G',
+                 origins=False, statistics=['RMSE','MUE','R2','rho'],plot_type='ΔG',
                  title=title, method_name=method_name, target_name=target_name, filename=filename)
+    else:
+        _master_plot(x_data, y_data,
+                                   xerr=xerr, yerr=yerr,
+                                   origins=False, statistics=['RMSE', 'MUE', 'R2', 'rho'], plot_type=rf'$\Delta$ G',
+                                   title=title, method_name=method_name, target_name=target_name, filename=filename)
 
     return
 
 
-def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None):
+def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=True):
     """Plots relative free energies between all ligands, which is calculated from
     the differences between all the absolute free energies. This data is different to `plot_DGs`
 
@@ -213,11 +226,14 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
         Title for the plot
     filename : str, default = None
         filename for plot
+    plotly : bool, default = True
+        whether to use plotly for the plotting
 
     Returns
     -------
 
     """
+
     x_abs = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_abs = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
     xabserr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
@@ -243,8 +259,14 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
     x_data = np.asarray(x_data)
     y_data = np.asarray(y_data)
 
-    _master_plot(x_data, y_data,
+    if plotly:
+        plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
-                 title=title, method_name=method_name,
+                 title=title, method_name=method_name,  plot_type='ΔΔG',
                  filename=filename, target_name=target_name)
-    return
+
+    else:
+        _master_plot(x_data, y_data,
+                     xerr=xerr, yerr=yerr,
+                     title=title, method_name=method_name,
+                     filename=filename, target_name=target_name)
