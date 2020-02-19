@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 from freeenergyframework import stats
+import pandas as pd
 
 
 class Result(object):
@@ -16,7 +17,19 @@ class Result(object):
         self.calc_DDG = float(calc_DDG)
         self.mbar_dDDG = float(mbar_error)
         self.other_dDDG = float(other_error)
-        self.dcalc_DDG = self.mbar_dDDG+self.other_dDDG  # HBM - is this definitely always additive?
+
+        self.dcalc_DDG = self.mbar_dDDG+self.other_dDDG  # is this definitely always additive?
+    def toDF(self):
+      # TODO - can we do the handling of the dataframe in a different way? Or inside the plotting function that needs it?
+        return pd.DataFrame({'ligandA': self.ligandA,
+                             'ligandB': self.ligandB,
+                             'exp_DDG': self.exp_DDG,
+                             'exp_dDDG': self.dexp_DDG,
+                             'calc_DDG': self.calc_DDG,
+                             'mbar_dDDG': self.mbar_dDDG,
+                             'other_dDDG': self.other_dDDG,
+                             'dcalc_DDG': self.dcalc_DDG}, index=[f'{self.ligandA}_{self.ligandB}'])
+
 
 
 class FEMap(object):
