@@ -50,7 +50,7 @@ def _master_plot(x, y, title='',
     # stats and title
     statistics_string = ''
     for statistic in statistics:
-        s = stats.bootstrap_statistic(x, y, statistic=statistic)
+        s = stats.bootstrap_statistic(x, y, xerr, yerr, statistic=statistic)
         string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + r"$\mathrm{kcal\,mol^{-^1}}$" + "\n"
         statistics_string += string
 
