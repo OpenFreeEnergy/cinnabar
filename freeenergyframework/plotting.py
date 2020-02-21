@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
-from freeenergyframework import stats, plotlying
-import itertools
+from freeenergyframework import stats
 
 def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
@@ -103,7 +102,7 @@ def _master_plot(x, y, title='',
 
 
 def plot_DDGs(results, method_name='', target_name='', title='',
-              map_positive=False, filename=None, symmetrise=False):
+              map_positive=False, filename=None, symmetrise=False,plotly=False):
     """ Function to plot relative free energies
 
     Parameters
@@ -152,6 +151,7 @@ def plot_DDGs(results, method_name='', target_name='', title='',
     yerr = np.asarray([x.dcalc_DDG for x in results])
 
     if plotly:
+        from freeenergyframework import plotlying
         plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr, filename=filename, plot_type='ΔΔG',
                  title=title, method_name=method_name, target_name=target_name)
@@ -164,7 +164,7 @@ def plot_DDGs(results, method_name='', target_name='', title='',
 
 
 
-def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
+def plot_DGs(graph, method_name='', target_name='', title='', filename=None,plotly=False):
     """Function to plot absolute free energies.
 
     Parameters
@@ -210,7 +210,7 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     return
 
 
-def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=True):
+def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=False):
     """Plots relative free energies between all ligands, which is calculated from
     the differences between all the absolute free energies. This data is different to `plot_DGs`
 
@@ -233,6 +233,7 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
     -------
 
     """
+    import itertools
 
     x_abs = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
     y_abs = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
