@@ -38,7 +38,7 @@ class FEMap(object):
         self.results = read_csv(csv)
         self.graph = nx.DiGraph()
         self.n_edges = len(self.results)
-
+        self.weakly_connected = False
         self.generate_graph_from_results()
 
         # check the graph has minimal connectivity
@@ -64,16 +64,17 @@ class FEMap(object):
         self.degree = self.graph.number_of_edges() / self.n_ligands
 
         # check the graph has minimal connectivity
-        self.check_weakly_connected()
+        self.weakly_connected = FEMap.check_weakly_connected(self.graph)
         if not self.weakly_connected:
             print('Graph is not connected enough to compute absolute values')
         else:
             self.generate_absolute_values()
 
-    def check_weakly_connected(self):
-        undirected_graph = self.graph.to_undirected()
-        self.weakly_connected = nx.is_connected(undirected_graph)
-        return nx.is_connected(undirected_graph)
+    @staticmethod
+    def check_weakly_connected(digraph):
+        undirected_graph = digraph.to_undirected()
+        weakly_connected = nx.is_connected(undirected_graph)
+        return weakly_connected 
 
     def generate_absolute_values(self):
         if self.weakly_connected:
