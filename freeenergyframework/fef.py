@@ -15,10 +15,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Get input')
     parser.add_argument('csv', type=str,
                     help='Path to the results csv file')
-    parser.add_argument('--plot', default=['all'], choices=['all', 'ddg', 'dg', 'all ddg', 'network'], nargs='+',
+    parser.add_argument('--plot', default=['all'], choices=['all', 'ddg', 'dg', 'all ddg', 'network', 'none'], nargs='+',
                     help='Which plots to generate')
-    parser.add_argument('--stats', default='all',
-                    help='Which statistics to generate')
+    parser.add_argument('--stats', default=True,
+                    help='report statistics')
+    parser.add_argument('--foobar', action='store_true')
     parser.add_argument('--plotly', action='store_true')
     parser.add_argument('--method', type=str, default='',
                         help='Name of the method, used for labelling')
@@ -36,6 +37,8 @@ if __name__ == '__main__':
 
     if args.plot == ['all']:
         args.plot = ['ddg', 'dg', 'all ddg', 'network']
+    elif args.plot == ['none']:
+        args.plot = []
 
     network = wrangle.FEMap(args.csv)
     # this generates the three plots that we need
@@ -46,4 +49,4 @@ if __name__ == '__main__':
     if 'dg' in args.plot:
         plotting.plot_DGs(network.graph, title=args.title, filename=f'{args.prefix}DGs.png')
     if 'all ddg' in args.plot:
-        plotting.plot_all_DDGs(network.graph, title=args.title, filename=f'{args.prefix}DGs.png')
+        plotting.plot_all_DDGs(network.graph, title=args.title, filename=f'{args.prefix}allDDGs.png')
