@@ -6,7 +6,8 @@ def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
                  method_name='', target_name='',plot_type=rf'$\Delta \Delta$ G',
                  guidelines=True, origins=True,
-                 statistics=['RMSE',  'MUE'], filename=None):
+                 statistics=['RMSE',  'MUE'], filename=None,
+                 xlabel=None, ylabel=None):
     """ Handles the aesthetics of the plots in one place.
 
     Parameters
@@ -35,7 +36,10 @@ def _master_plot(x, y, title='',
         list of statistics to calculate and report on the plot
     filename : str, default = None
         filename for plot
-
+    xlabel : str, default = None
+        label for x axis
+    ylabel : str, default = None
+        label for y axis
     Returns
     -------
 
@@ -49,8 +53,12 @@ def _master_plot(x, y, title='',
     plt.figure(figsize=(6, 6))
     plt.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
 
-    plt.xlabel(f'Experimental {plot_type} ' + r'$[\mathrm{kcal\,mol^{-1}}]$')
-    plt.ylabel(f'Calculated {plot_type} {method_name} ' + r'$[\mathrm{kcal\,mol^{-1}}]$')
+    if xlabel is None:
+        xlabel = f'Experimental {plot_type} /' + r'$\mathrm{kcal\,mol^{-1}}$'
+    if ylabel is None:
+        ylabel = f'Calculated {plot_type} {method_name} /' + r'$\mathrm{kcal\,mol^{-1}}$'
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
 
     ax_min = min(min(x), min(y)) - 0.5
     ax_max = max(max(x), max(y)) + 0.5
@@ -64,9 +72,9 @@ def _master_plot(x, y, title='',
         plt.plot([0, 0], scale, 'gray')
         plt.plot(scale, [0, 0], 'gray')
 
-    #plots x=y line
-    plt.plot(scale, scale, 'k:')
     if guidelines:
+        #plots x=y line
+        plt.plot(scale, scale, 'k:')
         small_dist = 0.5
         # plots grey region around x=y line
         plt.fill_between(scale, [ax_min - small_dist, ax_max - small_dist],
@@ -87,7 +95,7 @@ def _master_plot(x, y, title='',
     statistics_string = ''
     for statistic in statistics:
         s = stats.bootstrap_statistic(x, y, xerr, yerr, statistic=statistic)
-        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + r"$\mathrm{kcal\,mol^{-^1}}$" + "\n"
+        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] \n"
         statistics_string += string
 
     long_title = f'{title} \n {target_name} (N = {nsamples}) \n {statistics_string}'
@@ -184,6 +192,10 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None,plot
     -------
 
     """
+    from freeenergyframework.wrangle import FEMap
+    if not FEMap.check_weakly_connected(graph):
+        print(f'Network must be weakly connected to plot all DDGs from MLE')
+        return
 
     # data
     x_data = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
@@ -233,6 +245,14 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
     -------
 
     """
+
+    
+    from freeenenergyframework.wrangle import FEMap
+
+    if not FEMap.check_weakly_connected(graph):
+        print(f'Network must be weakly connected to plot all DDGs from MLE')
+        return
+
     import itertools
 
     x_abs = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
