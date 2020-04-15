@@ -88,7 +88,7 @@ def _master_plot(x, y, title='',
     statistics_string = ''
     for statistic in statistics:
         s = stats.bootstrap_statistic(x, y, xerr, yerr, statistic=statistic)
-        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + r"$\mathrm{kcal\,mol^{-^1}}$" + "\n"
+        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
         statistics_string += string
 
     long_title = f'{title} \n {target_name} (N = {nsamples}) \n {statistics_string}'
@@ -103,7 +103,7 @@ def _master_plot(x, y, title='',
 
 
 def plot_DDGs(results, method_name='', target_name='', title='',
-              map_positive=False, filename=None, symmetrise=False):
+              map_positive=False, filename=None, symmetrise=False, plotly=False):
     """ Function to plot relative free energies
 
     Parameters
@@ -164,7 +164,7 @@ def plot_DDGs(results, method_name='', target_name='', title='',
 
 
 
-def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
+def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=False):
     """Function to plot absolute free energies.
 
     Parameters
@@ -210,7 +210,7 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None):
     return
 
 
-def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=True):
+def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=False):
     """Plots relative free energies between all ligands, which is calculated from
     the differences between all the absolute free energies. This data is different to `plot_DGs`
 
