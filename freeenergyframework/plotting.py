@@ -88,7 +88,7 @@ def _master_plot(x, y, title='',
     statistics_string = ''
     for statistic in statistics:
         s = stats.bootstrap_statistic(x, y, xerr, yerr, statistic=statistic)
-        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + r"$\mathrm{kcal\,mol^{-^1}}$" + "\n"
+        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
         statistics_string += string
 
     long_title = f'{title} \n {target_name} (N = {nsamples}) \n {statistics_string}'

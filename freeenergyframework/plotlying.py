@@ -200,7 +200,7 @@ def _master_plot(x, y, title='',
     for statistic in statistics:
         s = stats.bootstrap_statistic(x, y, statistic=statistic)
         string.append(
-            f"{statistic + ':':5s}{s['mle']:5.2f} [95%: {s['low']:5.2f}, {s['high']:5.2f}] kcal mol<sup>-1</sup>")
+            f"{statistic + ':':5s}{s['mle']:5.2f} [95%: {s['low']:5.2f}, {s['high']:5.2f}]")
     statistics_string = '<br>'.join(string)
 
     long_title = f'{title}<br>{target_name} (N = {nsamples})<br>{statistics_string}'
