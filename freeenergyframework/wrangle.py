@@ -5,14 +5,11 @@ from freeenergyframework import stats
 import pandas as pd
 
 
-class Result(object):
+class RelativeResult(object):
     def __init__(self, ligandA, ligandB,
-                 exp_DDG, exp_dDDG,
                  calc_DDG, mbar_error, other_error):
         self.ligandA = str(ligandA).strip()
         self.ligandB = str(ligandB).strip()
-        self.exp_DDG = float(exp_DDG)
-        self.dexp_DDG = float(exp_dDDG)
         # scope for an experimental dDDG?
         self.calc_DDG = float(calc_DDG)
         self.mbar_dDDG = float(mbar_error)
@@ -23,25 +20,24 @@ class Result(object):
       # TODO - can we do the handling of the dataframe in a different way? Or inside the plotting function that needs it?
         return pd.DataFrame({'ligandA': self.ligandA,
                              'ligandB': self.ligandB,
-                             'exp_DDG': self.exp_DDG,
-                             'exp_dDDG': self.dexp_DDG,
                              'calc_DDG': self.calc_DDG,
                              'mbar_dDDG': self.mbar_dDDG,
                              'other_dDDG': self.other_dDDG,
                              'dcalc_DDG': self.dcalc_DDG}, index=[f'{self.ligandA}_{self.ligandB}'])
 
-
+class ExperimentalResult(object):
+    def __init__(self, ligand, expt_DDG, expt_dDDG):
+        self.ligand = ligand
+        self.DDG = expt_DDG
+        self.dDDG = expt_dDDG
 
 class FEMap(object):
 
     def __init__(self, csv):
-        self.results = read_csv(csv)
         self.graph = nx.DiGraph()
         self.n_edges = len(self.results)
 
         self.generate_graph_from_results()
-
-        # check the graph has minimal connectivity
 
     def generate_graph_from_results(self):
         self._name_to_id = {}
@@ -104,9 +100,24 @@ class FEMap(object):
 
 
 def read_csv(filename):
-    raw_results = []
+    raw_results = {'Experimental': [], 'Calculated': []}
+    expt_block = False
+    calc_block = False
     with open(filename, 'r') as f:
         for line in f:
-            if line[0] != '#':
-                raw_results.append(Result(*line.split(',')))
+            print(line)
+            if 'Experiment' in line:
+                expt_block = True
+                print('Doing expt block')
+            if 'Calculate' in line or 'Relative' in line:
+                expt_block = False
+                calc_block = True
+            print(expt_block)
+            print(len(line.split(',')))
+            if expt_block and len(line.split(',')) == 3 and line[0] != '#':
+                expt = ExperimentalResult(*line.split(','))
+                raw_results['Experimental'].append(expt)
+            if calc_block and len(line.split(',')) == 5 and line[0] != '#':
+                calc = RelativeResult(*line.split(','))
+                raw_results['Calculated'].append(calc)
     return raw_results
