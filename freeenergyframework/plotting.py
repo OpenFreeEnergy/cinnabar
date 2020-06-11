@@ -114,13 +114,13 @@ def _master_plot(x, y, title='',
     return f
 
 
-def plot_DDGs(results, method_name='', target_name='', title='',
-              map_positive=False, filename=None, symmetrise=False, plotly=False):
+def plot_DDGs(graph, method_name='', target_name='', title='',
+              map_positive=False, filename=None, symmetrise=False, plotly=False, **kwargs):
     """ Function to plot relative free energies
 
     Parameters
     ----------
-    results : nx.DiGraph
+    graph : nx.DiGraph
         graph object with relative free energy edges
     method_name : string, optional
         name of method associated with results, e.g. 'perses'
@@ -141,19 +141,20 @@ def plot_DDGs(results, method_name='', target_name='', title='',
     -------
 
     """
+
+    assert int(symmetrise) + int(map_positive) != 2, 'Symmetrise and map_positive cannot both be True in the same plot'
+
     # data
-    x = [x[2]['exp_DDG'] for x in results.edges(data=True)]
-    y = [x[2]['calc_DDG'] for x in results.edges(data=True)]
-    if not map_positive:
-        x_data = np.asarray(x)
-        y_data = np.asarray(y)
-    elif symmetrise:
-        x_data = np.asarray(x + [-i for i in x])
-        y_data = np.asarray(y + [-i for i in y])
-    else:
+    x = [x[2]['exp_DDG'] for x in graph.edges(data=True)]
+    y = [x[2]['calc_DDG'] for x in graph.edges(data=True)]
+
+    if symmetrise:
+        x_data = np.append(x, [-i for i in x])
+        y_data = np.append(y, [-i for i in y])
+    elif map_positive:
         x_data = []
         y_data = []
-        for i,j in zip(x,y):
+        for i, j in zip(x, y):
             if i < 0:
                 x_data.append(-i)
                 y_data.append(-j)
@@ -162,22 +163,29 @@ def plot_DDGs(results, method_name='', target_name='', title='',
                 y_data.append(j)
         x_data = np.asarray(x_data)
         y_data = np.asarray(y_data)
-    xerr = np.asarray([x[2]['exp_dDDG'] for x in results.edges(data=True)])
-    yerr = np.asarray([x[2]['calc_dDDG'] for x in results.edges(data=True)])
+    else:
+        x_data = np.asarray(x)
+        y_data = np.asarray(y)
+
+    xerr = np.asarray([x[2]['exp_dDDG'] for x in graph.edges(data=True)])
+    yerr = np.asarray([x[2]['calc_dDDG'] for x in graph.edges(data=True)])
+    if symmetrise:
+        xerr = np.append(xerr, xerr)
+        yerr = np.append(yerr, yerr)
 
     if plotly:
         plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr, filename=filename, plot_type='ΔΔG',
-                 title=title, method_name=method_name, target_name=target_name)
+                 title=title, method_name=method_name, target_name=target_name, **kwargs)
     else:
         _master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr, filename=filename,
-                 title=title, method_name=method_name, target_name=target_name)
+                 title=title, method_name=method_name, target_name=target_name, **kwargs)
 
     return
 
 
-def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=False):
+def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=False, **kwargs):
     """Function to plot absolute free energies.
 
     Parameters
@@ -213,17 +221,17 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plo
         plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
                  origins=False, statistics=['RMSE','MUE','R2','rho'],plot_type='ΔG',
-                 title=title, method_name=method_name, target_name=target_name, filename=filename)
+                 title=title, method_name=method_name, target_name=target_name, filename=filename, **kwargs)
     else:
         _master_plot(x_data, y_data,
                                    xerr=xerr, yerr=yerr,
                                    origins=False, statistics=['RMSE', 'MUE', 'R2', 'rho'], quantity=rf'$\Delta$ G',
-                                   title=title, method_name=method_name, target_name=target_name, filename=filename)
+                                   title=title, method_name=method_name, target_name=target_name, filename=filename, **kwargs)
 
     return
 
 
-def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=False):
+def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None, plotly=False, **kwargs):
     """Plots relative free energies between all ligands, which is calculated from
     the differences between all the absolute free energies. This data is different to `plot_DGs`
 
@@ -276,10 +284,10 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
         plotlying._master_plot(x_data, y_data,
                  xerr=xerr, yerr=yerr,
                  title=title, method_name=method_name,  plot_type='ΔΔG',
-                 filename=filename, target_name=target_name)
+                 filename=filename, target_name=target_name, **kwargs)
 
     else:
         _master_plot(x_data, y_data,
                      xerr=xerr, yerr=yerr,
                      title=title, method_name=method_name,
-                     filename=filename, target_name=target_name)
+                     filename=filename, target_name=target_name, **kwargs)

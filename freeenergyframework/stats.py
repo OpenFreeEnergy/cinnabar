@@ -43,7 +43,7 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
         y_pred : ndarray with shape (N,)
             Predicted values
         statistic : str
-            Statistic, one of ['RMSE', 'MUE', 'R2', 'rho']
+            Statistic, one of ['RMSE', 'MUE', 'R2', 'rho','RAE','KTAU']
 
         """
 
@@ -79,7 +79,7 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
     def unique_differences(x):
         """Compute all unique differences"""
         N = len(x)
-        return np.array( [ (x[i] - x[j]) for i in range(N) for j in range(N) if (i != j) ] )
+        return np.array([(x[i] - x[j]) for i in range(N) for j in range(N) if (i != j)])
 
     if dy_true is None:
         dy_true = np.zeros_like(y_true)
@@ -93,22 +93,13 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
     for replicate in range(nbootstrap):
         y_true_sample = np.zeros_like(y_true)
         y_pred_sample = np.zeros_like(y_pred)
-        if plot_type == 'dG':
-            for i in np.random.choice(np.arange(sample_size), size=[sample_size], replace=True):
-                y_true_sample[i] = np.random.normal(loc=y_true[i], scale=np.fabs(dy_true[i]), size=1)
-                y_pred_sample[i] = np.random.normal(loc=y_pred[i], scale=np.fabs(dy_pred[i]), size=1)
-        if plot_type == 'ddG':
-            for i in np.random.choice(np.arange(sample_size), size=[sample_size], replace=True):
-                y_true_sample[i] = np.random.normal(loc=y_true[i], scale=np.fabs(dy_true[i]), size=1)
-                y_pred_sample[i] = np.random.normal(loc=y_pred[i], scale=np.fabs(dy_pred[i]), size=1)
-            y_true_sample, y_pred_sample = unique_differences(y_true_sample), unique_differences(y_pred_sample)
+        for i,j in enumerate(np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)):
+            y_true_sample[i] = np.random.normal(loc=y_true[j], scale=np.fabs(dy_true[j]), size=1)
+            y_pred_sample[i] = np.random.normal(loc=y_pred[j], scale=np.fabs(dy_pred[j]), size=1)
         s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
 
     rmse_stats = dict()
-    if plot_type == 'dG':
-        rmse_stats['mle'] = compute_statistic(y_true, y_pred, statistic)
-    elif plot_type == 'ddG':
-        rmse_stats['mle'] = compute_statistic(unique_differences(y_true), unique_differences(y_pred), statistic)
+    rmse_stats['mle'] = compute_statistic(y_true, y_pred, statistic)
     rmse_stats['stderr'] = np.std(s_n)
     rmse_stats['mean'] = np.mean(s_n)
     # TODO: Is there a canned method to do this?
