@@ -22,7 +22,7 @@ affiliations:
    index: 2
 date: 11 June 2020
 bibliography: paper.bib
-
+---
 
 # Summary
 
