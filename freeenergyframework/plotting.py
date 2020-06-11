@@ -3,10 +3,12 @@ import matplotlib.pylab as plt
 from freeenergyframework import stats, plotlying
 import itertools
 
+
 def _master_plot(x, y, title='',
                  xerr=None, yerr=None,
-                 method_name='', target_name='',plot_type=rf'$\Delta \Delta$ G',
-                 guidelines=True, origins=True,
+                 method_name='', target_name='', quantity=rf'$\Delta \Delta$ G',
+                 xlabel=f'Experimental', ylabel=f'Calculated', units=r'$\mathrm{kcal\,mol^{-1}}$',
+                 guidelines=True, origins=True, color=None,
                  statistics=['RMSE',  'MUE'], filename=None):
     """ Handles the aesthetics of the plots in one place.
 
@@ -26,12 +28,20 @@ def _master_plot(x, y, title='',
         name of method associated with results, e.g. 'perses'
     target_name : string, optional
         name of system for results, e.g. 'Thrombin'
-    plot_type : string, default = rf'$\Delta \Delta$ G'
-        String of data being plotted for axis labels
+    quantity : str, default = '$\Delta \Delta$ G'
+        metric that is being plotted
+    xlabel : str, default = 'Experimental'
+        label for xaxis
+    ylabel : str, default = 'Calculated'
+        label for yaxis
+    units : str, default = r'$\mathrm{kcal\,mol^{-1}}$'
+        string value of units to label axis
     guidelines : bool, default = True
         toggles plotting of grey 0.5 and 1 kcal/mol error zone
     origins : bool, default = True
         toggles plotting of x and y axis
+    color : str, default = None
+        if None, will be coloured according to distance from unity
     statistics : list(str), default = ['RMSE',  'MUE']
         list of statistics to calculate and report on the plot
     filename : str, default = None
@@ -47,11 +57,11 @@ def _master_plot(x, y, title='',
     plt.rcParams['ytick.labelsize'] = 12
     plt.rcParams['font.size'] = 12
 
-    plt.figure(figsize=(6, 6))
+    f = plt.figure(figsize=(6, 6))
     plt.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
 
-    plt.xlabel(f'Experimental {plot_type} ' + r'$[\mathrm{kcal\,mol^{-1}}]$')
-    plt.ylabel(f'Calculated {plot_type} {method_name} ' + r'$[\mathrm{kcal\,mol^{-1}}]$')
+    plt.xlabel(f'{xlabel} {quantity} / '+units)
+    plt.ylabel(f'{ylabel} {quantity} / '+units)
 
     ax_min = min(min(x), min(y)) - 0.5
     ax_max = max(max(x), max(y)) + 0.5
@@ -65,7 +75,7 @@ def _master_plot(x, y, title='',
         plt.plot([0, 0], scale, 'gray')
         plt.plot(scale, [0, 0], 'gray')
 
-    #plots x=y line
+    # plots x=y line
     plt.plot(scale, scale, 'k:')
     if guidelines:
         small_dist = 0.5
@@ -78,11 +88,13 @@ def _master_plot(x, y, title='',
                          color='grey', alpha=0.2)
     # actual plotting
     cm = plt.get_cmap('coolwarm')
-    clr = np.abs(x-y)
-    # 2.372 kcal / mol = 4 RT
-    clr = cm(clr / 2.372)
+
+    if color is None:
+        color = np.abs(x-y)
+        # 2.372 kcal / mol = 4 RT
+        color = cm(color / 2.372)
     plt.errorbar(x, y, xerr=xerr, yerr=yerr, color='gray', linewidth=0., elinewidth=2., zorder=1)
-    plt.scatter(x, y,color=clr, s=10, marker='o', zorder=2)
+    plt.scatter(x, y, color=color, s=10, marker='o', zorder=2)
 
     # stats and title
     statistics_string = ''
@@ -98,8 +110,8 @@ def _master_plot(x, y, title='',
     if filename is None:
         plt.show()
     else:
-        plt.savefig(filename,bbox_inches='tight')
-    return
+        plt.savefig(filename, bbox_inches='tight')
+    return f
 
 
 def plot_DDGs(results, method_name='', target_name='', title='',
@@ -130,16 +142,18 @@ def plot_DDGs(results, method_name='', target_name='', title='',
 
     """
     # data
+    x = [x[2]['exp_DDG'] for x in results.edges(data=True)]
+    y = [x[2]['calc_DDG'] for x in results.edges(data=True)]
     if not map_positive:
-        x_data = np.asarray([x.exp_DDG for x in results])
-        y_data = np.asarray([x.calc_DDG for x in results])
+        x_data = np.asarray(x)
+        y_data = np.asarray(y)
     elif symmetrise:
-        x_data = np.asarray([x.exp_DDG for x in results]+[-x.exp_DDG for x in results])
-        y_data = np.asarray([x.calc_DDG for x in results]+[-x.calc_DDG for x in results])
+        x_data = np.asarray(x + [-i for i in x])
+        y_data = np.asarray(y + [-i for i in y])
     else:
         x_data = []
         y_data = []
-        for i,j in zip([x.exp_DDG for x in results],[x.calc_DDG for x in results]):
+        for i,j in zip(x,y):
             if i < 0:
                 x_data.append(-i)
                 y_data.append(-j)
@@ -148,8 +162,8 @@ def plot_DDGs(results, method_name='', target_name='', title='',
                 y_data.append(j)
         x_data = np.asarray(x_data)
         y_data = np.asarray(y_data)
-    xerr = np.asarray([x.dexp_DDG for x in results])
-    yerr = np.asarray([x.dcalc_DDG for x in results])
+    xerr = np.asarray([x[2]['exp_dDDG'] for x in results.edges(data=True)])
+    yerr = np.asarray([x[2]['calc_dDDG'] for x in results.edges(data=True)])
 
     if plotly:
         plotlying._master_plot(x_data, y_data,
@@ -161,7 +175,6 @@ def plot_DDGs(results, method_name='', target_name='', title='',
                  title=title, method_name=method_name, target_name=target_name)
 
     return
-
 
 
 def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=False):
@@ -186,10 +199,10 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plo
     """
 
     # data
-    x_data = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
-    y_data = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
-    xerr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
-    yerr = np.asarray([node[1]['df_i_calc'] for node in graph.nodes(data=True)])
+    x_data = np.asarray([node[1]['exp_DG'] for node in graph.nodes(data=True)])
+    y_data = np.asarray([node[1]['calc_DG'] for node in graph.nodes(data=True)])
+    xerr = np.asarray([node[1]['exp_dDG'] for node in graph.nodes(data=True)])
+    yerr = np.asarray([node[1]['calc_dDG'] for node in graph.nodes(data=True)])
 
     # centralising
     # this should be replaced by providing one experimental result
@@ -204,7 +217,7 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plo
     else:
         _master_plot(x_data, y_data,
                                    xerr=xerr, yerr=yerr,
-                                   origins=False, statistics=['RMSE', 'MUE', 'R2', 'rho'], plot_type=rf'$\Delta$ G',
+                                   origins=False, statistics=['RMSE', 'MUE', 'R2', 'rho'], quantity=rf'$\Delta$ G',
                                    title=title, method_name=method_name, target_name=target_name, filename=filename)
 
     return
@@ -234,10 +247,10 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
 
     """
 
-    x_abs = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
-    y_abs = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
-    xabserr = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
-    yabserr = np.asarray([node[1]['df_i_calc'] for node in graph.nodes(data=True)])
+    x_abs = np.asarray([node[1]['exp_DG'] for node in graph.nodes(data=True)])
+    y_abs = np.asarray([node[1]['calc_DG'] for node in graph.nodes(data=True)])
+    xabserr = np.asarray([node[1]['exp_dDG'] for node in graph.nodes(data=True)])
+    yabserr = np.asarray([node[1]['calc_dDG'] for node in graph.nodes(data=True)])
     # do all to plot_all
     x_data = []
     y_data = []
