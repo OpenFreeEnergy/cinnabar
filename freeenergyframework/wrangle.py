@@ -15,7 +15,7 @@ class RelativeResult(object):
         self.mbar_dDDG = float(mbar_error)
         self.other_dDDG = float(other_error)
 
-        self.dcalc_DDG = self.mbar_dDDG+self.other_dDDG  # is this definitely always additive?
+        self.calc_dDDG = self.mbar_dDDG+self.other_dDDG  # is this definitely always additive?
     def toDF(self):
       # TODO - can we do the handling of the dataframe in a different way? Or inside the plotting function that needs it?
         return pd.DataFrame({'ligandA': self.ligandA,
@@ -23,17 +23,18 @@ class RelativeResult(object):
                              'calc_DDG': self.calc_DDG,
                              'mbar_dDDG': self.mbar_dDDG,
                              'other_dDDG': self.other_dDDG,
-                             'dcalc_DDG': self.dcalc_DDG}, index=[f'{self.ligandA}_{self.ligandB}'])
+                             'calc_dDDG': self.calc_dDDG}, index=[f'{self.ligandA}_{self.ligandB}'])
 
 class ExperimentalResult(object):
-    def __init__(self, ligand, expt_DDG, expt_dDDG):
+    def __init__(self, ligand, expt_DG, expt_dDG):
         self.ligand = ligand
-        self.DDG = expt_DDG
-        self.dDDG = expt_dDDG
+        self.DG = float(expt_DG)
+        self.dDG = float(expt_dDG.strip('\n'))
 
 class FEMap(object):
 
     def __init__(self, csv):
+        self.results = read_csv(csv)
         self.graph = nx.DiGraph()
         self.n_edges = len(self.results)
 
@@ -41,20 +42,34 @@ class FEMap(object):
 
     def generate_graph_from_results(self):
         self._name_to_id = {}
+        self._id_to_name = {}
         id = 0
-        for result in self.results:
+        for result in self.results['Calculated']:
             if result.ligandA not in self._name_to_id.keys():
                 self._name_to_id[result.ligandA] = id
+                self._id_to_name[id] = result.ligandA
                 id += 1
             if result.ligandB not in self._name_to_id.keys():
                 self._name_to_id[result.ligandB] = id
+                self._id_to_name[id] = result.ligandB
                 id += 1
-            # TODO need some exp error for mle to converge for exp... this is a horrible hack
-            if result.dexp_DDG == 0.0:
-                result.dexp_DDG = 0.01
+            # # TODO need some exp error for mle to converge for exp... this is a horrible hack
             self.graph.add_edge(self._name_to_id[result.ligandA], self._name_to_id[result.ligandB],
-                                exp_DDG=result.exp_DDG, dexp_DDG=result.dexp_DDG,
-                                calc_DDG=result.calc_DDG, dcalc_DDG=result.dcalc_DDG)
+                                calc_DDG=result.calc_DDG, calc_dDDG=result.calc_dDDG)
+
+        for node in self.graph.nodes(data=True):
+            name = self._id_to_name[node[0]]
+            node[1]['name'] = name
+            node[1]['exp_DG'] = self.results['Experimental'][name].DG
+            node[1]['exp_dDG'] = self.results['Experimental'][name].dDG
+
+        for edge in self.graph.edges(data=True):
+            DG_A = self.graph.nodes[edge[0]]['exp_DG']
+            DG_B = self.graph.nodes[edge[1]]['exp_DG']
+            edge[2]['exp_DDG'] = DG_B - DG_A
+            dDG_A = self.graph.nodes[edge[0]]['exp_dDG']
+            dDG_B = self.graph.nodes[edge[1]]['exp_dDG']
+            edge[2]['exp_dDDG'] = (dDG_A**2 + dDG_B**2)**0.5
 
         self.n_ligands = self.graph.number_of_nodes()
         self.degree = self.graph.number_of_edges() / self.n_ligands
@@ -72,18 +87,13 @@ class FEMap(object):
         return nx.is_connected(undirected_graph)
 
     def generate_absolute_values(self):
+        # TODO this could work if either relative or absolute expt values are provided
         if self.weakly_connected:
-            f_i_exp, C_exp = stats.mle(self.graph, factor='exp_DDG')
-            variance = np.diagonal(C_exp)
-            for i, (f_i, df_i) in enumerate(zip(f_i_exp, variance**0.5)):
-                self.graph.nodes[i]['f_i_exp'] = f_i
-                self.graph.nodes[i]['df_i_exp'] = df_i
-
             f_i_calc, C_calc = stats.mle(self.graph, factor='calc_DDG')
             variance = np.diagonal(C_calc)
             for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
-                self.graph.nodes[i]['f_i_calc'] = f_i
-                self.graph.nodes[i]['df_i_calc'] = df_i
+                self.graph.nodes[i]['calc_DG'] = f_i
+                self.graph.nodes[i]['calc_dDG'] = df_i
 
     def draw_graph(self, title='', filename=None):
         plt.figure(figsize=(10, 10))
@@ -100,23 +110,19 @@ class FEMap(object):
 
 
 def read_csv(filename):
-    raw_results = {'Experimental': [], 'Calculated': []}
+    raw_results = {'Experimental': {}, 'Calculated': []}
     expt_block = False
     calc_block = False
     with open(filename, 'r') as f:
         for line in f:
-            print(line)
             if 'Experiment' in line:
                 expt_block = True
-                print('Doing expt block')
             if 'Calculate' in line or 'Relative' in line:
                 expt_block = False
                 calc_block = True
-            print(expt_block)
-            print(len(line.split(',')))
             if expt_block and len(line.split(',')) == 3 and line[0] != '#':
                 expt = ExperimentalResult(*line.split(','))
-                raw_results['Experimental'].append(expt)
+                raw_results['Experimental'][expt.ligand] = expt
             if calc_block and len(line.split(',')) == 5 and line[0] != '#':
                 calc = RelativeResult(*line.split(','))
                 raw_results['Calculated'].append(calc)

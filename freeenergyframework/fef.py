@@ -1,12 +1,5 @@
 # this will combine a single command that will run all analysis and save everything
 from freeenergyframework import wrangle, plotting
-    #
-    #
-    # # this generates the three plots that we need
-    # network.draw_graph(filename=f'{prefix}{target_name}network.png', title=f'{target_name}')
-    # plotting.plot_DDGs(network.results, title=f'{prefix}-{target_name}', filename=f'{prefix}{target_name}DDGs.png')
-    # plotting.plot_DGs(network.graph, title=f'{prefix}-{target_name}', filename=f'{prefix}{target_name}DGs.png')
-
 
 if __name__ == '__main__':
     import sys

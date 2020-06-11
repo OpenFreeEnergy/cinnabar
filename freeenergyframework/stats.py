@@ -18,7 +18,7 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
     ci : float, optional, default=0.95
         Interval for CI
     statistic : str
-        Statistic, one of ['RMSE', 'MUE', 'R2', 'rho']
+        Statistic, one of ['RMSE', 'MUE', 'R2', 'rho','KTAU','RAE']
     nbootstrap : int, optional, default=1000
         Number of bootstrap samples
     plot_type : str, optional, default='dG'
@@ -152,7 +152,7 @@ def mle(g,factor='f_ij'):
     """
     N = len(g.nodes)
     f_ij = form_edge_matrix(g, factor, action='antisymmetrize')
-    df_ij = form_edge_matrix(g, f'd{factor}', action='symmetrize')
+    df_ij = form_edge_matrix(g, factor.replace('_','_d'), action='symmetrize')
 
     # Form F matrix (Eq 4)
     F = np.zeros([N,N])
