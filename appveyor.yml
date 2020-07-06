@@ -38,7 +38,7 @@ install:
 build: false
 
 test_script:
-  - pytest -v --cov=freeenergyframework freeenergyframework\\tests
+  - pytest -v --cov=beryllium beryllium\\tests
 
 on_success:
   - codecov

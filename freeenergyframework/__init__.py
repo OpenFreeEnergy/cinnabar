@@ -1,5 +1,5 @@
 """
-FreeEnergyFramework
+beryllium
 Report results for free energy simualtions
 """
 

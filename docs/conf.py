@@ -17,12 +17,12 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import freeenergyframework
+import beryllium
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'FreeEnergyFramework'
+project = 'beryllium'
 copyright = ("2020, Hannah Bruce Macdonald. Project structure based on the "
              "Computational Molecular Science Python Cookiecutter version 1.1")
 author = 'Hannah Bruce Macdonald'
@@ -117,7 +117,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'freeenergyframeworkdoc'
+htmlhelp_basename = 'berylliumdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -144,8 +144,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'freeenergyframework.tex', 'FreeEnergyFramework Documentation',
-     'freeenergyframework', 'manual'),
+    (master_doc, 'beryllium.tex', 'beryllium Documentation',
+     'beryllium', 'manual'),
 ]
 
 
@@ -154,7 +154,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'freeenergyframework', 'FreeEnergyFramework Documentation',
+    (master_doc, 'beryllium', 'beryllium Documentation',
      [author], 1)
 ]
 
@@ -165,8 +165,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'freeenergyframework', 'FreeEnergyFramework Documentation',
-     author, 'freeenergyframework', 'Report results for free energy simualtions',
+    (master_doc, 'beryllium', 'beryllium Documentation',
+     author, 'beryllium', 'Report results for free energy simualtions',
      'Miscellaneous'),
 ]
 

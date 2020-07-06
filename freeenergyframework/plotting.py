@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
-from freeenergyframework import stats, plotlying
+from beryllium import stats, plotlying
 import itertools
 
 

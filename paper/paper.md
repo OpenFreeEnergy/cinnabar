@@ -1,5 +1,5 @@
 ---
-title: 'freeenergyframework : statistics and plotting tools for free energy calculations'
+title: 'beryllium : statistics and plotting tools for free energy calculations'
 tags:
   - Python
   - Compuational Chemisty

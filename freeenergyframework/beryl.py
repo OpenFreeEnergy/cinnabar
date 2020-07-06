@@ -1,5 +1,5 @@
 # this will combine a single command that will run all analysis and save everything
-from freeenergyframework import wrangle, plotting
+from beryllium import wrangle, plotting
 
 if __name__ == '__main__':
     import sys

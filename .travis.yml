@@ -42,7 +42,7 @@ install:
 
 
 script:
-  - pytest -v --cov=freeenergyframework freeenergyframework/tests/
+  - pytest -v --cov=beryllium beryllium/tests/
 
 notifications:
     email: false
