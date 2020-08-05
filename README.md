@@ -14,11 +14,11 @@ Solution: package that accepts relative free energy results reliably, which is u
 
 ### USAGE
 
-`python beryl.py example.csv `
+`python arsenic.py example.csv `
 
 ### OPTIONS
 
-`python beryl.py --help`
+`python arsenic.py --help`
 
 ### Terminology
 D is difference (i.e. relative) while d is variance (i.e. error bar)
