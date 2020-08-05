@@ -9,7 +9,8 @@ def _master_plot(x, y, title='',
                  method_name='', target_name='', quantity=rf'$\Delta \Delta$ G',
                  xlabel=f'Experimental', ylabel=f'Calculated', units=r'$\mathrm{kcal\,mol^{-1}}$',
                  guidelines=True, origins=True, color=None,
-                 statistics=['RMSE',  'MUE'], filename=None):
+                 statistics=['RMSE',  'MUE'], filename=None,
+                 shift=0.,figsize=3.25):
     """ Handles the aesthetics of the plots in one place.
 
     Parameters
@@ -57,7 +58,7 @@ def _master_plot(x, y, title='',
     plt.rcParams['ytick.labelsize'] = 12
     plt.rcParams['font.size'] = 12
 
-    f = plt.figure(figsize=(6, 6))
+    f = plt.figure(figsize=(figsize,figsize))
     plt.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
 
     plt.xlabel(f'{xlabel} {quantity} / '+units)
@@ -185,7 +186,7 @@ def plot_DDGs(graph, method_name='', target_name='', title='',
     return
 
 
-def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=False, **kwargs):
+def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plotly=False, centralizing=True, shift=0., **kwargs):
     """Function to plot absolute free energies.
 
     Parameters
@@ -214,8 +215,9 @@ def plot_DGs(graph, method_name='', target_name='', title='', filename=None, plo
 
     # centralising
     # this should be replaced by providing one experimental result
-    x_data = x_data - np.mean(x_data)
-    y_data = y_data - np.mean(y_data)
+    if centralizing == True:
+        x_data = x_data - np.mean(x_data) + shift
+        y_data = y_data - np.mean(y_data) + shift
 
     if plotly:
         plotlying._master_plot(x_data, y_data,
@@ -290,4 +292,4 @@ def plot_all_DDGs(graph, method_name='', target_name='', title='', filename=None
         _master_plot(x_data, y_data,
                      xerr=xerr, yerr=yerr,
                      title=title, method_name=method_name,
-                     filename=filename, target_name=target_name, **kwargs)
+                     filename=filename, target_name=target_name, shift=shift, **kwargs)
