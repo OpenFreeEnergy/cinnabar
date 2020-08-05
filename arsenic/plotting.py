@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
-from beryllium import stats, plotlying
+from arsenic import stats, plotlying
 import itertools
 
 

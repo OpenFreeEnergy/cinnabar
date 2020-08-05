@@ -38,7 +38,7 @@ install:
 build: false
 
 test_script:
-  - pytest -v --cov=beryllium beryllium\\tests
+  - pytest -v --cov=arsenic arsenic\\tests
 
 on_success:
   - codecov

@@ -1,5 +1,5 @@
 """
-beryllium
+arsenic
 Report results for free energy simualtions
 """
 

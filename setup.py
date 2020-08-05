@@ -1,5 +1,5 @@
 """
-beryllium
+arsenic
 Report results for free energy simualtions
 """
 import sys
@@ -21,7 +21,7 @@ except:
 
 setup(
     # Self-descriptive entries which should always be present
-    name='beryllium',
+    name='arsenic',
     author='Hannah Bruce Macdonald',
     author_email='hannah.brucemacdonald@choderalab.org',
     description=short_description[0],

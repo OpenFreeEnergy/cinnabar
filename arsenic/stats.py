@@ -172,7 +172,6 @@ def mle(g,factor='f_ij'):
 def form_edge_matrix(g, label, step=None, action=None):
     """
     Extract the labeled property from edges into a matrix
-
     Parameters
     ----------
     g : nx.Graph
@@ -182,7 +181,6 @@ def form_edge_matrix(g, label, step=None, action=None):
     action : str, optional, default=None
         If 'symmetrize', will return a symmetric matrix where A[i,j] = A[j,i]
         If 'antisymmetrize', will return an antisymmetric matrix where A[i,j] = -A[j,i]
-
     """
     N = len(g.nodes)
     matrix = np.zeros([N,N])

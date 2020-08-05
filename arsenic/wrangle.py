@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from beryllium import stats
+from arsenic import stats
 import pandas as pd
 
 

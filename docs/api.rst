@@ -4,7 +4,7 @@ API Documentation
 .. autosummary::
    :toctree: autosummary
 
-   beryllium.plotting
-   beryllium.plotlying
-   beryllium.stats
-   beryllium.wrangle
+   arsenic.plotting
+   arsenic.plotlying
+   arsenic.stats
+   arsenic.wrangle

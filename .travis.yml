@@ -42,7 +42,7 @@ install:
 
 
 script:
-  - pytest -v --cov=beryllium beryllium/tests/
+  - pytest -v --cov=arsenic arsenic/tests/
 
 notifications:
     email: false

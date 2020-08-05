@@ -1,12 +1,12 @@
 """
-Unit and regression test for the beryllium package.
+Unit and regression test for the arsenic package.
 """
 
 # Import package, test suite, and other packages as needed
-import beryllium
+import arsenic
 import pytest
 import sys
 
-def test_beryllium_imported():
+def test_arsenic_imported():
     """Sample test, will always pass so long as import statement worked"""
-    assert "beryllium" in sys.modules
+    assert "arsenic" in sys.modules

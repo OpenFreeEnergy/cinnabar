@@ -2,7 +2,7 @@ import numpy as np
 import seaborn as sns
 import plotly.graph_objects as go
 
-from beryllium import stats
+from arsenic import stats
 
 
 def plot_bar(df, ddg_cols, error_cols, exp_col='exp', exp_error_col='dexp', name_col='edge', title='',
