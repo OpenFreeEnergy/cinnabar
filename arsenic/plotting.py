@@ -9,7 +9,7 @@ def _master_plot(x, y, title='',
                  method_name='', target_name='', quantity=rf'$\Delta \Delta$ G',
                  xlabel=f'Experimental', ylabel=f'Calculated', units=r'$\mathrm{kcal\,mol^{-1}}$',
                  guidelines=True, origins=True, color=None,
-                 statistics=['RMSE',  'MUE'], filename=None,
+                 statistics=['RMSE',  'MUE'], filename=None, centralizing=True,
                  shift=0.,figsize=3.25):
     """ Handles the aesthetics of the plots in one place.
 
@@ -47,6 +47,12 @@ def _master_plot(x, y, title='',
         list of statistics to calculate and report on the plot
     filename : str, default = None
         filename for plot
+    centralizing : bool, default = True
+        ofset the free energies
+    shift : float, default = 0.
+        shift both the x and y axis by a constant
+    figsize : float, default = 3.25
+        size of figure for matplotlib
 
     Returns
     -------
