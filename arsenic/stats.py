@@ -141,23 +141,32 @@ def mle(g,factor='f_ij'):
         C[i,j] is the covariance of the free energy estimates of i and j
 
     """
-    N = len(g.nodes)
+    N = g.number_of_nodes()
     f_ij = form_edge_matrix(g, factor, action='antisymmetrize')
-    df_ij = form_edge_matrix(g, factor.replace('_','_d'), action='symmetrize')
+    df_ij = form_edge_matrix(g, factor.replace('_', '_d'), action='symmetrize')
+
+    node_name_to_index = {}
+    for i, name in enumerate(g.nodes()):
+        node_name_to_index[name] = i
 
     # Form F matrix (Eq 4)
-    F = np.zeros([N,N])
-    for (i,j) in g.edges:
-        F[i,j] = - df_ij[i,j]**(-2)
-        F[j,i] = - df_ij[i,j]**(-2)
-    for i in g.nodes:
-        F[i,i] = - np.sum(F[i,:])
+    F = np.zeros([N, N])
+    for (a, b) in g.edges:
+        i = node_name_to_index[a]
+        j = node_name_to_index[b]
+        F[i,j] = - df_ij[i, j]**(-2)
+        F[j,i] = - df_ij[i, j]**(-2)
+    for n in g.nodes:
+        i = node_name_to_index[n]
+        F[i,i] = - np.sum(F[i, :])
 
     # Form z vector (Eq 3)
     z = np.zeros([N])
-    for (i,j) in g.edges:
-        z[i] += f_ij[i,j] * df_ij[i,j]**(-2)
-        z[j] += f_ij[j,i] * df_ij[j,i]**(-2)
+    for (a, b) in g.edges:
+        i = node_name_to_index[a]
+        j = node_name_to_index[b]
+        z[i] += f_ij[i, j] * df_ij[i, j]**(-2)
+        z[j] += f_ij[j, i] * df_ij[j, i]**(-2)
 
     # Compute MLE estimate (Eq 2)
     Finv = np.linalg.pinv(F)
@@ -184,8 +193,15 @@ def form_edge_matrix(g, label, step=None, action=None):
     """
     N = len(g.nodes)
     matrix = np.zeros([N,N])
-    for i, j in g.edges:
-        matrix[i,j] = g.edges[i,j][label]
+
+    node_name_to_index = {}
+    for i, name in enumerate(g.nodes()):
+        node_name_to_index[name] = i
+
+    for a, b in g.edges:
+        i = node_name_to_index[a]
+        j = node_name_to_index[b]
+        matrix[i,j] = g.edges[a,b][label]
         if action == 'symmetrize':
             matrix[j,i] = matrix[i,j]
         elif action == 'antisymmetrize':
