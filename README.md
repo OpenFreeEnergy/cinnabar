@@ -2,7 +2,7 @@ Arsenic
 ==============================
 [//]: # (Badges)
 
-[!Travis Build Status](https://travis-ci.com/openforcefield/arsenic.svg?branch=master)](https://travis-ci.com/openforcefield/arsenic)
+![Travis Build Status](https://travis-ci.com/openforcefield/arsenic.svg?branch=master)](https://travis-ci.com/openforcefield/arsenic)
 [![codecov](https://codecov.io/gh/openforcefield/arsenic/branch/master/graph/badge.svg)](https://codecov.io/gh/openforcefield/arsenic/branch/master)
 [![Documentation Status](https://readthedocs.org/projects/arsenic/badge/?version=latest)](https://arsenic.readthedocs.io/en/latest/?badge=latest)
 
