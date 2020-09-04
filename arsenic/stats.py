@@ -111,7 +111,8 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
 
     return rmse_stats
 
-def mle(g,factor='f_ij'):
+
+def mle(g, factor='f_ij', node_factor=None):
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
     The number 'factor' is the node attribute on which the MLE will be calculated,
@@ -131,6 +132,9 @@ def mle(g,factor='f_ij'):
         and 'bayesian_f_i' and 'bayesian_df_i' added to each node.
     factor : string, default = 'f_ij'
         node attribute of nx.Graph that will be used for MLE
+    node_factor : string, default = None
+        optional - provide if there is node data (i.e. absolute values) 'f_i' or 'exp_DG' to include
+        will expect a corresponding uncertainty 'f_di' or 'exp_dDG'
     Returns
     -------
     f_i : np.array with shape (n_ligands,)
@@ -141,35 +145,54 @@ def mle(g,factor='f_ij'):
         C[i,j] is the covariance of the free energy estimates of i and j
 
     """
-    N = len(g.nodes)
-    f_ij = form_edge_matrix(g, factor, action='antisymmetrize')
-    df_ij = form_edge_matrix(g, factor.replace('_','_d'), action='symmetrize')
+    N = g.number_of_nodes()
+    if node_factor is None:
+        f_ij = form_edge_matrix(g, factor, action='antisymmetrize')
+        df_ij = form_edge_matrix(g, factor.replace('_', '_d'), action='symmetrize')
+    else:
+        f_ij = form_edge_matrix(g, factor, action='antisymmetrize', node_label=node_factor)
+        df_ij = form_edge_matrix(g, factor.replace('_', '_d'), action='symmetrize', node_label=node_factor.replace('_', '_d'))
+
+    node_name_to_index = {}
+    for i, name in enumerate(g.nodes()):
+        node_name_to_index[name] = i
 
     # Form F matrix (Eq 4)
-    F = np.zeros([N,N])
-    for (i,j) in g.edges:
-        F[i,j] = - df_ij[i,j]**(-2)
-        F[j,i] = - df_ij[i,j]**(-2)
-    for i in g.nodes:
-        F[i,i] = - np.sum(F[i,:])
+    F = np.zeros([N, N])
+    for (a, b) in g.edges:
+        i = node_name_to_index[a]
+        j = node_name_to_index[b]
+        F[i, j] = - df_ij[i, j]**(-2)
+        F[j, i] = - df_ij[i, j]**(-2)
+    for n in g.nodes:
+        i = node_name_to_index[n]
+        if df_ij[i, i] == 0.:
+            F[i, i] = - np.sum(F[i, :])
+        else:
+            F[i, i] = df_ij[i, i]**(-2) - np.sum(F[i, :])
 
     # Form z vector (Eq 3)
     z = np.zeros([N])
-    for (i,j) in g.edges:
-        z[i] += f_ij[i,j] * df_ij[i,j]**(-2)
-        z[j] += f_ij[j,i] * df_ij[j,i]**(-2)
+    for n in g.nodes:
+        i = node_name_to_index[n]
+        if df_ij[i, i] != 0.:
+            z[i] = f_ij[i, i] * df_ij[i, i]**(-2)
+    for (a, b) in g.edges:
+        i = node_name_to_index[a]
+        j = node_name_to_index[b]
+        z[i] += f_ij[i, j] * df_ij[i, j]**(-2)
+        z[j] += f_ij[j, i] * df_ij[j, i]**(-2)
 
     # Compute MLE estimate (Eq 2)
     Finv = np.linalg.pinv(F)
-    f_i = - np.matmul(Finv, z) # NOTE: This differs in sign from Eq. 2!
-    f_i[:] -= f_i[0]
+    f_i = np.matmul(Finv, z)
 
     # Compute uncertainty
     C = Finv
     return f_i, C
 
 
-def form_edge_matrix(g, label, step=None, action=None):
+def form_edge_matrix(g, label, step=None, action=None, node_label=None):
     """
     Extract the labeled property from edges into a matrix
     Parameters
@@ -181,17 +204,33 @@ def form_edge_matrix(g, label, step=None, action=None):
     action : str, optional, default=None
         If 'symmetrize', will return a symmetric matrix where A[i,j] = A[j,i]
         If 'antisymmetrize', will return an antisymmetric matrix where A[i,j] = -A[j,i]
+    node_label : sr, optional, default=None
+        If provided, diagonal will be occupied with absolute values, where labelled
     """
     N = len(g.nodes)
-    matrix = np.zeros([N,N])
-    for i, j in g.edges:
-        matrix[i,j] = g.edges[i,j][label]
+    matrix = np.zeros([N, N])
+
+    node_name_to_index = {}
+    for i, name in enumerate(g.nodes()):
+        node_name_to_index[name] = i
+
+    for a, b in g.edges:
+        i = node_name_to_index[a]
+        j = node_name_to_index[b]
+        matrix[i, j] = g.edges[a, b][label]
         if action == 'symmetrize':
-            matrix[j,i] = matrix[i,j]
+            matrix[j, i] = matrix[i, j]
         elif action == 'antisymmetrize':
-            matrix[j,i] = -matrix[i,j]
+            matrix[j, i] = -matrix[i, j]
         elif action is None:
             pass
         else:
             raise Exception(f'action "{action}" unknown.')
+
+    if node_label is not None:
+        for n in g.nodes(data=True):
+            i = node_name_to_index[n[0]]
+            if node_label in n[1]:
+                matrix[i, i] = n[1][node_label]
+
     return matrix
