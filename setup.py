@@ -1,5 +1,5 @@
 """
-arsenic
+Arsenic
 Report results for free energy simualtions
 """
 import sys
@@ -17,7 +17,6 @@ try:
         long_description = handle.read()
 except:
     long_description = "\n".join(short_description[2:])
-
 
 setup(
     # Self-descriptive entries which should always be present
