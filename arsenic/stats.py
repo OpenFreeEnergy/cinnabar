@@ -14,7 +14,7 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
     dy_true : ndarray with shape (N,) or None
         Errors of true values. If None, the values are assumed to have no errors
     dy_pred : ndarray with shape (N,) or None
-        Errors of predicted values. If None, the values are assumed to have no errors
+        Errors of predicted values. If None, the valudes are assumed to have no errors
     ci : float, optional, default=0.95
         Interval for CI
     statistic : str
@@ -185,7 +185,8 @@ def mle(g, factor='f_ij', node_factor=None):
 
     # Compute MLE estimate (Eq 2)
     Finv = np.linalg.pinv(F)
-    f_i = np.matmul(Finv, z)
+    # NOTE: sign flipped relative to publication
+    f_i = -np.matmul(Finv, z)
 
     # Compute uncertainty
     C = Finv
