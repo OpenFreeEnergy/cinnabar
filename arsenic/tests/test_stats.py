@@ -17,7 +17,7 @@ def test_mle_easy(input_absolutes=[-14., -13., -9.]):
     edges = [(0, 1), (0, 2), (2, 1)]
     for a, b in edges:
         noise = np.random.uniform(low=-1., high=1.)
-        diff = input_absolutes[a] - input_absolutes[b] + noise
+        diff = input_absolutes[b] - input_absolutes[a] + noise
         g.add_edge(a, b, f_ij=diff, f_dij=0.5+np.abs(noise))
 
     output_absolutes, C = stats.mle(g, factor='f_ij', node_factor='f_i')
@@ -49,7 +49,7 @@ def test_mle_hard(input_absolutes=[-14., -13., -9.]):
     edges = [(0, 1), (0, 2), (2, 1)]
     for a, b in edges:
         noise = np.random.uniform(low=-1., high=1.)
-        diff = input_absolutes[a] - input_absolutes[b] + noise
+        diff = input_absolutes[b] - input_absolutes[a] + noise
         g.add_edge(a, b, f_ij=diff, f_dij=0.5+np.abs(noise))
 
     output_absolutes, C = stats.mle(g, factor='f_ij', node_factor='f_i')
@@ -75,7 +75,7 @@ def test_mle_relative(input_absolutes=[-14., -13., -9.]):
     edges = [(0, 1), (0, 2), (2, 1)]
     for a, b in edges:
         noise = np.random.uniform(low=-1., high=1.)
-        diff = input_absolutes[a] - input_absolutes[b] + noise
+        diff = input_absolutes[b] - input_absolutes[a] + noise
         g.add_edge(a, b, f_ij=diff, f_dij=0.5+np.abs(noise))
 
     output_absolutes, C = stats.mle(g, factor='f_ij', node_factor='f_i')
