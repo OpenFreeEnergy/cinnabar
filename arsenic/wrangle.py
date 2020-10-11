@@ -11,7 +11,7 @@ class RelativeResult(object):
         self.ligandA = str(ligandA).strip()
         self.ligandB = str(ligandB).strip()
         # scope for an experimental dDDG?
-        self.calc_DDG = float(calc_DDG)
+        self.calc_DDG = -float(calc_DDG)
         self.mbar_dDDG = float(mbar_error)
         self.other_dDDG = float(other_error)
 
@@ -66,7 +66,7 @@ class FEMap(object):
         for edge in self.graph.edges(data=True):
             DG_A = self.graph.nodes[edge[0]]['exp_DG']
             DG_B = self.graph.nodes[edge[1]]['exp_DG']
-            edge[2]['exp_DDG'] = DG_B - DG_A
+            edge[2]['exp_DDG'] = DG_A - DG_B
             dDG_A = self.graph.nodes[edge[0]]['exp_dDG']
             dDG_B = self.graph.nodes[edge[1]]['exp_dDG']
             edge[2]['exp_dDDG'] = (dDG_A**2 + dDG_B**2)**0.5
@@ -91,9 +91,9 @@ class FEMap(object):
         if self.weakly_connected:
             f_i_calc, C_calc = stats.mle(self.graph, factor='calc_DDG')
             variance = np.diagonal(C_calc)
-            for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
-                self.graph.nodes[i]['calc_DG'] = f_i
-                self.graph.nodes[i]['calc_dDG'] = df_i
+            for node, f_i, df_i in zip(self.graph.nodes(data=True), f_i_calc, variance**0.5):
+                node[1]['calc_DG'] = f_i
+                node[1]['calc_dDG'] = df_i
 
     def draw_graph(self, title='', filename=None):
         plt.figure(figsize=(10, 10))
