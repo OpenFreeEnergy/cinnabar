@@ -192,6 +192,58 @@ def mle(g, factor='f_ij', node_factor=None):
     return f_i, C
 
 
+def inverse_variance_weighting(x1, x2, dx1, dx2):
+    """
+    Combine two estimates (x1, x2) with inverse variance weighting (dx1 and dx2).
+    This function is symmetric to definition of (x1, dx1) and (x2,dx2).
+    Assumes that the _direction_ of both values are the same, such that for combining
+    two opposite-direction edges, provide (i->j) and (-j->i)
+    
+    Parameters
+    ----------
+    x1 : float
+        observation i
+    x2 : float
+        observation j
+    X : float
+        Variance of x1
+    dx2 : float
+        Variance of x2
+       
+    Returns
+    -------
+    X : float
+        weight-combined observations i and j
+    
+    """
+    
+    weight1 = dx1**(-2) / (dx1**(-2) + dx2**(-2))
+    weight1 = dx2**(-2) / (dx1**(-2) + dx2**(-2))
+    X = (weight1 * x1) + (weight2* x2)
+    return X
+
+def combine_uncertainties(dx1, dx2):
+    """
+    #TODO - make this take any number of uncertainties
+    
+    Combine uncertainties of same observation
+    
+    Parameters
+    ----------
+    dx1 : float
+        Variance of observation
+    dx2 : float
+        Variance of observation
+       
+    Returns
+    -------
+
+    dX : float
+        weight-combined uncertainty of observations
+    
+    """    
+    return ((dx1**(-2) + dx2**(-2))**(-0.5)
+
 def form_edge_matrix(g, label, step=None, action=None, node_label=None):
     """
     Extract the labeled property from edges into a matrix
@@ -217,11 +269,30 @@ def form_edge_matrix(g, label, step=None, action=None, node_label=None):
     for a, b in g.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
-        matrix[i, j] = g.edges[a, b][label]
+        if (b, a) in g.edges():
+            if action == 'symmetrize':
+                x1 = g.edges[a, b][label]
+                x2 = g.edges[b, a][label]
+                value = combine_errors(x1, x2)
+            elif action == 'antisymmetrize':
+                combination = 'arithmetic'
+                x1 = g.edges[a, b][label]
+                x2 = -g.edges[b, a][label]
+                u_factor = factor.replace('_', '_d')
+                if u_factor in g.edges[a,b] and u_factor in g.edges[b,a]:
+                    dx1 = g.edges[a, b][u_factor]
+                    dx2 = g.edges[b, a][u_factor]
+                    value = inverse_variance_weighting(x1, x2, dx1, dx2)
+                else:
+                    value = 0.5 * (x1 + x2)
+                                                                   
+        else:
+            value = g.edges[a, b][label]
+        matrix[i, j] = value 
         if action == 'symmetrize':
-            matrix[j, i] = matrix[i, j]
+            matrix[j, i] = value 
         elif action == 'antisymmetrize':
-            matrix[j, i] = -matrix[i, j]
+            matrix[j, i] = -value
         elif action is None:
             pass
         else:
