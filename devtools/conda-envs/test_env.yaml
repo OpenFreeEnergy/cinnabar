@@ -12,6 +12,7 @@ dependencies:
   - networkx
   - numpy
   - matplotlib
+  - seaborn
 
     # Pip-only installs
   #- pip:
