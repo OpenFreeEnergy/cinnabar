@@ -89,3 +89,26 @@ def test_mle_relative(input_absolutes=[-14., -13., -9.]):
         assert np.abs(true_diff - mle_diff) < 1., f"Relative\
          difference from MLE: {mle_diff} is too far from the\
          input difference, {true_diff}"
+
+
+def test_correlation_positive():
+    """ Test that the absolute DG plots have the correct signs, and statistics within reasonable agreement to the example data in `arsenic/data/example.csv`
+
+    """
+    from arsenic import plotting, stats, wrangle
+    import os
+    print(os.system('pwd'))
+    fe = wrangle.FEMap('arsenic/data/example.csv')
+    
+    x_data = np.asarray([node[1]['exp_DG'] for node in fe.graph.nodes(data=True)])
+    y_data = np.asarray([node[1]['calc_DG'] for node in fe.graph.nodes(data=True)])
+    xerr = np.asarray([node[1]['exp_dDG'] for node in fe.graph.nodes(data=True)])
+    yerr = np.asarray([node[1]['calc_dDG'] for node in fe.graph.nodes(data=True)])
+    
+    s = stats.bootstrap_statistic(x_data, y_data, xerr, yerr, statistic='rho')
+    assert 0 < s['mle'] < 1, 'Correlation must be positive for this data'
+    
+    for stat in ['RMSE','MUE','R2','rho']:
+        s = stats.bootstrap_statistic(x_data, y_data, xerr, yerr, statistic=stat)
+        # all of the statistics for this example is between 0.61 and 0.84
+        assert 0.5 < s['mle'] < 0.9, 'Correlation must be positive for this data'
