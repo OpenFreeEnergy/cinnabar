@@ -13,6 +13,7 @@ dependencies:
   - numpy
   - matplotlib
   - seaborn
+  - plotly
 
     # Pip-only installs
   #- pip:
