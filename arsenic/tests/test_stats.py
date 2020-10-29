@@ -98,6 +98,7 @@ def test_correlation_positive():
     from arsenic import plotting, stats, wrangle
     import os
     print(os.system('pwd'))
+    import numpy as np
     fe = wrangle.FEMap('arsenic/data/example.csv')
     
     x_data = np.asarray([node[1]['exp_DG'] for node in fe.graph.nodes(data=True)])
