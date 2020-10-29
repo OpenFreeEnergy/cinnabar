@@ -14,9 +14,9 @@ dependencies:
   - matplotlib
   - seaborn
   - plotly
-  - sklearn
+  - scikit-learn
 
     # Pip-only installs
-  #- pip:
-  #  - codecov
+#- pip:
+#  - codecov
 
