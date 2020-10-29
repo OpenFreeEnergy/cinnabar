@@ -112,4 +112,4 @@ def test_correlation_positive():
     for stat in ['RMSE','MUE','R2','rho']:
         s = stats.bootstrap_statistic(x_data, y_data, xerr, yerr, statistic=stat)
         # all of the statistics for this example is between 0.61 and 0.84
-        assert 0.5 < s['mle'] < 0.9, 'Correlation must be positive for this data'
+        assert 0.5 < s['mle'] < 0.9, f"Correlation must be positive for this data. {stat} is {s['mle']}"
