@@ -17,7 +17,7 @@ def test_mle_easy(input_absolutes=[-14., -13., -9.]):
     edges = [(0, 1), (0, 2), (2, 1)]
     for a, b in edges:
         noise = np.random.uniform(low=-1., high=1.)
-        diff = input_absolutes[a] - input_absolutes[b] + noise
+        diff = input_absolutes[b] - input_absolutes[a] + noise
         g.add_edge(a, b, f_ij=diff, f_dij=0.5+np.abs(noise))
 
     output_absolutes, C = stats.mle(g, factor='f_ij', node_factor='f_i')
@@ -49,7 +49,7 @@ def test_mle_hard(input_absolutes=[-14., -13., -9.]):
     edges = [(0, 1), (0, 2), (2, 1)]
     for a, b in edges:
         noise = np.random.uniform(low=-1., high=1.)
-        diff = input_absolutes[a] - input_absolutes[b] + noise
+        diff = input_absolutes[b] - input_absolutes[a] + noise
         g.add_edge(a, b, f_ij=diff, f_dij=0.5+np.abs(noise))
 
     output_absolutes, C = stats.mle(g, factor='f_ij', node_factor='f_i')
@@ -74,8 +74,8 @@ def test_mle_relative(input_absolutes=[-14., -13., -9.]):
     # Don't assign any absolute values
     edges = [(0, 1), (0, 2), (2, 1)]
     for a, b in edges:
-        noise = np.random.uniform(low=-1., high=1.)
-        diff = input_absolutes[a] - input_absolutes[b] + noise
+        noise = np.random.uniform(low=-0.5, high=0.5)
+        diff = input_absolutes[b] - input_absolutes[a] + noise
         g.add_edge(a, b, f_ij=diff, f_dij=0.5+np.abs(noise))
 
     output_absolutes, C = stats.mle(g, factor='f_ij', node_factor='f_i')
@@ -89,3 +89,27 @@ def test_mle_relative(input_absolutes=[-14., -13., -9.]):
         assert np.abs(true_diff - mle_diff) < 1., f"Relative\
          difference from MLE: {mle_diff} is too far from the\
          input difference, {true_diff}"
+
+
+def test_correlation_positive():
+    """ Test that the absolute DG plots have the correct signs, and statistics within reasonable agreement to the example data in `arsenic/data/example.csv`
+
+    """
+    from arsenic import plotting, stats, wrangle
+    import os
+    print(os.system('pwd'))
+    import numpy as np
+    fe = wrangle.FEMap('arsenic/data/example.csv')
+    
+    x_data = np.asarray([node[1]['exp_DG'] for node in fe.graph.nodes(data=True)])
+    y_data = np.asarray([node[1]['calc_DG'] for node in fe.graph.nodes(data=True)])
+    xerr = np.asarray([node[1]['exp_dDG'] for node in fe.graph.nodes(data=True)])
+    yerr = np.asarray([node[1]['calc_dDG'] for node in fe.graph.nodes(data=True)])
+    
+    s = stats.bootstrap_statistic(x_data, y_data, xerr, yerr, statistic='rho')
+    assert 0 < s['mle'] < 1, 'Correlation must be positive for this data'
+    
+    for stat in ['R2','rho']:
+        s = stats.bootstrap_statistic(x_data, y_data, xerr, yerr, statistic=stat)
+        # all of the statistics for this example is between 0.61 and 0.84
+        assert 0.5 < s['mle'] < 0.9, f"Correlation must be positive for this data. {stat} is {s['mle']}"

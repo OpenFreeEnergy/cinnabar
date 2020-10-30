@@ -217,11 +217,11 @@ def form_edge_matrix(g, label, step=None, action=None, node_label=None):
     for a, b in g.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
-        matrix[i, j] = g.edges[a, b][label]
+        matrix[j, i] = g.edges[a, b][label]
         if action == 'symmetrize':
-            matrix[j, i] = matrix[i, j]
+            matrix[i, j] = matrix[j, i]
         elif action == 'antisymmetrize':
-            matrix[j, i] = -matrix[i, j]
+            matrix[i, j] = -matrix[j, i]
         elif action is None:
             pass
         else:

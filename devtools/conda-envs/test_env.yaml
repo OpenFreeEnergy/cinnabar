@@ -10,8 +10,13 @@ dependencies:
   - pytest-cov
   - codecov
   - networkx
+  - numpy
+  - matplotlib
+  - seaborn
+  - plotly
+  - scikit-learn
 
     # Pip-only installs
-  #- pip:
-  #  - codecov
+#- pip:
+#  - codecov
 
