@@ -1,5 +1,5 @@
 """
-arsenic
+openff-arsenic
 Report results for free energy simualtions
 """
 
