@@ -1,8 +1,29 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from arsenic import stats
 import pandas as pd
+
+from . import stats
+
+
+def read_csv(filename):
+    raw_results = {'Experimental': {}, 'Calculated': []}
+    expt_block = False
+    calc_block = False
+    with open(filename, 'r') as f:
+        for line in f:
+            if 'Experiment' in line:
+                expt_block = True
+            if 'Calculate' in line or 'Relative' in line:
+                expt_block = False
+                calc_block = True
+            if expt_block and len(line.split(',')) == 3 and line[0] != '#':
+                expt = ExperimentalResult(*line.split(','))
+                raw_results['Experimental'][expt.ligand] = expt
+            if calc_block and len(line.split(',')) == 5 and line[0] != '#':
+                calc = RelativeResult(*line.split(','))
+                raw_results['Calculated'].append(calc)
+    return raw_results
 
 
 class RelativeResult(object):
@@ -25,11 +46,13 @@ class RelativeResult(object):
                              'other_dDDG': self.other_dDDG,
                              'calc_dDDG': self.calc_dDDG}, index=[f'{self.ligandA}_{self.ligandB}'])
 
+
 class ExperimentalResult(object):
     def __init__(self, ligand, expt_DG, expt_dDG):
         self.ligand = ligand
         self.DG = float(expt_DG)
         self.dDG = float(expt_dDG.strip('\n'))
+
 
 class FEMap(object):
 
@@ -108,22 +131,3 @@ class FEMap(object):
         else:
             plt.savefig(filename, bbox_inches='tight')
 
-
-def read_csv(filename):
-    raw_results = {'Experimental': {}, 'Calculated': []}
-    expt_block = False
-    calc_block = False
-    with open(filename, 'r') as f:
-        for line in f:
-            if 'Experiment' in line:
-                expt_block = True
-            if 'Calculate' in line or 'Relative' in line:
-                expt_block = False
-                calc_block = True
-            if expt_block and len(line.split(',')) == 3 and line[0] != '#':
-                expt = ExperimentalResult(*line.split(','))
-                raw_results['Experimental'][expt.ligand] = expt
-            if calc_block and len(line.split(',')) == 5 and line[0] != '#':
-                calc = RelativeResult(*line.split(','))
-                raw_results['Calculated'].append(calc)
-    return raw_results

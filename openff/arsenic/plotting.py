@@ -1,7 +1,9 @@
+import itertools
+
 import numpy as np
 import matplotlib.pylab as plt
-from arsenic import stats, plotlying
-import itertools
+
+from . import stats, plotlying
 
 
 def _master_plot(x, y, title='',
