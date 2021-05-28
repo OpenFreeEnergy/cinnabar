@@ -99,7 +99,7 @@ def test_correlation_positive():
     import os
     print(os.system('pwd'))
     import numpy as np
-    fe = wrangle.FEMap('arsenic/data/example.csv')
+    fe = wrangle.FEMap('openff/arsenic/data/example.csv')
     
     x_data = np.asarray([node[1]['exp_DG'] for node in fe.graph.nodes(data=True)])
     y_data = np.asarray([node[1]['calc_DG'] for node in fe.graph.nodes(data=True)])
