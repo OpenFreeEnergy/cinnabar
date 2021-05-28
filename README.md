@@ -1,10 +1,10 @@
-Arsenic
+openff-arsenic
 ==============================
 [//]: # (Badges)
 
-[![Travis Build Status](https://travis-ci.com/openforcefield/arsenic.svg?branch=master)](https://travis-ci.com/openforcefield/arsenic)
-[![codecov](https://codecov.io/gh/openforcefield/arsenic/branch/master/graph/badge.svg)](https://codecov.io/gh/openforcefield/arsenic/branch/master)
-[![Documentation Status](https://readthedocs.org/projects/arsenic/badge/?version=latest)](https://arsenic.readthedocs.io/en/latest/?badge=latest)
+[![Travis Build Status](https://travis-ci.com/openforcefield/openff-arsenic.svg?branch=master)](https://travis-ci.com/openforcefield/openff-arsenic)
+[![codecov](https://codecov.io/gh/openforcefield/openff-arsenic/branch/master/graph/badge.svg)](https://codecov.io/gh/openforcefield/openff-arsenic/branch/master)
+[![Documentation Status](https://readthedocs.org/projects/openff-arsenic/badge/?version=latest)](https://openff-arsenic.readthedocs.io/en/latest/?badge=latest)
 
 # Reporting relative free energy results
 Issue: we _must_ report statistics consistently and we would _like_ to plot these results consistently too

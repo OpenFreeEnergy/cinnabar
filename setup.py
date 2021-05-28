@@ -1,9 +1,9 @@
 """
-Arsenic
-Report results for free energy simualtions
+openff-evaluator
+Report results for free energy simulations.
 """
 import sys
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 import versioneer
 
 short_description = __doc__.split("\n")
@@ -20,8 +20,8 @@ except:
 
 setup(
     # Self-descriptive entries which should always be present
-    name='arsenic',
-    author='Hannah Bruce Macdonald',
+    name='openff-arsenic',
+    author='Open Force Field Consortium',
     author_email='hannah.brucemacdonald@choderalab.org',
     description=short_description[0],
     long_description=long_description,
@@ -33,7 +33,7 @@ setup(
     # Which Python importable modules should be included when your package is installed
     # Handled automatically by setuptools. Use 'exclude' to prevent some specific
     # subpackage(s) from being added, if needed
-    packages=find_packages(),
+    packages=find_namespace_packages(include=['openff.*']),
 
     # Optional include package data to ship with your package
     # Customize MANIFEST.in if the general case does not suit your needs

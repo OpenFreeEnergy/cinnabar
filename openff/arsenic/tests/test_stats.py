@@ -5,7 +5,7 @@ def test_mle_easy(input_absolutes=[-14., -13., -9.]):
     """
     import networkx as nx
     import numpy as np
-    from arsenic import stats
+    from openff.arsenic import stats
 
     # test data
     input_absolutes = [-14., -13., -9.]
@@ -35,7 +35,7 @@ def test_mle_hard(input_absolutes=[-14., -13., -9.]):
     """
     import networkx as nx
     import numpy as np
-    from arsenic import stats
+    from openff.arsenic import stats
     input_absolutes = [-14., -13., -9.]
     # make a t
     g = nx.DiGraph()
@@ -67,7 +67,7 @@ def test_mle_relative(input_absolutes=[-14., -13., -9.]):
     """
     import networkx as nx
     import numpy as np
-    from arsenic import stats
+    from openff.arsenic import stats
     import itertools
 
     g = nx.DiGraph()
@@ -95,11 +95,11 @@ def test_correlation_positive():
     """ Test that the absolute DG plots have the correct signs, and statistics within reasonable agreement to the example data in `arsenic/data/example.csv`
 
     """
-    from arsenic import plotting, stats, wrangle
+    from openff.arsenic import plotting, stats, wrangle
     import os
     print(os.system('pwd'))
     import numpy as np
-    fe = wrangle.FEMap('arsenic/data/example.csv')
+    fe = wrangle.FEMap('openff/arsenic/data/example.csv')
     
     x_data = np.asarray([node[1]['exp_DG'] for node in fe.graph.nodes(data=True)])
     y_data = np.asarray([node[1]['calc_DG'] for node in fe.graph.nodes(data=True)])
