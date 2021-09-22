@@ -1,8 +1,19 @@
 import numpy as np
 
-def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, statistic='RMSE', nbootstrap = 1000, plot_type='dG'):
+
+def bootstrap_statistic(
+    y_true,
+    y_pred,
+    dy_true=None,
+    dy_pred=None,
+    ci=0.95,
+    statistic="RMSE",
+    nbootstrap=1000,
+    plot_type="dG",
+):
     import sklearn.metrics
     import scipy
+
     """Compute mean and confidence intervals of specified statistic.
 
     Parameters
@@ -50,28 +61,38 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
         def calc_RAE(y_true_sample, y_pred_sample):
             MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
             mean = np.mean(y_true_sample)
-            MAD = np.sum([np.abs(mean-i) for i in y_true_sample]) / float(len(y_true_sample))
+            MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(
+                len(y_true_sample)
+            )
             return MAE / MAD
 
         def calc_RRMSE(y_true_sample, y_pred_sample):
-            rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
+            rmse = np.sqrt(
+                sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample)
+            )
             mean_exp = np.mean(y_true_sample)
-            mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(len(y_true_sample))
+            mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(
+                len(y_true_sample)
+            )
             rrmse = np.sqrt(rmse ** 2 / mds)
             return rrmse
 
-        if statistic == 'RMSE':
-            return np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
-        elif statistic == 'MUE':
+        if statistic == "RMSE":
+            return np.sqrt(
+                sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample)
+            )
+        elif statistic == "MUE":
             return sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
-        elif statistic == 'R2':
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_true_sample, y_pred_sample)
-            return r_value**2
-        elif statistic == 'rho':
+        elif statistic == "R2":
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
+                y_true_sample, y_pred_sample
+            )
+            return r_value ** 2
+        elif statistic == "rho":
             return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
-        elif statistic == 'RAE':
+        elif statistic == "RAE":
             return calc_RAE(y_true_sample, y_pred_sample)
-        elif statistic == 'KTAU':
+        elif statistic == "KTAU":
             return scipy.stats.kendalltau(y_true_sample, y_pred_sample)[0]
         else:
             raise Exception("unknown statistic '{}'".format(statistic))
@@ -89,30 +110,38 @@ def bootstrap_statistic(y_true, y_pred, dy_true=None, dy_pred=None, ci=0.95, sta
     assert len(y_true) == len(dy_true)
     assert len(y_true) == len(dy_pred)
     sample_size = len(y_true)
-    s_n = np.zeros([nbootstrap], np.float64) # s_n[n] is the statistic computed for bootstrap sample n
+    s_n = np.zeros(
+        [nbootstrap], np.float64
+    )  # s_n[n] is the statistic computed for bootstrap sample n
     for replicate in range(nbootstrap):
         y_true_sample = np.zeros_like(y_true)
         y_pred_sample = np.zeros_like(y_pred)
-        for i,j in enumerate(np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)):
-            y_true_sample[i] = np.random.normal(loc=y_true[j], scale=np.fabs(dy_true[j]), size=1)
-            y_pred_sample[i] = np.random.normal(loc=y_pred[j], scale=np.fabs(dy_pred[j]), size=1)
+        for i, j in enumerate(
+            np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)
+        ):
+            y_true_sample[i] = np.random.normal(
+                loc=y_true[j], scale=np.fabs(dy_true[j]), size=1
+            )
+            y_pred_sample[i] = np.random.normal(
+                loc=y_pred[j], scale=np.fabs(dy_pred[j]), size=1
+            )
         s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
 
     rmse_stats = dict()
-    rmse_stats['mle'] = compute_statistic(y_true, y_pred, statistic)
-    rmse_stats['stderr'] = np.std(s_n)
-    rmse_stats['mean'] = np.mean(s_n)
+    rmse_stats["mle"] = compute_statistic(y_true, y_pred, statistic)
+    rmse_stats["stderr"] = np.std(s_n)
+    rmse_stats["mean"] = np.mean(s_n)
     # TODO: Is there a canned method to do this?
     s_n = np.sort(s_n)
-    low_frac = (1.0-ci)/2.0
+    low_frac = (1.0 - ci) / 2.0
     high_frac = 1.0 - low_frac
-    rmse_stats['low'] = s_n[int(np.floor(nbootstrap*low_frac))]
-    rmse_stats['high'] = s_n[int(np.ceil(nbootstrap*high_frac))]
+    rmse_stats["low"] = s_n[int(np.floor(nbootstrap * low_frac))]
+    rmse_stats["high"] = s_n[int(np.ceil(nbootstrap * high_frac))]
 
     return rmse_stats
 
 
-def mle(g, factor='f_ij', node_factor=None):
+def mle(g, factor="f_ij", node_factor=None):
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
     The number 'factor' is the node attribute on which the MLE will be calculated,
@@ -147,11 +176,18 @@ def mle(g, factor='f_ij', node_factor=None):
     """
     N = g.number_of_nodes()
     if node_factor is None:
-        f_ij = form_edge_matrix(g, factor, action='antisymmetrize')
-        df_ij = form_edge_matrix(g, factor.replace('_', '_d'), action='symmetrize')
+        f_ij = form_edge_matrix(g, factor, action="antisymmetrize")
+        df_ij = form_edge_matrix(g, factor.replace("_", "_d"), action="symmetrize")
     else:
-        f_ij = form_edge_matrix(g, factor, action='antisymmetrize', node_label=node_factor)
-        df_ij = form_edge_matrix(g, factor.replace('_', '_d'), action='symmetrize', node_label=node_factor.replace('_', '_d'))
+        f_ij = form_edge_matrix(
+            g, factor, action="antisymmetrize", node_label=node_factor
+        )
+        df_ij = form_edge_matrix(
+            g,
+            factor.replace("_", "_d"),
+            action="symmetrize",
+            node_label=node_factor.replace("_", "_d"),
+        )
 
     node_name_to_index = {}
     for i, name in enumerate(g.nodes()):
@@ -162,26 +198,26 @@ def mle(g, factor='f_ij', node_factor=None):
     for (a, b) in g.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
-        F[i, j] = - df_ij[i, j]**(-2)
-        F[j, i] = - df_ij[i, j]**(-2)
+        F[i, j] = -df_ij[i, j] ** (-2)
+        F[j, i] = -df_ij[i, j] ** (-2)
     for n in g.nodes:
         i = node_name_to_index[n]
-        if df_ij[i, i] == 0.:
-            F[i, i] = - np.sum(F[i, :])
+        if df_ij[i, i] == 0.0:
+            F[i, i] = -np.sum(F[i, :])
         else:
-            F[i, i] = df_ij[i, i]**(-2) - np.sum(F[i, :])
+            F[i, i] = df_ij[i, i] ** (-2) - np.sum(F[i, :])
 
     # Form z vector (Eq 3)
     z = np.zeros([N])
     for n in g.nodes:
         i = node_name_to_index[n]
-        if df_ij[i, i] != 0.:
-            z[i] = f_ij[i, i] * df_ij[i, i]**(-2)
+        if df_ij[i, i] != 0.0:
+            z[i] = f_ij[i, i] * df_ij[i, i] ** (-2)
     for (a, b) in g.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
-        z[i] += f_ij[i, j] * df_ij[i, j]**(-2)
-        z[j] += f_ij[j, i] * df_ij[j, i]**(-2)
+        z[i] += f_ij[i, j] * df_ij[i, j] ** (-2)
+        z[j] += f_ij[j, i] * df_ij[j, i] ** (-2)
 
     # Compute MLE estimate (Eq 2)
     Finv = np.linalg.pinv(F)
@@ -218,9 +254,9 @@ def form_edge_matrix(g, label, step=None, action=None, node_label=None):
         i = node_name_to_index[a]
         j = node_name_to_index[b]
         matrix[j, i] = g.edges[a, b][label]
-        if action == 'symmetrize':
+        if action == "symmetrize":
             matrix[i, j] = matrix[j, i]
-        elif action == 'antisymmetrize':
+        elif action == "antisymmetrize":
             matrix[i, j] = -matrix[j, i]
         elif action is None:
             pass
