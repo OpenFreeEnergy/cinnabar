@@ -25,9 +25,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--prefix", type=str, default="", help="Prefix for figure filenames generated"
     )
-    parser.add_argument(
-        "--title", type=str, default="", help="Title for plots generated"
-    )
+    parser.add_argument("--title", type=str, default="", help="Title for plots generated")
 
     args = parser.parse_args()
 
@@ -42,14 +40,8 @@ if __name__ == "__main__":
     if "network" in args.plot:
         network.draw_graph(title=args.title, filename=f"{args.prefix}network.png")
     if "ddg" in args.plot:
-        plotting.plot_DDGs(
-            network.results, title=args.title, filename=f"{args.prefix}DDGs.png"
-        )
+        plotting.plot_DDGs(network.results, title=args.title, filename=f"{args.prefix}DDGs.png")
     if "dg" in args.plot:
-        plotting.plot_DGs(
-            network.graph, title=args.title, filename=f"{args.prefix}DGs.png"
-        )
+        plotting.plot_DGs(network.graph, title=args.title, filename=f"{args.prefix}DGs.png")
     if "all ddg" in args.plot:
-        plotting.plot_all_DDGs(
-            network.graph, title=args.title, filename=f"{args.prefix}DGs.png"
-        )
+        plotting.plot_all_DDGs(network.graph, title=args.title, filename=f"{args.prefix}DGs.png")

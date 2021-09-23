@@ -122,4 +122,4 @@ jobs:
         shell: bash -l {0}
         if: always()
         run: |
-          black --check openff/arsenic/ --exclude openff/arsenic/_version.py
+          black --check -l 99 openff/arsenic/ --exclude openff/arsenic/_version.py

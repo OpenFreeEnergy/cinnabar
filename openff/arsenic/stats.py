@@ -61,26 +61,18 @@ def bootstrap_statistic(
         def calc_RAE(y_true_sample, y_pred_sample):
             MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
             mean = np.mean(y_true_sample)
-            MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(
-                len(y_true_sample)
-            )
+            MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(len(y_true_sample))
             return MAE / MAD
 
         def calc_RRMSE(y_true_sample, y_pred_sample):
-            rmse = np.sqrt(
-                sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample)
-            )
+            rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
             mean_exp = np.mean(y_true_sample)
-            mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(
-                len(y_true_sample)
-            )
+            mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(len(y_true_sample))
             rrmse = np.sqrt(rmse ** 2 / mds)
             return rrmse
 
         if statistic == "RMSE":
-            return np.sqrt(
-                sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample)
-            )
+            return np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
         elif statistic == "MUE":
             return sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
         elif statistic == "R2":
@@ -119,12 +111,8 @@ def bootstrap_statistic(
         for i, j in enumerate(
             np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)
         ):
-            y_true_sample[i] = np.random.normal(
-                loc=y_true[j], scale=np.fabs(dy_true[j]), size=1
-            )
-            y_pred_sample[i] = np.random.normal(
-                loc=y_pred[j], scale=np.fabs(dy_pred[j]), size=1
-            )
+            y_true_sample[i] = np.random.normal(loc=y_true[j], scale=np.fabs(dy_true[j]), size=1)
+            y_pred_sample[i] = np.random.normal(loc=y_pred[j], scale=np.fabs(dy_pred[j]), size=1)
         s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
 
     rmse_stats = dict()
@@ -179,9 +167,7 @@ def mle(g, factor="f_ij", node_factor=None):
         f_ij = form_edge_matrix(g, factor, action="antisymmetrize")
         df_ij = form_edge_matrix(g, factor.replace("_", "_d"), action="symmetrize")
     else:
-        f_ij = form_edge_matrix(
-            g, factor, action="antisymmetrize", node_label=node_factor
-        )
+        f_ij = form_edge_matrix(g, factor, action="antisymmetrize", node_label=node_factor)
         df_ij = form_edge_matrix(
             g,
             factor.replace("_", "_d"),

@@ -125,14 +125,7 @@ def _master_plot(
         # 2.372 kcal / mol = 4 RT
         color = cm(color / 2.372)
     plt.errorbar(
-        x,
-        y,
-        xerr=xerr,
-        yerr=yerr,
-        color="gray",
-        linewidth=0.0,
-        elinewidth=2.0,
-        zorder=1,
+        x, y, xerr=xerr, yerr=yerr, color="gray", linewidth=0.0, elinewidth=2.0, zorder=1,
     )
     plt.scatter(x, y, color=color, s=10, marker="o", zorder=2)
 
@@ -140,20 +133,13 @@ def _master_plot(
     statistics_string = ""
     for statistic in statistics:
         s = stats.bootstrap_statistic(x, y, xerr, yerr, statistic=statistic)
-        string = (
-            f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] "
-            + "\n"
-        )
+        string = f"{statistic}:   {s['mle']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
         statistics_string += string
 
     long_title = f"{title} \n {target_name} (N = {nsamples}) \n {statistics_string}"
 
     plt.title(
-        long_title,
-        fontsize=12,
-        loc="right",
-        horizontalalignment="right",
-        family="monospace",
+        long_title, fontsize=12, loc="right", horizontalalignment="right", family="monospace",
     )
 
     if filename is None:
@@ -340,13 +326,7 @@ def plot_DGs(
 
 
 def plot_all_DDGs(
-    graph,
-    method_name="",
-    target_name="",
-    title="",
-    filename=None,
-    plotly=False,
-    **kwargs,
+    graph, method_name="", target_name="", title="", filename=None, plotly=False, **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from
     the differences between all the absolute free energies. This data is different to `plot_DGs`
