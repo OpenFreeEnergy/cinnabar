@@ -32,9 +32,7 @@ def test_mle_easy(input_absolutes=[-14.0, -13.0, -9.0]):
 
 
 def test_mle_hard(input_absolutes=[-14.0, -13.0, -9.0]):
-    """Test that the MLE for a graph with a node missing an absolute value can get it right based on relative results
-
-    """
+    """Test that the MLE for a graph with a node missing an absolute value can get it right based on relative results"""
     import networkx as nx
     import numpy as np
     from openff.arsenic import stats
@@ -67,9 +65,7 @@ def test_mle_hard(input_absolutes=[-14.0, -13.0, -9.0]):
 
 
 def test_mle_relative(input_absolutes=[-14.0, -13.0, -9.0]):
-    """Test that the MLE can get the relative differences correct when no absolute values are provided
-
-    """
+    """Test that the MLE can get the relative differences correct when no absolute values are provided"""
     import networkx as nx
     import numpy as np
     from openff.arsenic import stats
@@ -99,9 +95,7 @@ def test_mle_relative(input_absolutes=[-14.0, -13.0, -9.0]):
 
 
 def test_correlation_positive():
-    """ Test that the absolute DG plots have the correct signs, and statistics within reasonable agreement to the example data in `arsenic/data/example.csv`
-
-    """
+    """Test that the absolute DG plots have the correct signs, and statistics within reasonable agreement to the example data in `arsenic/data/example.csv`"""
     from openff.arsenic import plotting, stats, wrangle
     import os
 

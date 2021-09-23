@@ -63,7 +63,12 @@ def plot_bar(
                 y=df[name_col].values,
                 name="experiment",
                 mode="markers",
-                marker=dict(symbol="line-ns", color="black", size=exp_size, line_width=4,),
+                marker=dict(
+                    symbol="line-ns",
+                    color="black",
+                    size=exp_size,
+                    line_width=4,
+                ),
             )
         )
 
@@ -73,7 +78,12 @@ def plot_bar(
                 y=df[name_col].values,
                 name="ExpErrors1",
                 mode="markers",
-                marker=dict(symbol="line-ns", color="black", size=exp_size, line_width=2,),
+                marker=dict(
+                    symbol="line-ns",
+                    color="black",
+                    size=exp_size,
+                    line_width=2,
+                ),
                 showlegend=False,
             )
         )
@@ -84,7 +94,12 @@ def plot_bar(
                 y=df[name_col].values,
                 name="ExpErrors2",
                 mode="markers",
-                marker=dict(symbol="line-ns", color="black", size=exp_size, line_width=2,),
+                marker=dict(
+                    symbol="line-ns",
+                    color="black",
+                    size=exp_size,
+                    line_width=2,
+                ),
                 showlegend=False,
             )
         )
@@ -98,7 +113,10 @@ def plot_bar(
             range=(-alim, alim),
         ),
         yaxis=dict(
-            title="Edge", titlefont_size=16, tickfont_size=14, range=(-0.5, numEdges - 0.5),
+            title="Edge",
+            titlefont_size=16,
+            tickfont_size=14,
+            range=(-0.5, numEdges - 0.5),
         ),
         width=800,
         height=height,
@@ -147,13 +165,21 @@ def _master_plot(
         # x=0
         fig.add_trace(
             go.Scatter(
-                x=[0, 0], y=[ax_min, ax_max], line_color="black", mode="lines", showlegend=False,
+                x=[0, 0],
+                y=[ax_min, ax_max],
+                line_color="black",
+                mode="lines",
+                showlegend=False,
             )
         )
         # y =0
         fig.add_trace(
             go.Scatter(
-                x=[ax_min, ax_max], y=[0, 0], line_color="black", mode="lines", showlegend=False,
+                x=[ax_min, ax_max],
+                y=[0, 0],
+                line_color="black",
+                mode="lines",
+                showlegend=False,
             )
         )
     if guidelines:
@@ -246,7 +272,13 @@ def _master_plot(
 
     # figure layout
     fig.update_layout(
-        title=dict(text=long_title, font_family="monospace", x=0.0, y=0.95, font_size=14,),
+        title=dict(
+            text=long_title,
+            font_family="monospace",
+            x=0.0,
+            y=0.95,
+            font_size=14,
+        ),
         xaxis=dict(
             title=f"Experimental {plot_type} [kcal mol<sup>-1</sup>]",
             titlefont_size=14,
