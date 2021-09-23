@@ -117,7 +117,7 @@ jobs:
       - name: Run pylint
         shell: bash -l {0}
         run: |
-          pylint openff/arsenic/
+          pylint openff/arsenic/ --fail-under 6
       - name: Run black check
         shell: bash -l {0}
         if: always()
