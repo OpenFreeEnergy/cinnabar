@@ -4,7 +4,7 @@ API Documentation
 .. autosummary::
    :toctree: autosummary
 
-   arsenic.plotting
-   arsenic.plotlying
-   arsenic.stats
-   arsenic.wrangle
+   openff.arsenic.plotting
+   openff.arsenic.plotlying
+   openff.arsenic.stats
+   openff.arsenic.wrangle
