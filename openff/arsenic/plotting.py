@@ -1,9 +1,9 @@
 import itertools
 
-import numpy as np
 import matplotlib.pylab as plt
+import numpy as np
 
-from . import stats, plotlying
+from . import plotlying, stats
 
 
 def _master_plot(
@@ -14,9 +14,9 @@ def _master_plot(
     yerr=None,
     method_name="",
     target_name="",
-    quantity=rf"$\Delta \Delta$ G",
-    xlabel=f"Experimental",
-    ylabel=f"Calculated",
+    quantity=r"$\Delta \Delta$ G",
+    xlabel="Experimental",
+    ylabel="Calculated",
     units=r"$\mathrm{kcal\,mol^{-1}}$",
     guidelines=True,
     origins=True,
@@ -80,7 +80,7 @@ def _master_plot(
     plt.rcParams["ytick.labelsize"] = 12
     plt.rcParams["font.size"] = 12
 
-    f = plt.figure(figsize=(figsize, figsize))
+    fig = plt.figure(figsize=(figsize, figsize))
     plt.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
 
     plt.xlabel(f"{xlabel} {quantity} / " + units)
@@ -157,7 +157,7 @@ def _master_plot(
         plt.show()
     else:
         plt.savefig(filename, bbox_inches="tight")
-    return f
+    return fig
 
 
 def plot_DDGs(
@@ -368,10 +368,12 @@ def plot_all_DDGs(
 
     """
 
-    x_abs = np.asarray([node[1]["exp_DG"] for node in graph.nodes(data=True)])
-    y_abs = np.asarray([node[1]["calc_DG"] for node in graph.nodes(data=True)])
-    xabserr = np.asarray([node[1]["exp_dDG"] for node in graph.nodes(data=True)])
-    yabserr = np.asarray([node[1]["calc_dDG"] for node in graph.nodes(data=True)])
+    nodes = graph.nodes(data=True)
+
+    x_abs = np.asarray([node[1]["exp_DG"] for node in nodes])
+    y_abs = np.asarray([node[1]["calc_DG"] for node in nodes])
+    xabserr = np.asarray([node[1]["exp_dDG"] for node in nodes])
+    yabserr = np.asarray([node[1]["calc_dDG"] for node in nodes])
     # do all to plot_all
     x_data = []
     y_data = []

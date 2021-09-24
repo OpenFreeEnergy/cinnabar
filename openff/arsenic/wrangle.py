@@ -1,12 +1,14 @@
-import networkx as nx
+from typing import Union
+
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import pandas as pd
 
 from . import stats
 
 
-def read_csv(filename):
+def read_csv(filename: str) -> dict:
     raw_results = {"Experimental": {}, "Calculated": []}
     expt_block = False
     calc_block = False
@@ -38,7 +40,8 @@ class RelativeResult(object):
         self.calc_dDDG = self.mbar_dDDG + self.other_dDDG  # is this definitely always additive?
 
     def toDF(self):
-        # TODO - can we do the handling of the dataframe in a different way? Or inside the plotting function that needs it?
+        # TODO - can we do the handling of the dataframe in a different way?
+        # Or inside the plotting function that needs it?
         return pd.DataFrame(
             {
                 "ligandA": self.ligandA,
@@ -126,7 +129,7 @@ class FEMap(object):
                 self.graph.nodes[i]["calc_DG"] = f_i
                 self.graph.nodes[i]["calc_dDG"] = df_i
 
-    def draw_graph(self, title="", filename=None):
+    def draw_graph(self, title: str = "", filename: Union[str, None] = None):
         plt.figure(figsize=(10, 10))
         self._id_to_name = {}
         for i, j in self._name_to_id.items():

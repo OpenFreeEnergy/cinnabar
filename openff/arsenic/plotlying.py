@@ -1,34 +1,40 @@
+from typing import Union
+
 import numpy as np
-import seaborn as sns
+import pandas as pd
 import plotly.graph_objects as go
+import seaborn as sns
+from _typeshed import NoneType
 
 from . import stats
 
 
 def plot_bar(
-    df,
-    ddg_cols,
-    error_cols,
-    exp_col="exp",
-    exp_error_col="dexp",
-    name_col="edge",
-    title="",
-    filename=None,
+    df: pd.DataFrame,
+    ddg_cols: str,
+    error_cols: str,
+    exp_col: str = "exp",
+    exp_error_col: str = "dexp",
+    name_col: str = "edge",
+    title: str = "",
+    filename: Union[str, NoneType] = None,
 ):
     """
-    Creates a plotly barplot. It takes a pandas.Dataframe df as input and plots horizontal bars grouping the values
-    in the rows together. The columns which will be used are specified by ddg_cols (DDG values),
-    error_cols (corresponding errors), exp_col (column with exp. values), exp_error_col (column with exp. errors)
-    and name_col (column which will be used as y axis tick labels).
+    Creates a plotly barplot. It takes a pandas.Dataframe df as input and plots
+    horizontal bars grouping the values in the rows together. The columns which
+    will be used are specified by ddg_cols (DDG values),
+    error_cols (corresponding errors), exp_col (column with exp. values),
+    exp_error_col (column with exp. errors) and name_col (column which will be
+    used as y axis tick labels).
     """
 
     # create color palette
     colors = sns.color_palette(palette="bright")
 
-    numEdges = df.shape[0]
-    numBarsPerEdge = len(ddg_cols)
-    height = 20 * (numBarsPerEdge + 0.3) * numEdges
-    exp_size = height / numEdges / 2.0
+    num_edges = df.shape[0]
+    num_bars_per_edge = len(ddg_cols)
+    height = 20 * (num_bars_per_edge + 0.3) * num_edges
+    exp_size = height / num_edges / 2.0
     alim = (
         np.max(
             np.fabs(df.loc[:, ddg_cols + [exp_col]].values)
@@ -56,7 +62,7 @@ def plot_bar(
             )
         )
 
-    if exp_col != None:
+    if exp_col is not None:
         fig.add_trace(
             go.Scatter(
                 x=df.loc[:, exp_col].values,
@@ -116,7 +122,7 @@ def plot_bar(
             title="Edge",
             titlefont_size=16,
             tickfont_size=14,
-            range=(-0.5, numEdges - 0.5),
+            range=(-0.5, num_edges - 0.5),
         ),
         width=800,
         height=height,
@@ -262,13 +268,14 @@ def _master_plot(
     # stats and title
     string = []
     for statistic in statistics:
-        s = stats.bootstrap_statistic(x, y, statistic=statistic)
-        string.append(
-            f"{statistic + ':':5s}{s['mle']:5.2f} [95%: {s['low']:5.2f}, {s['high']:5.2f}]"
-        )
-    statistics_string = "<br>".join(string)
+        bss = stats.bootstrap_statistic(x, y, statistic=statistic)
 
-    long_title = f"{title}<br>{target_name} (N = {nsamples})<br>{statistics_string}"
+        string.append(
+            f"{statistic + ':':5s}{bss['mle']:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
+        )
+    stats_string = "<br>".join(string)
+
+    long_title = f"{title}<br>{target_name} (N = {nsamples})<br>{stats_string}"
 
     # figure layout
     fig.update_layout(
