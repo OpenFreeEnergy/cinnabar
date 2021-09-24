@@ -7,14 +7,11 @@ from openff.arsenic.stats import bootstrap_statistic
 from openff.arsenic.wrangle import FEMap
 
 
-def test_mle_easy(input_absolutes=[-14.0, -13.0, -9.0]):
+def test_mle_easy(input_absolutes: list = [-14.0, -13.0, -9.0]):
     """
     Test that the MLE for a graph with an absolute
     estimate on all nodes will recapitulate it
     """
-
-    # test data
-    input_absolutes = [-14.0, -13.0, -9.0]
 
     graph = nx.DiGraph()
     for i, val in enumerate(input_absolutes):
@@ -37,13 +34,12 @@ def test_mle_easy(input_absolutes=[-14.0, -13.0, -9.0]):
          true value: {input_absolutes[i]}."
 
 
-def test_mle_hard(input_absolutes=[-14.0, -13.0, -9.0]):
+def test_mle_hard(input_absolutes: list = [-14.0, -13.0, -9.0]):
     """
     Test that the MLE for a graph with a node missing an absolute value
     can get it right based on relative results
     """
 
-    input_absolutes = [-14.0, -13.0, -9.0]
     # make a t
     graph = nx.DiGraph()
     # Don't assign the first absolute value, check that MLE can get close to it
@@ -70,7 +66,7 @@ def test_mle_hard(input_absolutes=[-14.0, -13.0, -9.0]):
          true value: {input_absolutes[i]}."
 
 
-def test_mle_relative(input_absolutes=[-14.0, -13.0, -9.0]):
+def test_mle_relative(input_absolutes: list = [-14.0, -13.0, -9.0]):
     """
     Test that the MLE can get the relative differences correct
      when no absolute values are provided

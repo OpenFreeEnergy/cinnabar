@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
-from _typeshed import NoneType
 
 from . import stats
 
@@ -17,7 +16,7 @@ def plot_bar(
     exp_error_col: str = "dexp",
     name_col: str = "edge",
     title: str = "",
-    filename: Union[str, NoneType] = None,
+    filename: Union[str, None] = None,
 ):
     """
     Creates a plotly barplot. It takes a pandas.Dataframe df as input and plots
@@ -147,18 +146,18 @@ def plot_bar(
 
 
 def _master_plot(
-    x,
-    y,
-    title="",
-    xerr=None,
-    yerr=None,
-    method_name="",
-    target_name="",
-    plot_type="",
-    guidelines=True,
-    origins=True,
-    statistics=["RMSE", "MUE"],
-    filename=None,
+    x: np.ndarray,
+    y: np.ndarray,
+    title: str = "",
+    xerr: Union[list, None] = None,
+    yerr: Union[list, None] = None,
+    method_name: str = "",
+    target_name: str = "",
+    plot_type: str = "",
+    guidelines: bool = True,
+    origins: bool = True,
+    statistics: list = ["RMSE", "MUE"],
+    filename: Union[str, None] = None,
 ):
     nsamples = len(x)
     ax_min = min(min(x), min(y)) - 0.5

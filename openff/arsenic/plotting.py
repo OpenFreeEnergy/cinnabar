@@ -1,31 +1,31 @@
 import itertools
-
+from typing import Union
 import matplotlib.pylab as plt
 import numpy as np
-
+import networkx as nx
 from . import plotlying, stats
 
 
 def _master_plot(
-    x,
-    y,
-    title="",
-    xerr=None,
-    yerr=None,
-    method_name="",
-    target_name="",
-    quantity=r"$\Delta \Delta$ G",
-    xlabel="Experimental",
-    ylabel="Calculated",
-    units=r"$\mathrm{kcal\,mol^{-1}}$",
-    guidelines=True,
-    origins=True,
-    color=None,
-    statistics=["RMSE", "MUE"],
-    filename=None,
-    centralizing=True,
-    shift=0.0,
-    figsize=3.25,
+    x: np.ndarray,
+    y: np.ndarray,
+    title: str = "",
+    xerr: Union[list, None] = None,
+    yerr: Union[list, None] = None,
+    method_name: str = "",
+    target_name: str = "",
+    quantity: str = r"$\Delta \Delta$ G",
+    xlabel: str = "Experimental",
+    ylabel: str = "Calculated",
+    units: str = r"$\mathrm{kcal\,mol^{-1}}$",
+    guidelines: bool = True,
+    origins: bool = True,
+    color: Union[str, None] = None,
+    statistics: list = ["RMSE", "MUE"],
+    filename: Union[str, None] = None,
+    centralizing: bool = True,
+    shift: float = 0.0,
+    figsize: float = 3.25,
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -161,14 +161,14 @@ def _master_plot(
 
 
 def plot_DDGs(
-    graph,
-    method_name="",
-    target_name="",
-    title="",
-    map_positive=False,
-    filename=None,
-    symmetrise=False,
-    plotly=False,
+    graph: nx.DiGraph,
+    method_name: str = "",
+    target_name: str = "",
+    title: str = "",
+    map_positive: bool = False,
+    filename: Union[list, None] = None,
+    symmetrise: bool = False,
+    plotly: bool = False,
     **kwargs,
 ):
     """Function to plot relative free energies
@@ -260,14 +260,14 @@ def plot_DDGs(
 
 
 def plot_DGs(
-    graph,
-    method_name="",
-    target_name="",
-    title="",
-    filename=None,
-    plotly=False,
-    centralizing=True,
-    shift=0.0,
+    graph: nx.DiGraph,
+    method_name: str = "",
+    target_name: str = "",
+    title: str = "",
+    filename: Union[str, None] = None,
+    plotly: bool = False,
+    centralizing: bool = True,
+    shift: float = 0.0,
     **kwargs,
 ):
     """Function to plot absolute free energies.
@@ -337,12 +337,12 @@ def plot_DGs(
 
 
 def plot_all_DDGs(
-    graph,
-    method_name="",
-    target_name="",
-    title="",
-    filename=None,
-    plotly=False,
+    graph: nx.DiGraph,
+    method_name: str = "",
+    target_name: str = "",
+    title: str = "",
+    filename: Union[str, None] = None,
+    plotly: bool = False,
     **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from

@@ -2,18 +2,19 @@ import networkx as nx
 import numpy as np
 import scipy
 import sklearn.metrics
+from typing import Union
 
 
 def bootstrap_statistic(
-    y_true,
-    y_pred,
-    dy_true=None,
-    dy_pred=None,
-    ci=0.95,
-    statistic="RMSE",
-    nbootstrap=1000,
-    plot_type="dG",
-):
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    dy_true: Union[np.ndarray, None] = None,
+    dy_pred: Union[np.ndarray, None] = None,
+    ci: float = 0.95,
+    statistic: str = "RMSE",
+    nbootstrap: int = 1000,
+    plot_type: str = "dG",
+) -> dict:
 
     """Compute mean and confidence intervals of specified statistic.
 
@@ -28,7 +29,7 @@ def bootstrap_statistic(
     dy_pred : ndarray with shape (N,) or None
         Errors of predicted values. If None, the values are assumed to have no errors
     ci : float, optional, default=0.95
-        Interval for CI
+        Interval for confidence interval (CI)
     statistic : str
         Statistic, one of ['RMSE', 'MUE', 'R2', 'rho','KTAU','RAE']
     nbootstrap : int, optional, default=1000
@@ -38,14 +39,14 @@ def bootstrap_statistic(
 
     Returns
     -------
-    rmse_stats : dict of floeat
+    rmse_stats : dict of float
         'mean' : mean RMSE
         'stderr' : standard error
         'low' : low end of CI
         'high' : high end of CI
     """
 
-    def compute_statistic(y_true_sample, y_pred_sample, statistic):
+    def compute_statistic(y_true_sample: np.ndarray, y_pred_sample: np.ndarray, statistic: str):
         """Compute requested statistic.
 
         Parameters
@@ -59,13 +60,13 @@ def bootstrap_statistic(
 
         """
 
-        def calc_RAE(y_true_sample, y_pred_sample):
+        def calc_RAE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
             MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
             mean = np.mean(y_true_sample)
             MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(len(y_true_sample))
             return MAE / MAD
 
-        def calc_RRMSE(y_true_sample, y_pred_sample):
+        def calc_RRMSE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
             rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
             mean_exp = np.mean(y_true_sample)
             mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(len(y_true_sample))
@@ -90,6 +91,7 @@ def bootstrap_statistic(
         else:
             raise Exception("unknown statistic '{}'".format(statistic))
 
+    # not used?
     def unique_differences(x):
         """Compute all unique differences"""
         N = len(x)
@@ -130,7 +132,9 @@ def bootstrap_statistic(
     return rmse_stats
 
 
-def mle(graph, factor="f_ij", node_factor=None):
+def mle(
+    graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None
+) -> np.ndarray:
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
     The number 'factor' is the node attribute on which the MLE will be calculated,
@@ -217,12 +221,14 @@ def mle(graph, factor="f_ij", node_factor=None):
     return f_i, C
 
 
-def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_label=None):
+def form_edge_matrix(
+    graph: nx.Graph, label: str, step=None, action=None, node_label=None
+) -> np.ndarray:
     """
     Extract the labeled property from edges into a matrix
     Parameters
     ----------
-    graph :nx.Graph
+    graph : nx.Graph
         The graph to extract data from
     label : str
         The label to use for extracting edge properties
@@ -231,6 +237,10 @@ def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_l
         If 'antisymmetrize', returns an antisymmetric matrix A[i,j] = -A[j,i]
     node_label : sr, optional, default=None
         Diagonal will be occupied with absolute values, where labelled
+
+    Returns
+    ----------
+    matrix
     """
     N = len(graph.nodes)
     matrix = np.zeros([N, N])

@@ -1,5 +1,5 @@
 # this will combine a single command that will run all analysis and save everything
-from . import wrangle, plotting
+from . import plotting, wrangle
 
 if __name__ == "__main__":
     import argparse
