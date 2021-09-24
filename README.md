@@ -2,7 +2,7 @@ openff-arsenic
 ==============================
 [//]: # (Badges)
 
-[![Documentation Status](https://readthedocs.org/projects/openff-arsenic/badge/?version=latest)](https://openff-arsenic.readthedocs.io/en/latest/?badge=latest)
+
 [![codecov](https://codecov.io/gh/openforcefield/openff-arsenic/branch/master/graph/badge.svg)](https://codecov.io/gh/openforcefield/openff-arsenic/branch/master)
 [![Documentation Status](https://readthedocs.org/projects/openff-arsenic/badge/?version=latest)](https://openff-arsenic.readthedocs.io/en/latest/?badge=latest)
 
