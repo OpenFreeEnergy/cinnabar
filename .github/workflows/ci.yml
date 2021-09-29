@@ -70,12 +70,11 @@ jobs:
         run: |
           pytest -v --cov=openff/arsenic --cov-report=xml --color=yes openff/arsenic/tests/
       - name: CodeCov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
         if: always()
         with:
           file: ./coverage.xml
           flags: unittests
-          yml: ./.codecov.yml
 
   lint-format:
     name: Lint & format checks
