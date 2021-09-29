@@ -71,7 +71,6 @@ jobs:
           pytest -v --cov=openff/arsenic --cov-report=xml --cov-report=term --color=yes openff/arsenic/tests/
       - uses: codecov/codecov-action@v2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
           files: ./coverage.xml
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
