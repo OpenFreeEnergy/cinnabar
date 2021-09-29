@@ -68,7 +68,7 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         run: |
-          pytest -v --cov=openff/arsenic openff/arsenic/tests/ --cov-report=xml --color=yes openff/arsenic/tests/
+          pytest -v --cov=openff/arsenic --cov-report=xml --color=yes openff/arsenic/tests/
       - name: CodeCov
         uses: codecov/codecov-action@v1
         if: always()
