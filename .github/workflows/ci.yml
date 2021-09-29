@@ -69,7 +69,6 @@ jobs:
         shell: bash -l {0}
         run: |
           pytest -v --cov=openff/arsenic --cov-report=xml --color=yes openff/arsenic/tests/
-      - uses: actions/checkout@master
       - uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
