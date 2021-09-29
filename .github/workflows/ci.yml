@@ -69,14 +69,13 @@ jobs:
         shell: bash -l {0}
         run: |
           pytest -v --cov=openff/arsenic --cov-report=xml --color=yes openff/arsenic/tests/
-      - name: CodeCov
-        uses: codecov/codecov-action@v1
-        if: always()
+      - uses: actions/checkout@master
+      - uses: codecov/codecov-action@v2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.xml
-          flags: unittests
-          yml: ./.codecov.yml
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          files: ./coverage.xml
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
 
   lint-format:
     name: Lint & format checks
