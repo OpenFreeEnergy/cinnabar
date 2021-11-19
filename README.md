@@ -87,7 +87,7 @@ Currently just plotting everything against experimental, would like to do forcef
 
 ### Copyright
 
-Copyright (c) 2020, Hannah Bruce Macdonald
+Copyright (c) 2021, Hannah Bruce Macdonald
 
 
 #### Acknowledgements
