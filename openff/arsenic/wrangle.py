@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from . import stats
+from openff.arsenic import stats
 
 
 def read_csv(filename: str) -> dict:
@@ -26,6 +26,54 @@ def read_csv(filename: str) -> dict:
                 calc = RelativeResult(*line.split(","))
                 raw_results["Calculated"].append(calc)
     return raw_results
+
+
+def read_perses_results(input_data, ligand_id_to_name, exp_data=None, exp_error=None):
+    """
+    Read FE calculation results from a list of perses Simulation objects.
+
+    Parameters
+    ----------
+        input_data: list
+            List of perses.analysis.load_simulations.Simulation objects to extract the data from.
+        ligand_id_to_name: dict
+            Mapping of ligand id (index) to ligand name.
+        exp_data: list
+            List with the corresponding experimental values in kcal/mol in the same order as input data.
+        exp_error: list
+            List of uncertainties in experimental values, in kcal/mol.
+    """
+    # Perses results require a ligand id to name map
+    if ligand_id_to_name is None:
+        raise ValueError("Expected ligand id to name map. Received None.")
+
+    raw_results = {"Experimental": {}, "Calculated": []}
+
+    # NaNs as experimental values if not given
+    if exp_data:
+        expt = exp_data
+    else:
+        expt = [np.nan]*len(input_data)
+    if exp_data:
+        expt_error = exp_error
+    else:
+        expt_error = [np.nan]*len(input_data)
+
+    for sim in input_data:
+        # extracting indices for ligands
+        ligA = int(sim.directory[3:].split('_')[1])  # define edges
+        ligB = int(sim.directory[3:].split('_')[2])
+        exp_dDDG = (expt_error[ligA] ** 2 + expt_error[ligB] ** 2) ** 0.5  # define exp error
+        calc_DDG=-sim.bindingdg / sim.bindingdg.unit
+        calc_DDG_dev=sim.bindingddg / sim.bindingddg.unit
+        exp_DDG=(expt[ligB] - expt[ligA])
+        exp_DDG_dev=exp_dDDG
+        # Create Relative object from data
+        liga_name = ligand_id_to_name[ligA]
+        ligb_name = ligand_id_to_name[ligB]
+        raw_results['Calculated'].append(RelativeResult(liga_name, ligb_name, calc_DDG, calc_DDG_dev))
+        # Create Experimental object from data
+        # raw_results['Experimental'][]
 
 
 class RelativeResult(object):
@@ -62,17 +110,67 @@ class ExperimentalResult(object):
         self.dDG = float(expt_dDG.strip("\n"))
 
 
-class FEMap(object):
-    def __init__(self, csv):
-        self.results = read_csv(csv)
+class BaseFEMap(object):
+    """Creates a graph-based map of a free energy set of calculations."""
+    def __init__(self, input_data, ligand_id_to_name=None):
+        """
+        Construct Free Energy map of simulations from input data.
+
+        Parameters
+        ----------
+            input_data: csv file path or list(perses.analysis.load_simulations.Simulation)
+                File path to csv file or instance of Simulation.
+            ligand_id_to_name: dict, optional
+                Dictionary with the ligand id to name mapping to be used. Defaults to None. If not specified a map
+                will be build, arbitrarily.
+        """
         self.graph = nx.DiGraph()
-        self.n_edges = len(self.results)
-
-        self.generate_graph_from_results()
-
-    def generate_graph_from_results(self):
+        self._ligand_id_to_name = ligand_id_to_name
         self._name_to_id = {}
         self._id_to_name = {}
+        self.n_ligands = self.graph.number_of_nodes()
+
+    def check_weakly_connected(self):
+        undirected_graph = self.graph.to_undirected()
+        self.weakly_connected = nx.is_connected(undirected_graph)
+        return nx.is_connected(undirected_graph)
+
+    def generate_absolute_values(self):
+        # TODO this could work if either relative or absolute expt values are provided
+        if self.weakly_connected:
+            f_i_calc, C_calc = stats.mle(self.graph, factor="calc_DDG")
+            variance = np.diagonal(C_calc)
+            for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance ** 0.5)):
+                self.graph.nodes[i]["calc_DG"] = f_i
+                self.graph.nodes[i]["calc_dDG"] = df_i
+
+
+class FEMap(BaseFEMap):
+    """Creates a graph-based map of a free energy set of calculations."""
+    def __init__(self, input_data, ligand_id_to_name=None):
+        """
+        Construct Free Energy map of simulations from input data.
+
+        Parameters
+        ----------
+            input_data: csv file path or list(perses.analysis.load_simulations.Simulation)
+                File path to csv file or instance of Simulation.
+            ligand_id_to_name: dict, optional
+                Dictionary with the ligand id to name mapping to be used. Defaults to None. If not specified a map
+                will be build, arbitrarily.
+        """
+        # Call constructor of parent class
+        super().__init__(input_data, ligand_id_to_name=ligand_id_to_name)
+        # Read results depending on input data format
+        if isinstance(input_data, str):
+            self.results = read_csv(input_data)
+        else:
+            self.results = read_perses_results(input_data, ligand_id_to_name)
+        self.n_edges = len(self.results)
+        self.generate_graph_from_results()
+        self.degree = self.graph.number_of_edges() / self.n_ligands
+
+    def generate_graph_from_results(self):
         id = 0
         for result in self.results["Calculated"]:
             if result.ligandA not in self._name_to_id.keys():
@@ -114,20 +212,6 @@ class FEMap(object):
             print("Graph is not connected enough to compute absolute values")
         else:
             self.generate_absolute_values()
-
-    def check_weakly_connected(self):
-        undirected_graph = self.graph.to_undirected()
-        self.weakly_connected = nx.is_connected(undirected_graph)
-        return nx.is_connected(undirected_graph)
-
-    def generate_absolute_values(self):
-        # TODO this could work if either relative or absolute expt values are provided
-        if self.weakly_connected:
-            f_i_calc, C_calc = stats.mle(self.graph, factor="calc_DDG")
-            variance = np.diagonal(C_calc)
-            for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance ** 0.5)):
-                self.graph.nodes[i]["calc_DG"] = f_i
-                self.graph.nodes[i]["calc_dDG"] = df_i
 
     def draw_graph(self, title: str = "", filename: Union[str, None] = None):
         plt.figure(figsize=(10, 10))
