@@ -28,7 +28,7 @@ def read_csv(filename: str) -> dict:
     return raw_results
 
 
-def read_perses_results(input_data, ligand_id_to_name, exp_data=None, exp_error=None):
+def read_perses_results(input_data, ligand_id_to_name, exp_data, exp_error):
     """
     Read FE calculation results from a list of perses Simulation objects.
 
@@ -49,31 +49,25 @@ def read_perses_results(input_data, ligand_id_to_name, exp_data=None, exp_error=
 
     raw_results = {"Experimental": {}, "Calculated": []}
 
-    # NaNs as experimental values if not given
-    if exp_data:
-        expt = exp_data
-    else:
-        expt = [np.nan]*len(input_data)
-    if exp_data:
-        expt_error = exp_error
-    else:
-        expt_error = [np.nan]*len(input_data)
-
+    # loop through data and fill dictionary
     for sim in input_data:
         # extracting indices for ligands
         ligA = int(sim.directory[3:].split('_')[1])  # define edges
         ligB = int(sim.directory[3:].split('_')[2])
-        exp_dDDG = (expt_error[ligA] ** 2 + expt_error[ligB] ** 2) ** 0.5  # define exp error
         calc_DDG=-sim.bindingdg / sim.bindingdg.unit
         calc_DDG_dev=sim.bindingddg / sim.bindingddg.unit
-        exp_DDG=(expt[ligB] - expt[ligA])
-        exp_DDG_dev=exp_dDDG
         # Create Relative object from data
         liga_name = ligand_id_to_name[ligA]
         ligb_name = ligand_id_to_name[ligB]
-        raw_results['Calculated'].append(RelativeResult(liga_name, ligb_name, calc_DDG, calc_DDG_dev))
-        # Create Experimental object from data
-        # raw_results['Experimental'][]
+        raw_results['Calculated'].append(RelativeResult(liga_name, ligb_name, calc_DDG, calc_DDG_dev, calc_DDG_dev))
+        # Create Experimental objects from data and add to dictionary
+        # TODO: Redundant. This overwrites already set values (not blocking)
+        liganda_name = ligand_id_to_name[ligA]
+        ligandb_name = ligand_id_to_name[ligA]
+        raw_results['Experimental'][liganda_name] = ExperimentalResult(liganda_name, exp_data[ligA], exp_error[ligA])
+        raw_results['Experimental'][ligandb_name] = ExperimentalResult(ligandb_name, exp_data[ligA], exp_error[ligA])
+
+    return raw_results
 
 
 class RelativeResult(object):
@@ -107,12 +101,16 @@ class ExperimentalResult(object):
     def __init__(self, ligand, expt_DG, expt_dDG):
         self.ligand = ligand
         self.DG = float(expt_DG)
-        self.dDG = float(expt_dDG.strip("\n"))
+        try:
+            self.dDG = float(expt_dDG.strip("\n"))
+        except AttributeError:
+            # Data is already numeric
+            self.dDG = float(expt_dDG)
 
 
 class BaseFEMap(object):
     """Creates a graph-based map of a free energy set of calculations."""
-    def __init__(self, input_data, ligand_id_to_name=None):
+    def __init__(self):
         """
         Construct Free Energy map of simulations from input data.
 
@@ -121,11 +119,10 @@ class BaseFEMap(object):
             input_data: csv file path or list(perses.analysis.load_simulations.Simulation)
                 File path to csv file or instance of Simulation.
             ligand_id_to_name: dict, optional
-                Dictionary with the ligand id to name mapping to be used. Defaults to None. If not specified a map
-                will be build, arbitrarily.
+                Dictionary with the ligand id to name mapping to be used. Defaults to None. Reading from perses data
+                requires to specify a ligand_id_to_name.
         """
         self.graph = nx.DiGraph()
-        self._ligand_id_to_name = ligand_id_to_name
         self._name_to_id = {}
         self._id_to_name = {}
         self.n_ligands = self.graph.number_of_nodes()
@@ -147,7 +144,7 @@ class BaseFEMap(object):
 
 class FEMap(BaseFEMap):
     """Creates a graph-based map of a free energy set of calculations."""
-    def __init__(self, input_data, ligand_id_to_name=None):
+    def __init__(self, input_data, ligand_id_to_name=None, experimental_data=None, experimental_error=None):
         """
         Construct Free Energy map of simulations from input data.
 
@@ -160,12 +157,15 @@ class FEMap(BaseFEMap):
                 will be build, arbitrarily.
         """
         # Call constructor of parent class
-        super().__init__(input_data, ligand_id_to_name=ligand_id_to_name)
+        super().__init__()
         # Read results depending on input data format
         if isinstance(input_data, str):
             self.results = read_csv(input_data)
         else:
-            self.results = read_perses_results(input_data, ligand_id_to_name)
+            self.results = read_perses_results(input_data,
+                                               ligand_id_to_name,
+                                               experimental_data,
+                                               experimental_error)
         self.n_edges = len(self.results)
         self.generate_graph_from_results()
         self.degree = self.graph.number_of_edges() / self.n_ligands
