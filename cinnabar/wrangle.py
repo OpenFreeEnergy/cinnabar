@@ -140,11 +140,11 @@ class FEMap(object):
         >>> calculated_result = RelativeResult("CAT-13a", "CAT-17g", calc_DDG=0.36, mbar_error=0.11, other_error=0.0)
         >>> # Create dictionary with required structure
         >>> example_dict = {
-        >>>     'Experimental': {"CAT-13a": experimental_result1}, {"CAT-17g": experimental_result2}
+        >>>     'Experimental': {"CAT-13a": experimental_result1, "CAT-17g": experimental_result2},
         >>>     'Calculated': [calculated_result]
         >>> }
         >>> # Create object from dictionary
-        >>> fe = wrangle.FEMap(example_dict)
+        >>> fe = FEMap(example_dict)
 
         from a FEResults object:
 
