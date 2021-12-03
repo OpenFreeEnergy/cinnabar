@@ -105,13 +105,9 @@ class FEResults(object):
         >>> fe_results = FEResults()
         >>> fe_results.add_experimental_result("CAT-13a", -8.93, 0.10)
         """
-        self.experimental_results[ligand] = ExperimentalResult(
-            ligand, expt_value, expt_error
-        )
+        self.experimental_results[ligand] = ExperimentalResult(ligand, expt_value, expt_error)
 
-    def add_calculated_result(
-        self, ligand_a, ligand_b, calc_value, mbar_error, other_error
-    ):
+    def add_calculated_result(self, ligand_a, ligand_b, calc_value, mbar_error, other_error):
         """
         Add calculated relative result from plain explicit values.
 
@@ -239,9 +235,7 @@ class FEMap(object):
         self._id_to_name = {}
         for i, j in self._name_to_id.items():
             self._id_to_name[j] = i
-        nx.draw_circular(
-            self.graph, labels=self._id_to_name, node_color="hotpink", node_size=250
-        )
+        nx.draw_circular(self.graph, labels=self._id_to_name, node_color="hotpink", node_size=250)
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
         plt.title(long_title)
         if filename is None:
