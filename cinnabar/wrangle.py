@@ -10,11 +10,12 @@ import pandas as pd
 from openff.arsenic import stats
 
 
-def read_csv(filename: str) -> dict:
+def read_csv(filepath: pathlib.Path) -> dict:
+    path_obj = pathlib.Path(filepath)
     raw_results = {"Experimental": {}, "Calculated": []}
     expt_block = False
     calc_block = False
-    with open(filename, "r") as f:
+    with path_obj.open() as f:
         for line in f:
             if "Experiment" in line:
                 expt_block = True
@@ -70,6 +71,50 @@ class ExperimentalResult(object):
         self.dDG = float(error)
 
 
+class FEResults(object):
+    """
+    Wrapper class to store results from Free Energy calculations.
+
+    Useful for programatically creating a container to pass to FEMap class.
+    """
+    def __init__(self):
+        """Create results object"""
+        # Initializing attributes
+        self.experimental_results = dict()
+        self.calculated_results = list()
+        self.fe_results = {"Experimental": self.experimental_results, "Calculated": self.calculated_results}
+
+    def add_experimental_obj(self, experimental_result):
+        """Adds experimental result from ExperimentalResult object."""
+        self.experimental_results[experimental_result.ligand] = experimental_result
+
+    def add_calculated_obj(self, calculated_result):
+        """Adds calculated result from CalculatedResult object."""
+        self.calculated_results.append(calculated_result)
+
+    def add_experimental_result(self, ligand, expt_value, expt_error):
+        """
+        Add experimental result from plain explicit values.
+
+        Examples
+        --------
+        >>> fe_results = FEResults()
+        >>> fe_results.add_experimental_result("CAT-13a", -8.93, 0.10)
+        """
+        self.experimental_results[ligand] = ExperimentalResult(ligand, expt_value, expt_error)
+
+    def add_calculated_result(self, ligand_a, ligand_b, calc_value, mbar_error, other_error):
+        """
+        Add calculated relative result from plain explicit values.
+
+        Examples
+        --------
+        >>> fe_results = FEResults()
+        >>> fe_results.add_calculated_result("CAT-13a", "CAT-17g", 0.36, 0.11, 0.0)
+        """
+        self.calculated_results.append(RelativeResult(ligand_a, ligand_b, calc_value, mbar_error, other_error))
+
+
 class FEMap(object):
     def __init__(self, input_data):
         """
@@ -100,11 +145,19 @@ class FEMap(object):
         >>> }
         >>> # Create object from dictionary
         >>> fe = wrangle.FEMap(example_dict)
+
+        from a FEResults object:
+
+        >>> fe_results = FEResults()
+        >>> fe_results.add_experimental_result("CAT-13a", -8.93, 0.10)
+        >>> fe_results.add_experimental_result("CAT-17g", -9.73, 0.10)
+        >>> fe_results.add_calculated_result("CAT-13a", "CAT-17g", 0.36, 0.11, 0.0)
+        >>> femap = FEMap(fe_results.results) # Create FEMap from fe_results.results dictionary
         """
         try:
-            pathlib.Path(input_data)
-            self.results = read_csv(input_data)
-        except TypeError:
+            input_path = pathlib.Path(input_data)  # Check it is a path
+            self.results = read_csv(input_path)
+        except TypeError:  # not a path-like object
             self.results = input_data
 
         self.graph = nx.DiGraph()
