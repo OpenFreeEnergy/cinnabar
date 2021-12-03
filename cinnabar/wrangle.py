@@ -1,3 +1,5 @@
+from collections import defaultdict
+import pathlib
 from typing import Union
 
 import matplotlib.pyplot as plt
@@ -5,7 +7,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from . import stats
+from openff.arsenic import stats
 
 
 def read_csv(filename: str) -> dict:
@@ -60,12 +62,51 @@ class ExperimentalResult(object):
     def __init__(self, ligand, expt_DG, expt_dDG):
         self.ligand = ligand
         self.DG = float(expt_DG)
-        self.dDG = float(expt_dDG.strip("\n"))
+        try:
+            error = expt_dDG.strip("\n")
+        except AttributeError:
+            # Data is already numeric
+            error = expt_dDG
+        self.dDG = float(error)
 
 
 class FEMap(object):
-    def __init__(self, csv):
-        self.results = read_csv(csv)
+    def __init__(self, input_data):
+        """
+        Construct Free Energy map of simulations from input data.
+
+        Parameters
+        ----------
+            input_data: csv file path or path-like object or dict-like object
+                File path to csv file or python dict-like object.
+
+        Examples
+        --------
+        To read from a csv file specifically formatted for this, you can use:
+
+        >>> fe = wrangle.FEMap('../data/example.csv')
+
+        To read from a dict-like object:
+
+        >>> # Create experimental result
+        >>> experimental_result1 = ExperimentalResult("CAT-13a", expt_DG=-8.83, expt_dDG=0.10)
+        >>> experimental_result2 = ExperimentalResult("CAT-17g", expt_DG=-9.73, expt_dDG=0.10)
+        >>> # Create calculated result
+        >>> calculated_result = RelativeResult("CAT-13a", "CAT-17g", calc_DDG=0.36, mbar_error=0.11, other_error=0.0)
+        >>> # Create dictionary with required structure
+        >>> example_dict = {
+        >>>     'Experimental': {"CAT-13a": experimental_result1}, {"CAT-17g": experimental_result2}
+        >>>     'Calculated': [calculated_result]
+        >>> }
+        >>> # Create object from dictionary
+        >>> fe = wrangle.FEMap(example_dict)
+        """
+        try:
+            pathlib.Path(input_data)
+            self.results = read_csv(input_data)
+        except TypeError:
+            self.results = input_data
+
         self.graph = nx.DiGraph()
 
         self.generate_graph_from_results()

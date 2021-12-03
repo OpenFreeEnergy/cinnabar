@@ -1,7 +1,7 @@
 # this will combine a single command that will run all analysis and save everything
 import argparse
 
-from . import plotting, wrangle
+from openff.arsenic import plotting, wrangle
 
 
 def main():
