@@ -1,4 +1,3 @@
-from collections import defaultdict
 import pathlib
 from typing import Union
 
