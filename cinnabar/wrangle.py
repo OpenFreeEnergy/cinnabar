@@ -77,12 +77,16 @@ class FEResults(object):
 
     Useful for programatically creating a container to pass to FEMap class.
     """
+
     def __init__(self):
         """Create results object"""
         # Initializing attributes
         self.experimental_results = dict()
         self.calculated_results = list()
-        self.fe_results = {"Experimental": self.experimental_results, "Calculated": self.calculated_results}
+        self.fe_results = {
+            "Experimental": self.experimental_results,
+            "Calculated": self.calculated_results,
+        }
 
     def add_experimental_obj(self, experimental_result):
         """Adds experimental result from ExperimentalResult object."""
@@ -101,9 +105,13 @@ class FEResults(object):
         >>> fe_results = FEResults()
         >>> fe_results.add_experimental_result("CAT-13a", -8.93, 0.10)
         """
-        self.experimental_results[ligand] = ExperimentalResult(ligand, expt_value, expt_error)
+        self.experimental_results[ligand] = ExperimentalResult(
+            ligand, expt_value, expt_error
+        )
 
-    def add_calculated_result(self, ligand_a, ligand_b, calc_value, mbar_error, other_error):
+    def add_calculated_result(
+        self, ligand_a, ligand_b, calc_value, mbar_error, other_error
+    ):
         """
         Add calculated relative result from plain explicit values.
 
@@ -112,7 +120,9 @@ class FEResults(object):
         >>> fe_results = FEResults()
         >>> fe_results.add_calculated_result("CAT-13a", "CAT-17g", 0.36, 0.11, 0.0)
         """
-        self.calculated_results.append(RelativeResult(ligand_a, ligand_b, calc_value, mbar_error, other_error))
+        self.calculated_results.append(
+            RelativeResult(ligand_a, ligand_b, calc_value, mbar_error, other_error)
+        )
 
 
 class FEMap(object):
