@@ -146,6 +146,8 @@ def mle(
     Xu, Huafengraph. "Optimal measurement network of pairwise differences."
     Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
 
+    NOTE: Self-edges (edges that connect a node to itself) will be ignored.
+
     Parameters
     ----------
     graph :nx.Graph
@@ -191,6 +193,9 @@ def mle(
     for (a, b) in graph.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
+        if i == j:
+            # The MLE solver will fail if we include self-edges, so we need to omit these
+            continue
         F_matrix[i, j] = -df_ij[i, j] ** (-2)
         F_matrix[j, i] = -df_ij[i, j] ** (-2)
     for n in graph.nodes:
@@ -209,6 +214,9 @@ def mle(
     for (a, b) in graph.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
+        if i == j:
+            # The MLE solver will fail if we include self-edges, so we need to omit these
+            continue
         z[i] += f_ij[i, j] * df_ij[i, j] ** (-2)
         z[j] += f_ij[j, i] * df_ij[j, i] ** (-2)
 
