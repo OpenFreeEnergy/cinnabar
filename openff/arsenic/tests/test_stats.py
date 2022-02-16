@@ -34,6 +34,33 @@ def test_mle_easy(input_absolutes: list = [-14.0, -13.0, -9.0]):
          true value: {input_absolutes[i]}."
 
 
+def test_mle_easy_self_edge(input_absolutes: list = [-14.0, -13.0, -9.0]):
+    """
+    Test that the MLE for a graph with an absolute
+    estimate on all nodes will recapitulate it
+    when a self-edge is included
+    """
+
+    graph = nx.DiGraph()
+    for i, val in enumerate(input_absolutes):
+        graph.add_node(i, f_i=val, f_di=0.5)
+
+    edges = [(0, 1), (0, 2), (2, 1), (0,0)]
+    for node1, node2 in edges:
+        noise = np.random.uniform(low=-1.0, high=1.0)
+        diff = input_absolutes[node2] - input_absolutes[node1] + noise
+        graph.add_edge(node1, node2, f_ij=diff, f_dij=0.5 + np.abs(noise))
+
+    output_absolutes, covar = stats.mle(graph, factor="f_ij", node_factor="f_i")
+
+    for i, _ in enumerate(graph.nodes(data=True)):
+        diff = np.abs(output_absolutes[i] - input_absolutes[i])
+        assert (
+            diff < covar[i, i]
+        ), f"MLE error. Output absolute \
+         estimate, {output_absolutes[i]}, is too far from\
+         true value: {input_absolutes[i]}."
+
 def test_mle_hard(input_absolutes: list = [-14.0, -13.0, -9.0]):
     """
     Test that the MLE for a graph with a node missing an absolute value
