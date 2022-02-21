@@ -5,10 +5,12 @@ on:
     branches:
       - "master"
       - "dev"
+      - "main"
   pull_request:
     branches:
       - "master"
       - "dev"
+      - "main"
   schedule:
     # Run a cron job once daily
     - cron: "0 0 * * *"
