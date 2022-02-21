@@ -12,6 +12,7 @@ Welcome to arsenic's documentation!
 
    getting_started
    api
+   changelog
 
 
 
