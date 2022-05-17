@@ -6,7 +6,7 @@ Release history
 
 This section lists features and improvements of note in each release.
 
-The full release history can be viewed `at the GitHub perses releases page <https://github.com/openforcefield/openff-arsenic/releases>`_.
+The full release history can be viewed `at the GitHub arsenic releases page <https://github.com/OpenFreeEnergy/arsenic/releases>`_.
 
 0.2.1 - Release
 ---------------

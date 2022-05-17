@@ -70,7 +70,7 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         run: |
-          pytest -v --cov=openff/arsenic --cov-report=xml --cov-report=term --color=yes openff/arsenic/tests/
+          pytest -v --cov=arsenic --cov-report=xml --cov-report=term --color=yes arsenic/tests/
       - uses: codecov/codecov-action@v2
         with:
           files: ./coverage.xml
@@ -116,9 +116,9 @@ jobs:
       - name: Run pylint
         shell: bash -l {0}
         run: |
-          pylint openff/arsenic/ --fail-under 6
+          pylint arsenic/ --fail-under 6
       - name: Run black check
         shell: bash -l {0}
         if: always()
         run: |
-          black --check -l 99 openff/arsenic/ --exclude openff/arsenic/_version.py
+          black --check -l 99 arsenic/ --exclude arsenic/_version.py
