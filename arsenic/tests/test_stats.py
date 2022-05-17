@@ -44,7 +44,7 @@ def test_mle_easy_self_edge():
     for i, val in enumerate(input_absolutes):
         graph.add_node(i, f_i=val, f_di=0.5)
 
-    edges = [(0, 1), (0, 2), (2, 1), (0,0)]
+    edges = [(0, 1), (0, 2), (2, 1), (0, 0)]
     for node1, node2 in edges:
         noise = np.random.uniform(low=-1.0, high=1.0)
         diff = input_absolutes[node2] - input_absolutes[node1] + noise
@@ -59,6 +59,7 @@ def test_mle_easy_self_edge():
         ), f"MLE error. Output absolute \
          estimate, {output_absolutes[i]}, is too far from\
          true value: {input_absolutes[i]}."
+
 
 def test_mle_hard():
     """

@@ -103,7 +103,7 @@ class FEMap(object):
             edge[2]["exp_DDG"] = DG_B - DG_A
             dDG_A = self.graph.nodes[edge[0]]["exp_dDG"]
             dDG_B = self.graph.nodes[edge[1]]["exp_dDG"]
-            edge[2]["exp_dDDG"] = (dDG_A ** 2 + dDG_B ** 2) ** 0.5
+            edge[2]["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
 
         self.n_ligands = self.graph.number_of_nodes()
         self.degree = self.graph.number_of_edges() / self.n_ligands
@@ -125,7 +125,7 @@ class FEMap(object):
         if self.weakly_connected:
             f_i_calc, C_calc = stats.mle(self.graph, factor="calc_DDG")
             variance = np.diagonal(C_calc)
-            for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance ** 0.5)):
+            for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
                 self.graph.nodes[i]["calc_DG"] = f_i
                 self.graph.nodes[i]["calc_dDG"] = df_i
 

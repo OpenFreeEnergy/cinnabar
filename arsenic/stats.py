@@ -70,7 +70,7 @@ def bootstrap_statistic(
             rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
             mean_exp = np.mean(y_true_sample)
             mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(len(y_true_sample))
-            rrmse = np.sqrt(rmse ** 2 / mds)
+            rrmse = np.sqrt(rmse**2 / mds)
             return rrmse
 
         if statistic == "RMSE":
@@ -81,7 +81,7 @@ def bootstrap_statistic(
             slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
                 y_true_sample, y_pred_sample
             )
-            return r_value ** 2
+            return r_value**2
         elif statistic == "rho":
             return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
         elif statistic == "RAE":
