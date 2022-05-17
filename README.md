@@ -2,7 +2,7 @@ arsenic
 ==============================
 [//]: # (Badges)
 
-[![build](https://github.com/OpenFreeEnergy/arsenic/actions/workflows/ci.yaml/badge.svg)](https://github.com/OpenFreeEnergy/arsenic/actions/workflows/ci.yaml)
+[![CI](https://github.com/OpenFreeEnergy/arsenic/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenFreeEnergy/arsenic/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/OpenFreeEnergy/arsenic/branch/main/graph/badge.svg)](https://codecov.io/gh/OpenFreeEnergy/arsenic)
 [![Documentation Status](https://readthedocs.org/projects/openff-arsenic/badge/?version=latest)](https://openff-arsenic.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6210305.svg)](https://doi.org/10.5281/zenodo.6210305)
