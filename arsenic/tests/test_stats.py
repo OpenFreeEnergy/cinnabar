@@ -2,9 +2,8 @@ import itertools
 
 import networkx as nx
 import numpy as np
-from openff.arsenic import stats
-from openff.arsenic.stats import bootstrap_statistic
-from openff.arsenic.wrangle import FEMap
+from arsenic import stats
+from arsenic.stats import bootstrap_statistic
 
 
 def test_mle_easy(input_absolutes: list = [-14.0, -13.0, -9.0]):
@@ -122,14 +121,13 @@ def test_mle_relative(input_absolutes: list = [-14.0, -13.0, -9.0]):
          input difference, {true_diff}"
 
 
-def test_correlation_positive():
+def test_correlation_positive(fe_map):
     """
     Test that the absolute DG plots have the correct signs,
     and statistics within reasonable agreement to the example data
     in `arsenic/data/example.csv`
     """
 
-    fe_map = FEMap("openff/arsenic/data/example.csv")
     nodes = fe_map.graph.nodes
 
     x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
