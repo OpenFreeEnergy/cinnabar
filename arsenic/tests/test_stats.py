@@ -6,12 +6,12 @@ from arsenic import stats
 from arsenic.stats import bootstrap_statistic
 
 
-def test_mle_easy(input_absolutes: list = [-14.0, -13.0, -9.0]):
+def test_mle_easy():
     """
     Test that the MLE for a graph with an absolute
     estimate on all nodes will recapitulate it
     """
-
+    input_absolutes: list = [-14.0, -13.0, -9.0]
     graph = nx.DiGraph()
     for i, val in enumerate(input_absolutes):
         graph.add_node(i, f_i=val, f_di=0.5)
@@ -33,13 +33,13 @@ def test_mle_easy(input_absolutes: list = [-14.0, -13.0, -9.0]):
          true value: {input_absolutes[i]}."
 
 
-def test_mle_easy_self_edge(input_absolutes: list = [-14.0, -13.0, -9.0]):
+def test_mle_easy_self_edge():
     """
     Test that the MLE for a graph with an absolute
     estimate on all nodes will recapitulate it
     when a self-edge is included
     """
-
+    input_absolutes: list = [-14.0, -13.0, -9.0]
     graph = nx.DiGraph()
     for i, val in enumerate(input_absolutes):
         graph.add_node(i, f_i=val, f_di=0.5)
@@ -60,12 +60,12 @@ def test_mle_easy_self_edge(input_absolutes: list = [-14.0, -13.0, -9.0]):
          estimate, {output_absolutes[i]}, is too far from\
          true value: {input_absolutes[i]}."
 
-def test_mle_hard(input_absolutes: list = [-14.0, -13.0, -9.0]):
+def test_mle_hard():
     """
     Test that the MLE for a graph with a node missing an absolute value
     can get it right based on relative results
     """
-
+    input_absolutes: list = [-14.0, -13.0, -9.0]
     # make a t
     graph = nx.DiGraph()
     # Don't assign the first absolute value, check that MLE can get close to it
@@ -92,12 +92,12 @@ def test_mle_hard(input_absolutes: list = [-14.0, -13.0, -9.0]):
          true value: {input_absolutes[i]}."
 
 
-def test_mle_relative(input_absolutes: list = [-14.0, -13.0, -9.0]):
+def test_mle_relative():
     """
     Test that the MLE can get the relative differences correct
      when no absolute values are provided
     """
-
+    input_absolutes: list = [-14.0, -13.0, -9.0]
     graph = nx.DiGraph()
     # Don't assign any absolute values
     edges = [(0, 1), (0, 2), (2, 1)]
