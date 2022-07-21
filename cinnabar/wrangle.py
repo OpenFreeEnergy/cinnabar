@@ -6,7 +6,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from openff.arsenic import stats
+from arsenic import stats
 
 
 def read_csv(filepath: pathlib.Path) -> dict:
