@@ -22,15 +22,15 @@ def read_csv(filepath: pathlib.Path) -> dict:
                 expt_block = False
                 calc_block = True
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
-                expt = ExperimentalResult(*line.split(","))
+                expt = ExperimentalResultFromCSV(*line.split(","))
                 raw_results["Experimental"][expt.ligand] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
-                calc = RelativeResult(*line.split(","))
+                calc = RelativeResultFromCSV(*line.split(","))
                 raw_results["Calculated"].append(calc)
     return raw_results
 
 
-class RelativeResult(object):
+class RelativeResultFromCSV(object):
     def __init__(self, ligandA, ligandB, calc_DDG, mbar_error, other_error):
         self.ligandA = str(ligandA).strip()
         self.ligandB = str(ligandB).strip()
@@ -58,7 +58,7 @@ class RelativeResult(object):
         )
 
 
-class ExperimentalResult(object):
+class ExperimentalResultFromCSV(object):
     def __init__(self, ligand, expt_DG, expt_dDG):
         self.ligand = ligand
         self.DG = float(expt_DG)
@@ -104,7 +104,7 @@ class FEResults(object):
         >>> fe_results = FEResults()
         >>> fe_results.add_experimental_result("CAT-13a", -8.93, 0.10)
         """
-        self.experimental_results[ligand] = ExperimentalResult(ligand, expt_value, expt_error)
+        self.experimental_results[ligand] = ExperimentalResultFromCSV(ligand, expt_value, expt_error)
 
     def add_calculated_result(self, ligand_a, ligand_b, calc_value, mbar_error, other_error):
         """
@@ -116,7 +116,7 @@ class FEResults(object):
         >>> fe_results.add_calculated_result("CAT-13a", "CAT-17g", 0.36, 0.11, 0.0)
         """
         self.calculated_results.append(
-            RelativeResult(ligand_a, ligand_b, calc_value, mbar_error, other_error)
+            RelativeResultFromCSV(ligand_a, ligand_b, calc_value, mbar_error, other_error)
         )
 
 
