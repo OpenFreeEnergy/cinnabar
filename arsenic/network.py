@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Extra
 import networkx as nx
 
+
 class Result(BaseModel):
     """
     Settings and modifications we want for all result classes.
@@ -16,10 +17,11 @@ class Result(BaseModel):
         arbitrary_types_allowed = True
         smart_union = True
 
+
 class ExperimentalResult(Result):
-    #TODO add units
+    # TODO add units
     deltaG: float
-    #TODO Use https://github.com/lebigot/uncertainties/
+    # TODO Use https://github.com/lebigot/uncertainties/
     variance: float
 
 
@@ -27,10 +29,8 @@ class RelativeResult(ExperimentalResult):
     pass
 
 
-
-class FEMap():
+class FEMap:
     self._graph = nx.DiGraph()
-
 
     def add_node(self, ligand_name: str, experimental_result: ExperimentalResult):
         self._graph.add_node(ligand_name, experimental_result=experimental_result)
@@ -43,4 +43,3 @@ class FEMap():
         # since it doesn't look like graphml makes it easy to define how objects should
         # be seralized so we will need to do that ourselves
         nx.write_graphml(self._graph, filename)
-
