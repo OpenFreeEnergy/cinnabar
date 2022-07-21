@@ -38,7 +38,7 @@ def main():
     if args.plot == ["all"]:
         args.plot = ["ddg", "dg", "all ddg", "network"]
 
-    network = wrangle.FEMap(args.csv)
+    network = wrangle.FEMapFromCSV(args.csv)
     # this generates the three plots that we need
     if "network" in args.plot:
         network.draw_graph(title=args.title, filename=f"{args.prefix}network.png")

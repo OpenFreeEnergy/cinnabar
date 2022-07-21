@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel, Extra
 
 from arsenic import stats
 
@@ -28,6 +29,31 @@ def read_csv(filepath: pathlib.Path) -> dict:
                 calc = RelativeResultFromCSV(*line.split(","))
                 raw_results["Calculated"].append(calc)
     return raw_results
+
+class Result(BaseModel):
+    """
+    Settings and modifications we want for all result classes.
+    """
+
+    class Config:
+        extra = Extra.forbid
+        # Immutability in python is never strict.
+        # If developers are determined/stupid
+        # they can always modify a so-called "immutable" object.
+        # https://pydantic-docs.helpmanual.io/usage/models/#faux-immutability
+        allow_mutation = False
+        arbitrary_types_allowed = True
+        smart_union = True
+
+class ExperimentalResult(Result):
+    #TODO add units
+    deltaG: float
+    #TODO Use https://github.com/lebigot/uncertainties/
+    variance: float
+
+
+class RelativeResult(ExperimentalResult):
+    pass
 
 
 class RelativeResultFromCSV(object):
@@ -120,7 +146,7 @@ class FEResults(object):
         )
 
 
-class FEMap(object):
+class FEMapFromCSV(object):
     def __init__(self, input_data):
         """
         Construct Free Energy map of simulations from input data.
