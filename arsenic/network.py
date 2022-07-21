@@ -38,7 +38,7 @@ class FEMap():
     def add_edge(self, ligand_A: str, ligand_B: str, relative_result: RelativeResult):
         self._graph.add_edge(ligand_A, ligand_B, relative_result=relative_result)
 
-    def save(self.file_name):
+    def save(self, file_name):
         # TODO will need to loop over the graph, and make a new graph to save
         # since it doesn't look like graphml makes it easy to define how objects should
         # be seralized so we will need to do that ourselves
