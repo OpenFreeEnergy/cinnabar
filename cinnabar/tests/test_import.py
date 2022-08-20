@@ -2,11 +2,11 @@
 Import tests
 """
 
-import arsenic
+import cinnabar
 import pytest
 import sys
 
 
-def test_arsenic_imported():
+def test_cinnabar_imported():
     """Sample test, will always pass so long as import statement worked"""
-    assert "arsenic" in sys.modules
+    assert "cinnabar" in sys.modules

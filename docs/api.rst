@@ -4,7 +4,7 @@ API Documentation
 .. autosummary::
    :toctree: autosummary
 
-   arsenic.plotting
-   arsenic.plotlying
-   arsenic.stats
-   arsenic.wrangle
+   cinnabar.plotting
+   cinnabar.plotlying
+   cinnabar.stats
+   cinnabar.wrangle
