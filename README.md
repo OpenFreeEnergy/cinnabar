@@ -1,10 +1,10 @@
-arsenic
+cinnabar (formerly Arsenic)
 ==============================
 [//]: # (Badges)
 
-[![CI](https://github.com/OpenFreeEnergy/arsenic/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenFreeEnergy/arsenic/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/OpenFreeEnergy/arsenic/branch/main/graph/badge.svg)](https://codecov.io/gh/OpenFreeEnergy/arsenic)
-[![Documentation Status](https://readthedocs.org/projects/openff-arsenic/badge/?version=latest)](https://openff-arsenic.readthedocs.io/en/latest/?badge=latest)
+[![CI](https://github.com/OpenFreeEnergy/cinnabar/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenFreeEnergy/cinnabar/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/OpenFreeEnergy/cinnabar/branch/main/graph/badge.svg)](https://codecov.io/gh/OpenFreeEnergy/cinnabar)
+[![Documentation Status](https://readthedocs.org/projects/openff-cinnabar/badge/?version=latest)](https://openff-cinnabar.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6210305.svg)](https://doi.org/10.5281/zenodo.6210305)
 
 # Reporting relative free energy results
@@ -15,11 +15,11 @@ Solution: package that accepts relative free energy results reliably, which is u
 
 ### USAGE
 
-`python arsenic.py example.csv `
+`python cinnabar.py example.csv `
 
 ### OPTIONS
 
-`python arsenic.py --help`
+`python cinnabar.py --help`
 
 ### Terminology
 D is difference (i.e. relative) while d is variance (i.e. error bar)

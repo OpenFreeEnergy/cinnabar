@@ -1,5 +1,5 @@
 """
-arsenic
+cinnabar
 Report results for free energy simualtions
 """
 

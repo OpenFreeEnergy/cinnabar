@@ -2,8 +2,8 @@ import itertools
 
 import networkx as nx
 import numpy as np
-from arsenic import stats
-from arsenic.stats import bootstrap_statistic
+from cinnabar import stats
+from cinnabar.stats import bootstrap_statistic
 
 
 def test_mle_easy():
@@ -126,7 +126,7 @@ def test_correlation_positive(fe_map):
     """
     Test that the absolute DG plots have the correct signs,
     and statistics within reasonable agreement to the example data
-    in `arsenic/data/example.csv`
+    in `cinnabar/data/example.csv`
     """
 
     nodes = fe_map.graph.nodes

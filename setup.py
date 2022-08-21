@@ -1,5 +1,5 @@
 """
-arsenic
+cinnabar
 
 Report results for free energy simulations.
 """
@@ -21,7 +21,7 @@ except:
 
 setup(
     # Self-descriptive entries which should always be present
-    name='arsenic',
+    name='cinnabar',
     author='Open Free Energy',
     author_email='hannah.brucemacdonald@choderalab.org',
     description=short_description[0],

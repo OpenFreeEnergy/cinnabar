@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
-project = "arsenic"
+project = "cinnabar"
 copyright = (
     "2020, Hannah Bruce Macdonald. Project structure based on the "
     "Computational Molecular Science Python Cookiecutter version 1.1"
@@ -117,7 +117,7 @@ html_static_path = ["_static"]
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "arsenicdoc"
+htmlhelp_basename = "cinnabardoc"
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -141,7 +141,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "arsenic.tex", "arsenic Documentation", "arsenic", "manual"),
+    (master_doc, "cinnabar.tex", "cinnabar Documentation", "cinnabar", "manual"),
 ]
 
 
@@ -149,7 +149,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "arsenic", "arsenic Documentation", [author], 1)]
+man_pages = [(master_doc, "cinnabar", "cinnabar Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
@@ -160,10 +160,10 @@ man_pages = [(master_doc, "arsenic", "arsenic Documentation", [author], 1)]
 texinfo_documents = [
     (
         master_doc,
-        "arsenic",
-        "arsenic Documentation",
+        "cinnabar",
+        "cinnabar Documentation",
         author,
-        "arsenic",
+        "cinnabar",
         "Report results for free energy simualtions",
         "Miscellaneous",
     ),
