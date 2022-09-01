@@ -181,6 +181,7 @@ def plot_DDGs(
     filename: Union[list, None] = None,
     symmetrise: bool = False,
     plotly: bool = False,
+    data_label_type: str = None,
     **kwargs,
 ):
     """Function to plot relative free energies
