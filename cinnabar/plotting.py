@@ -235,6 +235,7 @@ def plot_DDGs(
     yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
 
     # labels
+    data_labels = []
     if data_label_type:
         node_names = {node_i:  node_data["name"] for node_id, node_data in graph.nodes(data=True)}
         if data_label_type == 'small_molecule':
