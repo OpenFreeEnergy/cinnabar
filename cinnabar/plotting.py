@@ -75,7 +75,7 @@ def _master_plot(
         the resolution in dots per inch
         if 'figure', uses the figure's dpi value (this behavior is copied from
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
-     data_labels : list of str, default []
+    data_labels : list of str, default []
         list of labels for each data point
 
     Returns
