@@ -225,9 +225,8 @@ def plot_DDGs(
         int(symmetrise) + int(map_positive) != 2
     ), "Symmetrise and map_positive cannot both be True in the same plot"
 
-    assert (
-        data_label_type and not plotly
-    ), "We currently do not support data labeling for plotly-generated plots"
+    if data_label_type:
+        assert not plotly, "We currently do not support data labeling for plotly-generated plots"
 
     # data
     x = [x[2]["exp_DDG"] for x in graph.edges(data=True)]
