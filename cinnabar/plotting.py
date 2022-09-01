@@ -83,8 +83,8 @@ def _master_plot(
     fig = plt.figure(figsize=(figsize, figsize))
     plt.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
 
-    plt.xlabel(f"{xlabel} {quantity} / " + units)
-    plt.ylabel(f"{ylabel} {quantity} / " + units)
+    plt.xlabel(f"{xlabel} {quantity} ({units})")
+    plt.ylabel(f"{ylabel} {quantity} ({units})")
 
     ax_min = min(min(x), min(y)) - 0.5
     ax_max = max(max(x), max(y)) + 0.5
