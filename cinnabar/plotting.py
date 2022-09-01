@@ -237,7 +237,7 @@ def plot_DDGs(
     # labels
     data_labels = []
     if data_label_type:
-        node_names = {node_i:  node_data["name"] for node_id, node_data in graph.nodes(data=True)}
+        node_names = {node_id:  node_data["name"] for node_id, node_data in graph.nodes(data=True)}
         if data_label_type == 'small_molecule':
             data_labels = [f"{node_names[node_A]}-{node_names[node_B]}" for node_A, node_B, data in fe.graph.edges(data=True)]
         elif data_label_type == 'protein-mutation':
