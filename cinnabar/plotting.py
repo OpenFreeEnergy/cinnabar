@@ -26,6 +26,7 @@ def _master_plot(
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
+    dpi: float = 'figure',
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -69,6 +70,10 @@ def _master_plot(
         shift both the x and y axis by a constant
     figsize : float, default = 3.25
         size of figure for matplotlib
+    dpi : float or 'figure', default 'figure'
+        the resolution in dots per inch
+        if 'figure', uses the figure's dpi value (this behavior is copied from
+        https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
 
     Returns
     -------
@@ -156,7 +161,7 @@ def _master_plot(
     if filename is None:
         plt.show()
     else:
-        plt.savefig(filename, bbox_inches="tight")
+        plt.savefig(filename, bbox_inches="tight", dpi=dpi)
     return fig
 
 
