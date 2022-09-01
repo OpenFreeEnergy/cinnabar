@@ -3,6 +3,7 @@ from typing import Union
 import matplotlib.pylab as plt
 import numpy as np
 import networkx as nx
+from adjustText import adjust_text
 from . import plotlying, stats
 
 
@@ -145,8 +146,10 @@ def _master_plot(
     plt.scatter(x, y, color=color, s=10, marker="o", zorder=2)
 
     # Label points
+    texts = []
     for i, label in enumerate(data_labels):
-        plt.text(x[i] + .03, y[i] + .03, label, fontsize=9)
+        texts.append(plt.text(x[i] + .03, y[i] + .03, label, fontsize=9))
+    adjust_text(texts)
 
     # stats and title
     statistics_string = ""
