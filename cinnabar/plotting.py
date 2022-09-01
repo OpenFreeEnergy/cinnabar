@@ -94,8 +94,8 @@ def _master_plot(
     plt.xlabel(f"{xlabel} {quantity} ({units})")
     plt.ylabel(f"{ylabel} {quantity} ({units})")
 
-    ax_min = min(min(x), min(y)) - 0.5
-    ax_max = max(max(x), max(y)) + 0.5
+    ax_min = min(min(x), min(y)) - 1.0
+    ax_max = max(max(x), max(y)) + 1.0
     scale = [ax_min, ax_max]
 
     plt.xlim(scale)
