@@ -27,6 +27,7 @@ def _master_plot(
     shift: float = 0.0,
     figsize: float = 3.25,
     dpi: float = 'figure',
+    data_labels: list = [],
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -74,6 +75,8 @@ def _master_plot(
         the resolution in dots per inch
         if 'figure', uses the figure's dpi value (this behavior is copied from
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
+     data_labels : list of str, default []
+        list of labels for each data point
 
     Returns
     -------
@@ -141,6 +144,10 @@ def _master_plot(
     )
     plt.scatter(x, y, color=color, s=10, marker="o", zorder=2)
 
+    # Label points
+    for i, label in enumerate(data_labels):
+        plt.text(x[i] + .03, y[i] + .03, label, fontsize=9)
+
     # stats and title
     statistics_string = ""
     for statistic in statistics:
@@ -196,6 +203,17 @@ def plot_DDGs(
     symmetrise : bool, default = False
         whether to plot each datapoint twice, both
         positive and negative
+    plotly : bool, default = False
+        whether to use plotly to generate the plot
+    data_label_type : str or None, default = None
+        type of data label to add to each edge
+        if None, data labels will not be added
+        if 'small-molecule', edge labels will be f"{node_A_name}-{node_B_name}"
+        if 'protein-mutation', edge labels will be f"{node_A_name}{node_B_name[0]}"
+            where node names are formatted f"{one_letter_amino_acid_code}{residue id}"
+            e.g. if node A is Y29 and node B is A29, the edge label will be Y29A
+        currently unsupported for plotly-generated plots
+        TODO: implement data labeling for the case where plotly=True
 
     Returns
     -------
@@ -206,13 +224,32 @@ def plot_DDGs(
         int(symmetrise) + int(map_positive) != 2
     ), "Symmetrise and map_positive cannot both be True in the same plot"
 
+    assert (
+        data_label_type and plotly
+    ), "We currently do not support data labeling for plotly-generated plots"
+
     # data
     x = [x[2]["exp_DDG"] for x in graph.edges(data=True)]
     y = [x[2]["calc_DDG"] for x in graph.edges(data=True)]
+    xerr = np.asarray([x[2]["exp_dDDG"] for x in graph.edges(data=True)])
+    yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
+
+    # labels
+    if data_label_type:
+        node_names = {node_i:  node_data["name"] for node_id, node_data in graph.nodes(data=True)}
+        if data_label_type == 'small_molecule':
+            data_labels = [f"{node_names[node_A]}-{node_names[node_B]}" for node_A, node_B, data in fe.graph.edges(data=True)]
+        elif data_label_type == 'protein-mutation':
+            data_labels = [f"{node_names[node_A]}{node_names[node_B][0]}" for node_A, node_B, data in fe.graph.edges(data=True)]
+        else:
+            raise Exception("data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'")
 
     if symmetrise:
         x_data = np.append(x, [-i for i in x])
         y_data = np.append(y, [-i for i in y])
+        xerr = np.append(xerr, xerr)
+        yerr = np.append(yerr, yerr)
+        data_labels = np.append(data_labels, data_labels)
     elif map_positive:
         x_data = []
         y_data = []
@@ -228,12 +265,6 @@ def plot_DDGs(
     else:
         x_data = np.asarray(x)
         y_data = np.asarray(y)
-
-    xerr = np.asarray([x[2]["exp_dDDG"] for x in graph.edges(data=True)])
-    yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
-    if symmetrise:
-        xerr = np.append(xerr, xerr)
-        yerr = np.append(yerr, yerr)
 
     if plotly:
         plotlying._master_plot(
@@ -258,6 +289,7 @@ def plot_DDGs(
             title=title,
             method_name=method_name,
             target_name=target_name,
+            data_labels=data_labels,
             **kwargs,
         )
 
