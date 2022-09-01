@@ -226,7 +226,7 @@ def plot_DDGs(
     ), "Symmetrise and map_positive cannot both be True in the same plot"
 
     assert (
-        data_label_type and plotly
+        data_label_type and not plotly
     ), "We currently do not support data labeling for plotly-generated plots"
 
     # data
