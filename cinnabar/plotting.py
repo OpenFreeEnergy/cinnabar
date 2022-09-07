@@ -29,6 +29,7 @@ def _master_plot(
     figsize: float = 3.25,
     dpi: float = 'figure',
     data_labels: list = [],
+    axis_padding: float = 0.5,
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -78,6 +79,8 @@ def _master_plot(
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
     data_labels : list of str, default []
         list of labels for each data point
+    axis_padding : float, default = 0.5
+        padding to add to maximum axis value and subtract from the minimum axis value
 
     Returns
     -------
@@ -95,8 +98,8 @@ def _master_plot(
     plt.xlabel(f"{xlabel} {quantity} ({units})")
     plt.ylabel(f"{ylabel} {quantity} ({units})")
 
-    ax_min = min(min(x), min(y)) - 1.0
-    ax_max = max(max(x), max(y)) + 1.0
+    ax_min = min(min(x), min(y)) - axis_padding
+    ax_max = max(max(x), max(y)) + axis_padding
     scale = [ax_min, ax_max]
 
     plt.xlim(scale)
