@@ -215,10 +215,14 @@ def plot_DDGs(
     data_label_type : str or None, default = None
         type of data label to add to each edge
         if None, data labels will not be added
-        if 'small-molecule', edge labels will be f"{node_A_name}-{node_B_name}"
+        if 'small-molecule', edge labels will be f"{node_A_name}→{node_B_name}"
+            if both node names start with "-", the label will be f"-({node_A_name[1]}→{node_B_name[1:})", representing
+            the negative of the transformation
         if 'protein-mutation', edge labels will be f"{node_A_name}{node_B_name[0]}"
             where node names are formatted f"{one_letter_amino_acid_code}{residue id}"
             e.g. if node A is Y29 and node B is A29, the edge label will be Y29A
+            if both node names start with "-", the label will be f"-({node_A_name[1:]}{node_B_name[1]})", representing
+            the negative of the transformation
         currently unsupported for plotly-generated plots
         TODO: implement data labeling for the case where plotly=True
 
@@ -244,12 +248,24 @@ def plot_DDGs(
     data_labels = []
     if data_label_type:
         node_names = {node_id:  node_data["name"] for node_id, node_data in graph.nodes(data=True)}
-        if data_label_type == "small-molecule":
-            data_labels = [f"{node_names[node_A]}→{node_names[node_B]}" for node_A, node_B, data in graph.edges(data=True)]
-        elif data_label_type == "protein-mutation":
-            data_labels = [f"{node_names[node_A]}{node_names[node_B][0]}" for node_A, node_B, data in graph.edges(data=True)]
-        else:
-            raise Exception("data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'")
+        data_labels = []
+        for node_A, node_B, edge_data in graph.edges(data=True):
+            node_A_name = node_names[node_A]
+            node_B_name = node_names[node_B]
+            if "-" == node_A_name[0] and "-" == node_B_name[0]: # If the node names both start with "-", handle the negative sign properly in the label
+                if data_label_type == "small-molecule":
+                    data_labels.append(f"-({node_A_name[1:]}→{node_B_name[1:]})")
+                elif data_label_type == "protein-mutation":
+                    data_labels.append(f"-({node_A_name[1:]}{node_B_name[1]})")
+                else:
+                    raise Exception("data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'")
+            else:
+                if data_label_type == "small-molecule":
+                    data_labels.append(f"{node_A_name}→{node_B_name}")
+                elif data_label_type == "protein-mutation":
+                    data_labels.append(f"{node_A_name}{node_B_name[0]}")
+                else:
+                    raise Exception("data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'")
 
     if symmetrise:
         x_data = np.append(x, [-i for i in x])
