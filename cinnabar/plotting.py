@@ -3,6 +3,7 @@ from typing import Union
 import matplotlib.pylab as plt
 import numpy as np
 import networkx as nx
+from adjustText import adjust_text
 from . import plotlying, stats
 
 
@@ -26,6 +27,9 @@ def _master_plot(
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
+    dpi: float = "figure",
+    data_labels: list = [],
+    axis_padding: float = 0.5,
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -69,6 +73,14 @@ def _master_plot(
         shift both the x and y axis by a constant
     figsize : float, default = 3.25
         size of figure for matplotlib
+    dpi : float or 'figure', default 'figure'
+        the resolution in dots per inch
+        if 'figure', uses the figure's dpi value (this behavior is copied from
+        https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
+    data_labels : list of str, default []
+        list of labels for each data point
+    axis_padding : float, default = 0.5
+        padding to add to maximum axis value and subtract from the minimum axis value
 
     Returns
     -------
@@ -83,11 +95,11 @@ def _master_plot(
     fig = plt.figure(figsize=(figsize, figsize))
     plt.subplots_adjust(left=0.2, right=0.8, bottom=0.2, top=0.8)
 
-    plt.xlabel(f"{xlabel} {quantity} / " + units)
-    plt.ylabel(f"{ylabel} {quantity} / " + units)
+    plt.xlabel(f"{xlabel} {quantity} ({units})")
+    plt.ylabel(f"{ylabel} {quantity} ({units})")
 
-    ax_min = min(min(x), min(y)) - 0.5
-    ax_max = max(max(x), max(y)) + 0.5
+    ax_min = min(min(x), min(y)) - axis_padding
+    ax_max = max(max(x), max(y)) + axis_padding
     scale = [ax_min, ax_max]
 
     plt.xlim(scale)
@@ -136,6 +148,12 @@ def _master_plot(
     )
     plt.scatter(x, y, color=color, s=10, marker="o", zorder=2)
 
+    # Label points
+    texts = []
+    for i, label in enumerate(data_labels):
+        texts.append(plt.text(x[i] + 0.03, y[i] + 0.03, label, fontsize=9))
+    adjust_text(texts)
+
     # stats and title
     statistics_string = ""
     for statistic in statistics:
@@ -156,7 +174,7 @@ def _master_plot(
     if filename is None:
         plt.show()
     else:
-        plt.savefig(filename, bbox_inches="tight")
+        plt.savefig(filename, bbox_inches="tight", dpi=dpi)
     return fig
 
 
@@ -169,6 +187,7 @@ def plot_DDGs(
     filename: Union[list, None] = None,
     symmetrise: bool = False,
     plotly: bool = False,
+    data_label_type: str = None,
     **kwargs,
 ):
     """Function to plot relative free energies
@@ -191,6 +210,21 @@ def plot_DDGs(
     symmetrise : bool, default = False
         whether to plot each datapoint twice, both
         positive and negative
+    plotly : bool, default = False
+        whether to use plotly to generate the plot
+    data_label_type : str or None, default = None
+        type of data label to add to each edge
+        if None, data labels will not be added
+        if 'small-molecule', edge labels will be f"{node_A_name}→{node_B_name}"
+            if both node names start with "-", the label will be f"-({node_A_name[1]}→{node_B_name[1:})", representing
+            the negative of the transformation
+        if 'protein-mutation', edge labels will be f"{node_A_name}{node_B_name[0]}"
+            where node names are formatted f"{one_letter_amino_acid_code}{residue id}"
+            e.g. if node A is Y29 and node B is A29, the edge label will be Y29A
+            if both node names start with "-", the label will be f"-({node_A_name[1:]}{node_B_name[1]})", representing
+            the negative of the transformation
+        currently unsupported for plotly-generated plots
+        TODO: implement data labeling for the case where plotly=True
 
     Returns
     -------
@@ -201,13 +235,50 @@ def plot_DDGs(
         int(symmetrise) + int(map_positive) != 2
     ), "Symmetrise and map_positive cannot both be True in the same plot"
 
+    if data_label_type:
+        assert not plotly, "We currently do not support data labeling for plotly-generated plots"
+
     # data
     x = [x[2]["exp_DDG"] for x in graph.edges(data=True)]
     y = [x[2]["calc_DDG"] for x in graph.edges(data=True)]
+    xerr = np.asarray([x[2]["exp_dDDG"] for x in graph.edges(data=True)])
+    yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
+
+    # labels
+    data_labels = []
+    if data_label_type:
+        node_names = {node_id: node_data["name"] for node_id, node_data in graph.nodes(data=True)}
+        data_labels = []
+        for node_A, node_B, edge_data in graph.edges(data=True):
+            node_A_name = node_names[node_A]
+            node_B_name = node_names[node_B]
+            if (
+                "-" == node_A_name[0] and "-" == node_B_name[0]
+            ):  # If the node names both start with "-", handle the negative sign properly in the label
+                if data_label_type == "small-molecule":
+                    data_labels.append(f"-({node_A_name[1:]}→{node_B_name[1:]})")
+                elif data_label_type == "protein-mutation":
+                    data_labels.append(f"-({node_A_name[1:]}{node_B_name[1]})")
+                else:
+                    raise Exception(
+                        "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
+                    )
+            else:
+                if data_label_type == "small-molecule":
+                    data_labels.append(f"{node_A_name}→{node_B_name}")
+                elif data_label_type == "protein-mutation":
+                    data_labels.append(f"{node_A_name}{node_B_name[0]}")
+                else:
+                    raise Exception(
+                        "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
+                    )
 
     if symmetrise:
         x_data = np.append(x, [-i for i in x])
         y_data = np.append(y, [-i for i in y])
+        xerr = np.append(xerr, xerr)
+        yerr = np.append(yerr, yerr)
+        data_labels = np.append(data_labels, data_labels)
     elif map_positive:
         x_data = []
         y_data = []
@@ -223,12 +294,6 @@ def plot_DDGs(
     else:
         x_data = np.asarray(x)
         y_data = np.asarray(y)
-
-    xerr = np.asarray([x[2]["exp_dDDG"] for x in graph.edges(data=True)])
-    yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
-    if symmetrise:
-        xerr = np.append(xerr, xerr)
-        yerr = np.append(yerr, yerr)
 
     if plotly:
         plotlying._master_plot(
@@ -253,6 +318,7 @@ def plot_DDGs(
             title=title,
             method_name=method_name,
             target_name=target_name,
+            data_labels=data_labels,
             **kwargs,
         )
 
