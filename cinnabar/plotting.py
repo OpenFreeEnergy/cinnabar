@@ -27,7 +27,7 @@ def _master_plot(
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
-    dpi: float = 'figure',
+    dpi: float = "figure",
     data_labels: list = [],
     axis_padding: float = 0.5,
 ):
@@ -151,7 +151,7 @@ def _master_plot(
     # Label points
     texts = []
     for i, label in enumerate(data_labels):
-        texts.append(plt.text(x[i] + .03, y[i] + .03, label, fontsize=9))
+        texts.append(plt.text(x[i] + 0.03, y[i] + 0.03, label, fontsize=9))
     adjust_text(texts)
 
     # stats and title
@@ -247,25 +247,31 @@ def plot_DDGs(
     # labels
     data_labels = []
     if data_label_type:
-        node_names = {node_id:  node_data["name"] for node_id, node_data in graph.nodes(data=True)}
+        node_names = {node_id: node_data["name"] for node_id, node_data in graph.nodes(data=True)}
         data_labels = []
         for node_A, node_B, edge_data in graph.edges(data=True):
             node_A_name = node_names[node_A]
             node_B_name = node_names[node_B]
-            if "-" == node_A_name[0] and "-" == node_B_name[0]: # If the node names both start with "-", handle the negative sign properly in the label
+            if (
+                "-" == node_A_name[0] and "-" == node_B_name[0]
+            ):  # If the node names both start with "-", handle the negative sign properly in the label
                 if data_label_type == "small-molecule":
                     data_labels.append(f"-({node_A_name[1:]}→{node_B_name[1:]})")
                 elif data_label_type == "protein-mutation":
                     data_labels.append(f"-({node_A_name[1:]}{node_B_name[1]})")
                 else:
-                    raise Exception("data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'")
+                    raise Exception(
+                        "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
+                    )
             else:
                 if data_label_type == "small-molecule":
                     data_labels.append(f"{node_A_name}→{node_B_name}")
                 elif data_label_type == "protein-mutation":
                     data_labels.append(f"{node_A_name}{node_B_name[0]}")
                 else:
-                    raise Exception("data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'")
+                    raise Exception(
+                        "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
+                    )
 
     if symmetrise:
         x_data = np.append(x, [-i for i in x])
