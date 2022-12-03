@@ -15,11 +15,11 @@ Solution: package that accepts relative free energy results reliably, which is u
 
 ### USAGE
 
-`python cinnabar.py example.csv `
+`python cinnabar example.csv `
 
 ### OPTIONS
 
-`python cinnabar.py --help`
+`python cinnabar --help`
 
 ### Terminology
 D is difference (i.e. relative) while d is variance (i.e. error bar)
