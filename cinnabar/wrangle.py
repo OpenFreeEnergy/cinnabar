@@ -37,7 +37,8 @@ class RelativeResult(object):
         self.mbar_dDDG = float(mbar_error)
         self.other_dDDG = float(other_error)
 
-        self.calc_dDDG = self.mbar_dDDG + self.other_dDDG  # is this definitely always additive?
+        # is this definitely always additive?
+        self.calc_dDDG = self.mbar_dDDG + self.other_dDDG
 
     def toDF(self):
         # TODO - can we do the handling of the dataframe in a different way?
@@ -105,7 +106,7 @@ class FEMap(object):
             edge[2]["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
 
         self.n_ligands = self.graph.number_of_nodes()
-        self.n_edges = self.graph.number_of_edges() 
+        self.n_edges = self.graph.number_of_edges()
         self.degree = self.n_edges / self.n_ligands
 
         # check the graph has minimal connectivity
@@ -134,7 +135,9 @@ class FEMap(object):
         self._id_to_name = {}
         for i, j in self._name_to_id.items():
             self._id_to_name[j] = i
-        nx.draw_circular(self.graph, labels=self._id_to_name, node_color="hotpink", node_size=250)
+        nx.draw_circular(
+            self.graph, labels=self._id_to_name, node_color="hotpink", node_size=250
+        )
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
         plt.title(long_title)
         if filename is None:
