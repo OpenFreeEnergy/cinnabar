@@ -1,8 +1,10 @@
 # this will combine a single command that will run all analysis and save everything
+import argparse
+
 from . import plotting, wrangle
 
-if __name__ == "__main__":
-    import argparse
+
+def main():
 
     parser = argparse.ArgumentParser(description="Get input")
     parser.add_argument("csv", type=str, help="Path to the results csv file")
@@ -44,3 +46,7 @@ if __name__ == "__main__":
         plotting.plot_DGs(network.graph, title=args.title, filename=f"{args.prefix}DGs.png")
     if "all ddg" in args.plot:
         plotting.plot_all_DDGs(network.graph, title=args.title, filename=f"{args.prefix}all_DDGs.png")
+
+
+if __name__ == '__main__':
+    main()
