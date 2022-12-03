@@ -1,12 +1,13 @@
 import pathlib
 from typing import Union
+import warnings
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
 
-from arsenic import stats
+from . import stats
 
 
 def read_csv(filepath: pathlib.Path) -> dict:
@@ -22,22 +23,28 @@ def read_csv(filepath: pathlib.Path) -> dict:
                 expt_block = False
                 calc_block = True
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
-                expt = ExperimentalResultFromCSV(*line.split(","))
+                ligand, DG, dDG = line.split(",")
+                expt = ExperimentalResult(ligand, float(DG), float(dDG))
                 raw_results["Experimental"][expt.ligand] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
-                calc = RelativeResultFromCSV(*line.split(","))
+                ligA, ligB, calc_DDG, mbar_err, other_err = line.split(',')
+
+                calc = RelativeResult(ligA.strip(), ligB.strip(),
+                                      float(calc_DDG), float(mbar_err),
+                                      float(other_err))
                 raw_results["Calculated"].append(calc)
     return raw_results
 
 
-class RelativeResultFromCSV(object):
-    def __init__(self, ligandA, ligandB, calc_DDG, mbar_error, other_error):
-        self.ligandA = str(ligandA).strip()
-        self.ligandB = str(ligandB).strip()
+class RelativeResult:
+    def __init__(self, ligandA: str, ligandB: str, calc_DDG: float,
+                 mbar_error: float, other_error: float):
+        self.ligandA = ligandA
+        self.ligandB = ligandB
         # scope for an experimental dDDG?
-        self.calc_DDG = float(calc_DDG)
-        self.mbar_dDDG = float(mbar_error)
-        self.other_dDDG = float(other_error)
+        self.calc_DDG = calc_DDG
+        self.mbar_dDDG = mbar_error
+        self.other_dDDG = other_error
 
         # is this definitely always additive?
         self.calc_dDDG = self.mbar_dDDG + self.other_dDDG
@@ -58,85 +65,35 @@ class RelativeResultFromCSV(object):
         )
 
 
-class ExperimentalResultFromCSV(object):
-    def __init__(self, ligand, expt_DG, expt_dDG):
+class ExperimentalResult:
+    def __init__(self, ligand: str, expt_DG: float, expt_dDG: float):
         self.ligand = ligand
-        self.DG = float(expt_DG)
-        try:
-            error = expt_dDG.strip("\n")
-        except AttributeError:
-            # Data is already numeric
-            error = expt_dDG
-        self.dDG = float(error)
+        self.DG = expt_DG
+        self.dDG = expt_dDG
 
 
-class FEResults(object):
-    """
-    Wrapper class to store results from Free Energy calculations.
+class FEMap:
+    results: list[Union[RelativeResult, ExperimentalResult]]
+    computational_graph: nx.MultiDiGraph
+    experimental_graph: nx.MultiDiGraph
 
-    Useful for programatically creating a container to pass to FEMap class.
-    """
+    _name_to_id: dict[str, int]
+    _id_to_name: dict[int, str]
 
-    def __init__(self):
-        """Create results object"""
-        # Initializing attributes
-        self.experimental_results = dict()
-        self.calculated_results = list()
-        self.fe_results = {
-            "Experimental": self.experimental_results,
-            "Calculated": self.calculated_results,
-        }
-
-    def add_experimental_obj(self, experimental_result):
-        """Adds experimental result from ExperimentalResult object."""
-        self.experimental_results[experimental_result.ligand] = experimental_result
-
-    def add_calculated_obj(self, calculated_result):
-        """Adds calculated result from CalculatedResult object."""
-        self.calculated_results.append(calculated_result)
-
-    def add_experimental_result(self, ligand, expt_value, expt_error):
-        """
-        Add experimental result from plain explicit values.
-
-        Examples
-        --------
-        >>> fe_results = FEResults()
-        >>> fe_results.add_experimental_result("CAT-13a", -8.93, 0.10)
-        """
-        self.experimental_results[ligand] = ExperimentalResultFromCSV(
-            ligand, expt_value, expt_error
-        )
-
-    def add_calculated_result(self, ligand_a, ligand_b, calc_value, mbar_error, other_error):
-        """
-        Add calculated relative result from plain explicit values.
-
-        Examples
-        --------
-        >>> fe_results = FEResults()
-        >>> fe_results.add_calculated_result("CAT-13a", "CAT-17g", 0.36, 0.11, 0.0)
-        """
-        self.calculated_results.append(
-            RelativeResultFromCSV(ligand_a, ligand_b, calc_value, mbar_error, other_error)
-        )
-
-
-class FEMapFromCSV(object):
-    def __init__(self, input_data):
+    def __init__(self, input_data: list[Union[RelativeResult, ExperimentalResult]]):
         """
         Construct Free Energy map of simulations from input data.
 
         Parameters
         ----------
-            input_data: csv file path or path-like object or dict-like object
-                File path to csv file or python dict-like object.
+            input_data: dict-like object
+                dict-like object.
 
         Examples
         --------
         To read from a csv file specifically formatted for this, you can use:
 
-        >>> fe = wrangle.FEMap('../data/example.csv')
+        >>> fe = wrangle.FEMap.from_csv('../data/example.csv')
 
         To read from a dict-like object:
 
@@ -145,45 +102,27 @@ class FEMapFromCSV(object):
         >>> experimental_result2 = ExperimentalResult("CAT-17g", expt_DG=-9.73, expt_dDG=0.10)
         >>> # Create calculated result
         >>> calculated_result = RelativeResult("CAT-13a", "CAT-17g", calc_DDG=0.36, mbar_error=0.11, other_error=0.0)
-        >>> # Create dictionary with required structure
-        >>> example_dict = {
-        >>>     'Experimental': {"CAT-13a": experimental_result1, "CAT-17g": experimental_result2},
-        >>>     'Calculated': [calculated_result]
-        >>> }
         >>> # Create object from dictionary
-        >>> fe = FEMap(example_dict)
+        >>> fe = FEMap([experimental_result1, experimental_result2, calculated_result])
 
-        from a FEResults object:
-
-        >>> fe_results = FEResults()
-        >>> fe_results.add_experimental_result("CAT-13a", -8.93, 0.10)
-        >>> fe_results.add_experimental_result("CAT-17g", -9.73, 0.10)
-        >>> fe_results.add_calculated_result("CAT-13a", "CAT-17g", 0.36, 0.11, 0.0)
-        >>> femap = FEMap(fe_results.results) # Create FEMap from fe_results.results dictionary
         """
-        try:
-            input_path = pathlib.Path(input_data)  # Check it is a path
-            self.results = read_csv(input_path)
-        except TypeError:  # not a path-like object
-            self.results = input_data
+        self.results = input_data
 
-        self.graph = nx.DiGraph()
+        self.computational_graph = nx.MultiDiGraph()
+        self.experimental_graph = nx.MultiDiGraph()
 
-        self.generate_graph_from_results()
-
-    def generate_graph_from_results(self):
         self._name_to_id = {}
         self._id_to_name = {}
-        id = 0
+        idx = 0
         for result in self.results["Calculated"]:
             if result.ligandA not in self._name_to_id.keys():
-                self._name_to_id[result.ligandA] = id
-                self._id_to_name[id] = result.ligandA
-                id += 1
+                self._name_to_id[result.ligandA] = idx
+                self._id_to_name[idx] = result.ligandA
+                idx += 1
             if result.ligandB not in self._name_to_id.keys():
-                self._name_to_id[result.ligandB] = id
-                self._id_to_name[id] = result.ligandB
-                id += 1
+                self._name_to_id[result.ligandB] = idx
+                self._id_to_name[idx] = result.ligandB
+                idx += 1
             # # TODO need some exp error for mle to converge for exp... this is a horrible hack
             self.graph.add_edge(
                 self._name_to_id[result.ligandA],
@@ -213,9 +152,15 @@ class FEMapFromCSV(object):
         # check the graph has minimal connectivity
         self.check_weakly_connected()
         if not self.weakly_connected:
-            print("Graph is not connected enough to compute absolute values")
+            warnings.warn("Graph is not connected enough to compute absolute values")
         else:
             self.generate_absolute_values()
+
+    @classmethod
+    def from_csv(cls, filename):
+        data = read_csv(filename)
+
+        return cls(data)
 
     def check_weakly_connected(self):
         undirected_graph = self.graph.to_undirected()
@@ -223,6 +168,8 @@ class FEMapFromCSV(object):
         return nx.is_connected(undirected_graph)
 
     def generate_absolute_values(self):
+        # TODO: Make this return a new Graph with computational nodes annotated with DG values
+
         # TODO this could work if either relative or absolute expt values are provided
         if self.weakly_connected:
             f_i_calc, C_calc = stats.mle(self.graph, factor="calc_DDG")
