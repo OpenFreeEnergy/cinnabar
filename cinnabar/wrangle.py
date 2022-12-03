@@ -1,11 +1,11 @@
 import pathlib
 from typing import Union
+from pydantic import BaseModel
 import warnings
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import pandas as pd
 
 from . import stats
 
@@ -24,137 +24,61 @@ def read_csv(filepath: pathlib.Path) -> dict:
                 calc_block = True
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
                 ligand, DG, dDG = line.split(",")
-                expt = ExperimentalResult(ligand, float(DG), float(dDG))
+                expt = AbsoluteMeasurement(ligand, float(DG), float(dDG),
+                                           computational=False)
                 raw_results["Experimental"][expt.ligand] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
                 ligA, ligB, calc_DDG, mbar_err, other_err = line.split(',')
 
-                calc = RelativeResult(ligA.strip(), ligB.strip(),
-                                      float(calc_DDG), float(mbar_err),
-                                      float(other_err))
+                calc = RelativeMeasurement(ligA.strip(), ligB.strip(),
+                                           float(calc_DDG),
+                                           float(mbar_err) + float(other_err),
+                                           computational=True)
                 raw_results["Calculated"].append(calc)
     return raw_results
 
 
-class RelativeResult:
-    def __init__(self, ligandA: str, ligandB: str, calc_DDG: float,
-                 mbar_error: float, other_error: float):
-        self.ligandA = ligandA
-        self.ligandB = ligandB
-        # scope for an experimental dDDG?
-        self.calc_DDG = calc_DDG
-        self.mbar_dDDG = mbar_error
-        self.other_dDDG = other_error
-
-        # is this definitely always additive?
-        self.calc_dDDG = self.mbar_dDDG + self.other_dDDG
-
-    def toDF(self):
-        # TODO - can we do the handling of the dataframe in a different way?
-        # Or inside the plotting function that needs it?
-        return pd.DataFrame(
-            {
-                "ligandA": self.ligandA,
-                "ligandB": self.ligandB,
-                "calc_DDG": self.calc_DDG,
-                "mbar_dDDG": self.mbar_dDDG,
-                "other_dDDG": self.other_dDDG,
-                "calc_dDDG": self.calc_dDDG,
-            },
-            index=[f"{self.ligandA}_{self.ligandB}"],
-        )
+class RelativeMeasurement(BaseModel):
+    ligandA: str
+    ligandB: str
+    DDG: float
+    uncertainty: float
+    computational: bool
 
 
-class ExperimentalResult:
-    def __init__(self, ligand: str, expt_DG: float, expt_dDG: float):
-        self.ligand = ligand
-        self.DG = expt_DG
-        self.dDG = expt_dDG
+class AbsoluteMeasurement(BaseModel):
+    ligand: str
+    DG: float
+    uncertainty: float
+    computational: bool
 
 
 class FEMap:
-    results: list[Union[RelativeResult, ExperimentalResult]]
+    """Free Energy map of both simulations and bench measurements
+
+    Examples
+    --------
+    To read from a csv file specifically formatted for this, you can use:
+
+    >>> fe = wrangle.FEMap.from_csv('../data/example.csv')
+
+    To read from a dict-like object:
+
+    >>> # Load/create experimental results
+    >>> experimental_result1 = ExperimentalResult("CAT-13a", expt_DG=-8.83, expt_dDG=0.10)
+    >>> experimental_result2 = ExperimentalResult("CAT-17g", expt_DG=-9.73, expt_dDG=0.10)
+    >>> # Load/create calculated results
+    >>> calculated_result = RelativeMeasurement("CAT-13a", "CAT-17g", calc_DDG=0.36, mbar_error=0.11, other_error=0.0)
+    >>> # Incrementally created FEMap
+    >>> fe = FEMap()
+    >>> fe.add_measurement(experimental_result1)
+    >>> fe.add_measurement(experimental_result2)
+    >>> fe.add_measurement(calculated_result)
+    """
+    # MultiGraph allows multiple *relative* measurements, but not multiple identical nodes
+    # so maybe instead make absolute results all relative to a dummy node
     computational_graph: nx.MultiDiGraph
     experimental_graph: nx.MultiDiGraph
-
-    _name_to_id: dict[str, int]
-    _id_to_name: dict[int, str]
-
-    def __init__(self, input_data: list[Union[RelativeResult, ExperimentalResult]]):
-        """
-        Construct Free Energy map of simulations from input data.
-
-        Parameters
-        ----------
-            input_data: dict-like object
-                dict-like object.
-
-        Examples
-        --------
-        To read from a csv file specifically formatted for this, you can use:
-
-        >>> fe = wrangle.FEMap.from_csv('../data/example.csv')
-
-        To read from a dict-like object:
-
-        >>> # Create experimental result
-        >>> experimental_result1 = ExperimentalResult("CAT-13a", expt_DG=-8.83, expt_dDG=0.10)
-        >>> experimental_result2 = ExperimentalResult("CAT-17g", expt_DG=-9.73, expt_dDG=0.10)
-        >>> # Create calculated result
-        >>> calculated_result = RelativeResult("CAT-13a", "CAT-17g", calc_DDG=0.36, mbar_error=0.11, other_error=0.0)
-        >>> # Create object from dictionary
-        >>> fe = FEMap([experimental_result1, experimental_result2, calculated_result])
-
-        """
-        self.results = input_data
-
-        self.computational_graph = nx.MultiDiGraph()
-        self.experimental_graph = nx.MultiDiGraph()
-
-        self._name_to_id = {}
-        self._id_to_name = {}
-        idx = 0
-        for result in self.results["Calculated"]:
-            if result.ligandA not in self._name_to_id.keys():
-                self._name_to_id[result.ligandA] = idx
-                self._id_to_name[idx] = result.ligandA
-                idx += 1
-            if result.ligandB not in self._name_to_id.keys():
-                self._name_to_id[result.ligandB] = idx
-                self._id_to_name[idx] = result.ligandB
-                idx += 1
-            # # TODO need some exp error for mle to converge for exp... this is a horrible hack
-            self.graph.add_edge(
-                self._name_to_id[result.ligandA],
-                self._name_to_id[result.ligandB],
-                calc_DDG=result.calc_DDG,
-                calc_dDDG=result.calc_dDDG,
-            )
-
-        for node in self.graph.nodes(data=True):
-            name = self._id_to_name[node[0]]
-            node[1]["name"] = name
-            node[1]["exp_DG"] = self.results["Experimental"][name].DG
-            node[1]["exp_dDG"] = self.results["Experimental"][name].dDG
-
-        for edge in self.graph.edges(data=True):
-            DG_A = self.graph.nodes[edge[0]]["exp_DG"]
-            DG_B = self.graph.nodes[edge[1]]["exp_DG"]
-            edge[2]["exp_DDG"] = DG_B - DG_A
-            dDG_A = self.graph.nodes[edge[0]]["exp_dDG"]
-            dDG_B = self.graph.nodes[edge[1]]["exp_dDG"]
-            edge[2]["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
-
-        self.n_ligands = self.graph.number_of_nodes()
-        self.n_edges = self.graph.number_of_edges()
-        self.degree = self.n_edges / self.n_ligands
-
-        # check the graph has minimal connectivity
-        self.check_weakly_connected()
-        if not self.weakly_connected:
-            warnings.warn("Graph is not connected enough to compute absolute values")
-        else:
-            self.generate_absolute_values()
 
     @classmethod
     def from_csv(cls, filename):
@@ -162,9 +86,38 @@ class FEMap:
 
         return cls(data)
 
-    def check_weakly_connected(self):
+    def add_measurement(self, measurement: Union[RelativeMeasurement, AbsoluteMeasurement]):
+        """Add new observation to FEMap, modifies in place
+
+        Any other attributes on the measurement are used as annotations
+
+        Raises
+        ------
+        ValueError : if bad type given
+        """
+        if isinstance(measurement, AbsoluteMeasurement):
+            nodeA = 'NULL'
+            nodeB = measurement.ligand
+        elif isinstance(measurement, RelativeMeasurement):
+            nodeA = measurement.ligandA
+            nodeB = measurement.ligandB
+        else:
+            raise TypeError()
+
+        # slurp out tasty data, anything but labels
+        d = dict(measurement)
+        d.pop('ligandA', None)
+        d.pop('ligandB', None)
+        d.pop('ligand', None)
+
+        if measurement.computational:
+            self.computational_graph.add_edge(nodeA, nodeB, **d)
+        else:
+            self.experimental_graph.add_edge(nodeA, nodeB, **d)
+
+    def is_weakly_connected(self) -> bool:
+        # todo; cache
         undirected_graph = self.graph.to_undirected()
-        self.weakly_connected = nx.is_connected(undirected_graph)
         return nx.is_connected(undirected_graph)
 
     def generate_absolute_values(self):
