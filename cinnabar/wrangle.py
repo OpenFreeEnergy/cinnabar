@@ -66,7 +66,6 @@ class FEMap(object):
     def __init__(self, csv):
         self.results = read_csv(csv)
         self.graph = nx.DiGraph()
-        self.n_edges = len(self.results)
 
         self.generate_graph_from_results()
 
@@ -106,7 +105,8 @@ class FEMap(object):
             edge[2]["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
 
         self.n_ligands = self.graph.number_of_nodes()
-        self.degree = self.graph.number_of_edges() / self.n_ligands
+        self.n_edges = self.graph.number_of_edges() 
+        self.degree = self.n_edges / self.n_ligands
 
         # check the graph has minimal connectivity
         self.check_weakly_connected()

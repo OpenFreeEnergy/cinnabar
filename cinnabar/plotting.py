@@ -419,6 +419,7 @@ def plot_all_DDGs(
     title: str = "",
     filename: Union[str, None] = None,
     plotly: bool = False,
+    shift: float = 0.0,
     **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from
@@ -438,6 +439,8 @@ def plot_all_DDGs(
         filename for plot
     plotly : bool, default = True
         whether to use plotly for the plotting
+    shift : float, default = 0.
+        shift both the x and y axis by a constant
 
     Returns
     -------
