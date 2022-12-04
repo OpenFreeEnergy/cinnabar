@@ -123,16 +123,31 @@ class FEMap:
         else:
             self.experimental_graph.add_edge(nodeA, nodeB, **d)
 
+    @property
+    def n_measurements(self) -> int:
+        """Total number of both experimental and computational measurements"""
+        return len(self.experimental_graph.edges) + len(self.computational_graph.edges)
+
+    @property
+    def n_ligands(self) -> int:
+        """Total number of unique ligands"""
+        return len(self.experimental_graph.nodes | self.computational_graph.nodes)
+
+    @property
+    def degree(self) -> float:
+        """Average degree of all nodes"""
+        return self.n_measurements / self.n_ligands
+
     def is_weakly_connected(self) -> bool:
         # todo; cache
-        undirected_graph = self.graph.to_undirected()
+        undirected_graph = self.computational_graph.to_undirected()
         return nx.is_connected(undirected_graph)
 
     def generate_absolute_values(self):
         # TODO: Make this return a new Graph with computational nodes annotated with DG values
 
         # TODO this could work if either relative or absolute expt values are provided
-        if self.weakly_connected:
+        if self.is_weakly_connected():
             f_i_calc, C_calc = stats.mle(self.graph, factor="calc_DDG")
             variance = np.diagonal(C_calc)
             for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
