@@ -24,15 +24,18 @@ def read_csv(filepath: pathlib.Path) -> dict:
                 calc_block = True
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
                 ligand, DG, dDG = line.split(",")
-                expt = AbsoluteMeasurement(ligand, float(DG), float(dDG),
+                expt = AbsoluteMeasurement(ligand=ligand,
+                                           DF=float(DG),
+                                           uncertainty=float(dDG),
                                            computational=False)
                 raw_results["Experimental"][expt.ligand] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
                 ligA, ligB, calc_DDG, mbar_err, other_err = line.split(',')
 
-                calc = RelativeMeasurement(ligA.strip(), ligB.strip(),
-                                           float(calc_DDG),
-                                           float(mbar_err) + float(other_err),
+                calc = RelativeMeasurement(ligandA=ligA.strip(),
+                                           ligandB=ligB.strip(),
+                                           DDG=float(calc_DDG),
+                                           uncertainty=float(mbar_err) + float(other_err),
                                            computational=True)
                 raw_results["Calculated"].append(calc)
     return raw_results
