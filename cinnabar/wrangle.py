@@ -82,9 +82,17 @@ class FEMap:
 
     @classmethod
     def from_csv(cls, filename):
+        """Construct from legacy csv format"""
         data = read_csv(filename)
 
-        return cls(data)
+        # unpack data dictionary
+        fe = cls()
+        for r in data['Calculated']:
+            fe.add_measurement(r)
+        for r in data['Experimental'].values():
+            fe.add_measurement(r)
+
+        return fe
 
     def add_measurement(self, measurement: Union[RelativeMeasurement, AbsoluteMeasurement]):
         """Add new observation to FEMap, modifies in place
