@@ -107,24 +107,27 @@ class FEMap:
         ValueError : if bad type given
         """
         if isinstance(measurement, AbsoluteMeasurement):
-            nodeA = 'NULL'
-            nodeB = measurement.ligand
+            # coerse to relative to simplify logic
+            meas_ = RelativeMeasurement(ligandA='NULL',
+                                        ligandB=measurement.ligand,
+                                        DDG=measurement.DG,
+                                        uncertainty=measurement.uncertainty,
+                                        computational=measurement.computational)
         elif isinstance(measurement, RelativeMeasurement):
-            nodeA = measurement.ligandA
-            nodeB = measurement.ligandB
+            meas_ = measurement
         else:
             raise TypeError()
 
         # slurp out tasty data, anything but labels
-        d = dict(measurement)
+        d = dict(meas_)
         d.pop('ligandA', None)
         d.pop('ligandB', None)
         d.pop('ligand', None)
 
-        if measurement.computational:
-            self.computational_graph.add_edge(nodeA, nodeB, **d)
+        if meas_.computational:
+            self.computational_graph.add_edge(meas_.ligandA, meas_.ligandB, **d)
         else:
-            self.experimental_graph.add_edge(nodeA, nodeB, **d)
+            self.experimental_graph.add_edge(meas_.ligandA, meas_.ligandB, **d)
 
     @property
     def n_measurements(self) -> int:
