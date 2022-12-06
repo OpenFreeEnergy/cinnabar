@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ def plot_bar(
     exp_error_col: str = "dexp",
     name_col: str = "edge",
     title: str = "",
-    filename: Union[str, None] = None,
+    filename: Optional[str] = None,
 ):
     """
     Creates a plotly barplot. It takes a pandas.Dataframe df as input and plots
@@ -149,15 +149,15 @@ def _master_plot(
     x: np.ndarray,
     y: np.ndarray,
     title: str = "",
-    xerr: Union[list, None] = None,
-    yerr: Union[list, None] = None,
+    xerr: Optional[np.ndarray] = None,
+    yerr: Optional[np.ndarray] = None,
     method_name: str = "",
     target_name: str = "",
     plot_type: str = "",
     guidelines: bool = True,
     origins: bool = True,
     statistics: list = ["RMSE", "MUE"],
-    filename: Union[str, None] = None,
+    filename: Optional[str] = None,
 ):
     nsamples = len(x)
     ax_min = min(min(x), min(y)) - 0.5
