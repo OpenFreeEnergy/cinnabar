@@ -149,8 +149,9 @@ def test_correlation_positive(fe_map):
 
 def test_confidence_intervals(fe_map):
     """
-    Test that the confidence intervals for RMSE and MUE contain the corresponding statistics.
-    Uses the example data in `cinnabar/data/example.csv`
+    Test that the confidence intervals for RMSE and MUE contain the
+    corresponding statistics. Uses the example data in
+    `cinnabar/data/example.csv`
     """
 
     nodes = fe_map.graph.nodes
