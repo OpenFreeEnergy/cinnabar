@@ -39,7 +39,7 @@ def bootstrap_statistic(
     plot_type : str, optional, default='dG'
         'dG' or 'ddG'
     bootstrap_true_uncertainty : bool, default False
-        whether to account for the uncertainty in the y_true when bootstrapping
+        whether to account for the uncertainty in y_true when bootstrapping
     bootstrap_pred_uncertainty : bool, default False
         whether to account for the uncertainty in y_pred when bootstrapping
 
