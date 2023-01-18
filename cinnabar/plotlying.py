@@ -274,8 +274,8 @@ def _master_plot(
                                         xerr,
                                         yerr,
                                         statistic=statistic,
-                                        bootstrap_true_uncertainty=bootstrap_x_uncertainty,
-                                        bootstrap_pred_uncertainty=bootstrap_y_uncertainty)
+                                        include_true_uncertainty=bootstrap_x_uncertainty,
+                                        include_pred_uncertainty=bootstrap_y_uncertainty)
 
         statistic_type = 'mean' if bootstrap_x_uncertainty or bootstrap_y_uncertainty else 'mle'
         string.append(
