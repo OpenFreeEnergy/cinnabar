@@ -267,10 +267,16 @@ def _master_plot(
     # stats and title
     string = []
     for statistic in statistics:
-        bss = stats.bootstrap_statistic(x, y, statistic=statistic)
+        bss = stats.bootstrap_statistic(x,
+                                        y,
+                                        xerr,
+                                        yerr,
+                                        statistic=statistic,
+                                        bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
+                                        bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty)
 
         string.append(
-            f"{statistic + ':':5s}{bss['mle']:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
+            f"{statistic + ':':5s}{bss['mean']:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
         )
     stats_string = "<br>".join(string)
 
