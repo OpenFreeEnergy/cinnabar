@@ -158,6 +158,8 @@ def _master_plot(
     origins: bool = True,
     statistics: list = ["RMSE", "MUE"],
     filename: Optional[str] = None,
+    bootstrap_x_uncertainty: bool = False,
+    bootstrap_y_uncertainty: bool = False,
 ):
     nsamples = len(x)
     ax_min = min(min(x), min(y)) - 0.5
@@ -272,8 +274,8 @@ def _master_plot(
                                         xerr,
                                         yerr,
                                         statistic=statistic,
-                                        bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-                                        bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty)
+                                        bootstrap_true_uncertainty=bootstrap_x_uncertainty,
+                                        bootstrap_pred_uncertainty=bootstrap_y_uncertainty)
 
         string.append(
             f"{statistic + ':':5s}{bss['mean']:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"

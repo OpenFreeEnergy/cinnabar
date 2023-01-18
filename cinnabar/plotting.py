@@ -32,8 +32,8 @@ def _master_plot(
     axis_padding: float = 0.5,
     xy_lim: list = [],
     font_sizes: dict = {"title": 12, "labels": 9, "other": 12},
-    bootstrap_experimental_uncertainty: bool = False,
-    bootstrap_predicted_uncertainty: bool=False,
+    bootstrap_x_uncertainty: bool = False,
+    bootstrap_y_uncertainty: bool = False,
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -89,10 +89,10 @@ def _master_plot(
         contains the minimium and maximum values to use for the x and y axes. if specified, axis_padding is ignored
     font_sizes : dict, default {"title": 12, "labels": 9, "other": 12}
         font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other")
-    bootstrap_experimental_uncertainty : bool, default False
-        whether to account for experimental uncertainty when bootstrapping
-    bootstrap_predicted_uncertainty : bool, default False
-        whether to account for predicted uncertainty when bootstrapping
+    bootstrap_x_uncertainty : bool, default False
+        whether to account for uncertainty in x when bootstrapping
+    bootstrap_y_uncertainty : bool, default False
+        whether to account for uncertainty in y when bootstrapping
     Returns
     -------
 
@@ -177,8 +177,8 @@ def _master_plot(
                                       xerr,
                                       yerr,
                                       statistic=statistic,
-                                      bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-                                      bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty)
+                                      bootstrap_true_uncertainty=bootstrap_x_uncertainty,
+                                      bootstrap_pred_uncertainty=bootstrap_y_uncertainty)
         string = f"{statistic}:   {s['mean']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
         statistics_string += string
 
@@ -209,8 +209,8 @@ def plot_DDGs(
     symmetrise: bool = False,
     plotly: bool = False,
     data_label_type: str = None,
-    bootstrap_experimental_uncertainty: bool = False,
-    bootstrap_predicted_uncertainty: bool = False,
+    bootstrap_x_uncertainty: bool = False,
+    bootstrap_y_uncertainty: bool=False,
     **kwargs,
 ):
     """Function to plot relative free energies
@@ -248,10 +248,10 @@ def plot_DDGs(
             the negative of the transformation
         currently unsupported for plotly-generated plots
         TODO: implement data labeling for the case where plotly=True
-    bootstrap_experimental_uncertainty : bool, default False
-        whether to account for experimental uncertainty when bootstrapping
-    bootstrap_predicted_uncertainty : bool, default False
-        whether to account for predicted uncertainty when bootstrapping
+    bootstrap_x_uncertainty : bool, default False
+        whether to account for uncertainty in x when bootstrapping
+    bootstrap_y_uncertainty : bool, default False
+        whether to account for uncertainty in y when bootstrapping
 
     Returns
     -------
@@ -333,8 +333,8 @@ def plot_DDGs(
             title=title,
             method_name=method_name,
             target_name=target_name,
-            bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-            bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty,
+            bootstrap_x_uncertainty=bootstrap_x_uncertainty,
+            bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             **kwargs,
         )
     else:
@@ -348,8 +348,8 @@ def plot_DDGs(
             method_name=method_name,
             target_name=target_name,
             data_labels=data_labels,
-            bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-            bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty,
+            bootstrap_x_uncertainty=bootstrap_x_uncertainty,
+            bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             **kwargs,
         )
 
@@ -363,8 +363,8 @@ def plot_DGs(
     plotly: bool = False,
     centralizing: bool = True,
     shift: float = 0.0,
-    bootstrap_experimental_uncertainty: bool = False,
-    bootstrap_predicted_uncertainty: bool = False,
+    bootstrap_x_uncertainty: bool = False,
+    bootstrap_y_uncertainty: bool=False,
     **kwargs,
 ):
     """Function to plot absolute free energies.
@@ -381,10 +381,10 @@ def plot_DGs(
         Title for the plot
     filename : str, default = None
         filename for plot
-    bootstrap_experimental_uncertainty : bool, default False
-        whether to account for experimental uncertainty when bootstrapping
-    bootstrap_predicted_uncertainty : bool, default False
-        whether to account for predicted uncertainty when bootstrapping
+    bootstrap_x_uncertainty : bool, default False
+        whether to account for uncertainty in x when bootstrapping
+    bootstrap_y_uncertainty : bool, default False
+        whether to account for uncertainty in y when bootstrapping
 
     Returns
     -------
@@ -416,8 +416,8 @@ def plot_DGs(
             method_name=method_name,
             target_name=target_name,
             filename=filename,
-            bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-            bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty,
+            bootstrap_x_uncertainty=bootstrap_x_uncertainty,
+            bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             **kwargs,
         )
     else:
@@ -433,8 +433,8 @@ def plot_DGs(
             method_name=method_name,
             target_name=target_name,
             filename=filename,
-            bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-            bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty,
+            bootstrap_x_uncertainty=bootstrap_x_uncertainty,
+            bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             **kwargs,
         )
 
@@ -447,8 +447,8 @@ def plot_all_DDGs(
     filename: Optional[str] = None,
     plotly: bool = False,
     shift: float = 0.0,
-    bootstrap_experimental_uncertainty: bool = False,
-    bootstrap_predicted_uncertainty: bool = False,
+    bootstrap_x_uncertainty: bool = False,
+    bootstrap_y_uncertainty: bool=False,
     **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from
@@ -470,10 +470,10 @@ def plot_all_DDGs(
         whether to use plotly for the plotting
     shift : float, default = 0.
         shift both the x and y axis by a constant
-    bootstrap_experimental_uncertainty : bool, default False
-        whether to account for experimental uncertainty when bootstrapping
-    bootstrap_predicted_uncertainty : bool, default False
-        whether to account for predicted uncertainty when bootstrapping
+    bootstrap_x_uncertainty : bool, default False
+        whether to account for uncertainty in x when bootstrapping
+    bootstrap_y_uncertainty : bool, default False
+        whether to account for uncertainty in y when bootstrapping
 
     Returns
     -------
@@ -520,8 +520,8 @@ def plot_all_DDGs(
             plot_type="ΔΔG",
             filename=filename,
             target_name=target_name,
-            bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-            bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty,
+            bootstrap_x_uncertainty=bootstrap_x_uncertainty,
+            bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             **kwargs,
         )
 
@@ -536,7 +536,7 @@ def plot_all_DDGs(
             filename=filename,
             target_name=target_name,
             shift=shift,
-            bootstrap_experimental_uncertainty=bootstrap_experimental_uncertainty,
-            bootstrap_predicted_uncertainty=bootstrap_predicted_uncertainty,
+            bootstrap_x_uncertainty=bootstrap_x_uncertainty,
+            bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             **kwargs,
         )
