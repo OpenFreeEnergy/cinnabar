@@ -145,3 +145,24 @@ def test_correlation_positive(fe_map):
         assert (
             0.5 < bss["mle"] < 0.9
         ), f"Correlation must be positive for this data. {stat} is {bss['mle']}"
+
+def test_confidence_intervals(fe_map):
+    """
+    Test that the confidence intervals for RMSE and MUE contain the corresponding statistics.
+    Uses the example data in `cinnabar/data/example.csv`
+    """
+
+    nodes = fe_map.graph.nodes
+
+    x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
+    y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
+    xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
+    yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
+
+    # RMSE
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
+    assert bss['low'] < bss['mean'] < bss['high'], "The RMSE must lie withint the bootstrapped 95% CI"
+
+    # MUE
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="MUE")
+    assert bss['low'] < bss['mean'] < bss['high'], "The MUE must lie withint the bootstrapped 95% CI"
