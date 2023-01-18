@@ -149,9 +149,9 @@ def test_correlation_positive(fe_map):
 
 def test_confidence_intervals(fe_map):
     """
-    Test that the confidence intervals for RMSE and MUE contain the
-    corresponding statistics. Uses the example data in
-    `cinnabar/data/example.csv`
+    Test that the bootstrapped confidence intervals
+    for RMSE and MUE contain the corresponding statistics.
+    Uses the example data in `cinnabar/data/example.csv`
     """
 
     nodes = fe_map.graph.nodes
@@ -161,12 +161,31 @@ def test_confidence_intervals(fe_map):
     xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
     yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
 
-    # RMSE
-    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
+    # RMSE (default mode)
+    bss_default = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
+    assert bss_default['low'] < bss_default['mle'] < bss_default['high'], \
+        "The RMSE must lie within the bootstrapped 95% CI"
+
+    # MUE (default mode)
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="MUE")
+    assert bss['low'] < bss['mle'] < bss['high'], \
+        "The MUE must lie within the bootstrapped 95% CI"
+
+    # RMSE (including xerr in bootstrapping)
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
+                              include_true_uncertainty=True)
     assert bss['low'] < bss['mean'] < bss['high'], \
         "The RMSE must lie within the bootstrapped 95% CI"
 
-    # MUE
-    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="MUE")
+    # RMSE (including yerr in bootstrapping)
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
+                              include_pred_uncertainty=True)
     assert bss['low'] < bss['mean'] < bss['high'], \
-        "The MUE must lie within the bootstrapped 95% CI"
+        "The RMSE must lie within the bootstrapped 95% CI"
+
+    # RMSE (including both xerr and yerr in bootstrapping)
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
+                              include_true_uncertainty=True,
+                              include_pred_uncertainty=True)
+    assert bss['low'] < bss['mean'] < bss['high'], \
+        "The RMSE must lie within the bootstrapped 95% CI"
