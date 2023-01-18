@@ -163,8 +163,10 @@ def test_confidence_intervals(fe_map):
 
     # RMSE
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
-    assert bss['low'] < bss['mean'] < bss['high'], "The RMSE must lie withint the bootstrapped 95% CI"
+    assert bss['low'] < bss['mean'] < bss['high'], \
+        "The RMSE must lie within the bootstrapped 95% CI"
 
     # MUE
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="MUE")
-    assert bss['low'] < bss['mean'] < bss['high'], "The MUE must lie withint the bootstrapped 95% CI"
+    assert bss['low'] < bss['mean'] < bss['high'], \
+        "The MUE must lie within the bootstrapped 95% CI"
