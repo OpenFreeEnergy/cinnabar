@@ -179,7 +179,8 @@ def _master_plot(
                                       statistic=statistic,
                                       bootstrap_true_uncertainty=bootstrap_x_uncertainty,
                                       bootstrap_pred_uncertainty=bootstrap_y_uncertainty)
-        string = f"{statistic}:   {s['mean']:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
+        statistic_type = 'mean' if bootstrap_x_uncertainty or bootstrap_y_uncertainty else 'mle'
+        string = f"{statistic}:   {s[statistic_type]:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
         statistics_string += string
 
     long_title = f"{title} \n {target_name} (N = {nsamples}) \n {statistics_string}"

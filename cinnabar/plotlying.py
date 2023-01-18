@@ -277,8 +277,9 @@ def _master_plot(
                                         bootstrap_true_uncertainty=bootstrap_x_uncertainty,
                                         bootstrap_pred_uncertainty=bootstrap_y_uncertainty)
 
+        statistic_type = 'mean' if bootstrap_x_uncertainty or bootstrap_y_uncertainty else 'mle'
         string.append(
-            f"{statistic + ':':5s}{bss['mean']:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
+            f"{statistic + ':':5s}{bss[statistic_type]:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
         )
     stats_string = "<br>".join(string)
 
