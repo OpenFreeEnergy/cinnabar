@@ -162,8 +162,8 @@ def test_confidence_intervals(fe_map):
     yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
 
     # RMSE (default mode)
-    bss_default = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
-    assert bss_default['low'] < bss_default['mle'] < bss_default['high'], \
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
+    assert bss['low'] < bss['mle'] < bss['high'], \
         "The RMSE must lie within the bootstrapped 95% CI"
 
     # MUE (default mode)
