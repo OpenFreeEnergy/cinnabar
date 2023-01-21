@@ -160,6 +160,7 @@ def _master_plot(
     filename: Optional[str] = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
+    statistic_type: str = "mle",
 ):
     nsamples = len(x)
     ax_min = min(min(x), min(y)) - 0.5
@@ -268,6 +269,8 @@ def _master_plot(
 
     # stats and title
     string = []
+    if statistic_type not in ['mle', 'mean']:
+        raise Exception(f"Unknown statistic type {statistic_type}")
     for statistic in statistics:
         bss = stats.bootstrap_statistic(x,
                                         y,
@@ -276,8 +279,6 @@ def _master_plot(
                                         statistic=statistic,
                                         include_true_uncertainty=bootstrap_x_uncertainty,
                                         include_pred_uncertainty=bootstrap_y_uncertainty)
-
-        statistic_type = 'mean' if bootstrap_x_uncertainty or bootstrap_y_uncertainty else 'mle'
         string.append(
             f"{statistic + ':':5s}{bss[statistic_type]:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
         )

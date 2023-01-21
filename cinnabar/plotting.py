@@ -34,6 +34,7 @@ def _master_plot(
     font_sizes: dict = {"title": 12, "labels": 9, "other": 12},
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
+    statistic_type: str = "mle",
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -93,6 +94,8 @@ def _master_plot(
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
+    statistic_type : str, default 'mle'
+        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
     Returns
     -------
 
@@ -171,6 +174,8 @@ def _master_plot(
 
     # stats and title
     statistics_string = ""
+    if statistic_type not in ['mle', 'mean']:
+        raise Exception(f"Unknown statistic type {statistic_type}")
     for statistic in statistics:
         s = stats.bootstrap_statistic(x,
                                       y,
@@ -179,7 +184,6 @@ def _master_plot(
                                       statistic=statistic,
                                       include_true_uncertainty=bootstrap_x_uncertainty,
                                       include_pred_uncertainty=bootstrap_y_uncertainty)
-        statistic_type = 'mean' if bootstrap_x_uncertainty or bootstrap_y_uncertainty else 'mle'
         string = f"{statistic}:   {s[statistic_type]:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
         statistics_string += string
 
@@ -212,6 +216,7 @@ def plot_DDGs(
     data_label_type: str = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool=False,
+    statistic_type: str = "mle",
     **kwargs,
 ):
     """Function to plot relative free energies
@@ -253,6 +258,8 @@ def plot_DDGs(
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
+    statistic_type : str, default 'mle'
+        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
 
     Returns
     -------
@@ -336,6 +343,7 @@ def plot_DDGs(
             target_name=target_name,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
+            statistic_type=statistic_type,
             **kwargs,
         )
     else:
@@ -351,6 +359,7 @@ def plot_DDGs(
             data_labels=data_labels,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
+            statistic_type=statistic_type,
             **kwargs,
         )
 
@@ -366,6 +375,7 @@ def plot_DGs(
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool=False,
+    statistic_type: str = "mle",
     **kwargs,
 ):
     """Function to plot absolute free energies.
@@ -386,6 +396,8 @@ def plot_DGs(
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
+    statistic_type : str, default 'mle'
+        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
 
     Returns
     -------
@@ -419,6 +431,7 @@ def plot_DGs(
             filename=filename,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
+            statistic_type=statistic_type,
             **kwargs,
         )
     else:
@@ -436,6 +449,7 @@ def plot_DGs(
             filename=filename,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
+            statistic_type=statistic_type,
             **kwargs,
         )
 
@@ -450,6 +464,7 @@ def plot_all_DDGs(
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool=False,
+    statistic_type: str = "mle",
     **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from
@@ -475,6 +490,8 @@ def plot_all_DDGs(
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
+    statistic_type : str, default 'mle'
+        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
 
     Returns
     -------
@@ -523,6 +540,7 @@ def plot_all_DDGs(
             target_name=target_name,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
+            statistic_type=statistic_type,
             **kwargs,
         )
 
@@ -539,5 +557,6 @@ def plot_all_DDGs(
             shift=shift,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
+            statistic_type=statistic_type,
             **kwargs,
         )
