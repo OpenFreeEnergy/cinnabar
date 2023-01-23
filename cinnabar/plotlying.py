@@ -270,7 +270,7 @@ def _master_plot(
     # stats and title
     string = []
     if statistic_type not in ['mle', 'mean']:
-        raise Exception(f"Unknown statistic type {statistic_type}")
+        raise ValueError(f"Unknown statistic type {statistic_type}")
     for statistic in statistics:
         bss = stats.bootstrap_statistic(x,
                                         y,
