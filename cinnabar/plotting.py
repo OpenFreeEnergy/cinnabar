@@ -215,7 +215,7 @@ def plot_DDGs(
     plotly: bool = False,
     data_label_type: str = None,
     bootstrap_x_uncertainty: bool = False,
-    bootstrap_y_uncertainty: bool=False,
+    bootstrap_y_uncertainty: bool = False,
     statistic_type: str = "mle",
     **kwargs,
 ):
@@ -463,7 +463,7 @@ def plot_all_DDGs(
     plotly: bool = False,
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
-    bootstrap_y_uncertainty: bool=False,
+    bootstrap_y_uncertainty: bool = False,
     statistic_type: str = "mle",
     **kwargs,
 ):
