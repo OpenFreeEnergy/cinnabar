@@ -5,8 +5,6 @@ import numpy as np
 from cinnabar import stats
 from cinnabar.stats import bootstrap_statistic
 
-import pytest
-
 def test_mle_easy():
     """
     Test that the MLE for a graph with an absolute
