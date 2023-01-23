@@ -5,6 +5,7 @@ import numpy as np
 from cinnabar import stats
 from cinnabar.stats import bootstrap_statistic
 
+import pytest
 
 def test_mle_easy():
     """
@@ -161,31 +162,28 @@ def test_confidence_intervals(fe_map):
     xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
     yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
 
+    error_message =  "The RMSE must lie within the bootstrapped 95% CI"
+
     # RMSE (default mode)
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
-    assert bss['low'] < bss['mle'] < bss['high'], \
-        "The RMSE must lie within the bootstrapped 95% CI"
+    assert bss['low'] < bss['mle'] < bss['high'], error_message
 
     # MUE (default mode)
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="MUE")
-    assert bss['low'] < bss['mle'] < bss['high'], \
-        "The MUE must lie within the bootstrapped 95% CI"
+    assert bss['low'] < bss['mle'] < bss['high'], error_message
 
     # RMSE (including xerr in bootstrapping)
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
                               include_true_uncertainty=True)
-    assert bss['low'] < bss['mean'] < bss['high'], \
-        "The RMSE must lie within the bootstrapped 95% CI"
+    assert bss['low'] < bss['mean'] < bss['high'], error_message
 
     # RMSE (including yerr in bootstrapping)
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
                               include_pred_uncertainty=True)
-    assert bss['low'] < bss['mean'] < bss['high'], \
-        "The RMSE must lie within the bootstrapped 95% CI"
+    assert bss['low'] < bss['mean'] < bss['high'], error_message
 
     # RMSE (including both xerr and yerr in bootstrapping)
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
                               include_true_uncertainty=True,
                               include_pred_uncertainty=True)
-    assert bss['low'] < bss['mean'] < bss['high'], \
-        "The RMSE must lie within the bootstrapped 95% CI"
+    assert bss['low'] < bss['mean'] < bss['high'], error_message
