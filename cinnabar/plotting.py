@@ -95,7 +95,8 @@ def _master_plot(
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
     statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
+        the type of statistic to use, either 'mle' (i.e. sample statistic)
+        or 'mean' (i.e. bootstrapped mean statistic)
 
     Returns
     -------
@@ -260,7 +261,8 @@ def plot_DDGs(
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
     statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
+        the type of statistic to use, either 'mle' (i.e. sample statistic)
+        or 'mean' (i.e. bootstrapped mean statistic)
 
     Returns
     -------
@@ -398,7 +400,8 @@ def plot_DGs(
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
     statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
+        the type of statistic to use, either 'mle' (i.e. sample statistic)
+        or 'mean' (i.e. bootstrapped mean statistic)
 
     Returns
     -------
@@ -492,7 +495,8 @@ def plot_all_DDGs(
     bootstrap_y_uncertainty : bool, default False
         whether to account for uncertainty in y when bootstrapping
     statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
+        the type of statistic to use, either 'mle' (i.e. sample statistic)
+        or 'mean' (i.e. bootstrapped mean statistic)
 
     Returns
     -------
