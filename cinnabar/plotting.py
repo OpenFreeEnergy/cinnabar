@@ -96,6 +96,7 @@ def _master_plot(
         whether to account for uncertainty in y when bootstrapping
     statistic_type : str, default 'mle'
         the type of statistic to use, either 'mle' or 'mean' (of the bootstrapped data)
+
     Returns
     -------
 
