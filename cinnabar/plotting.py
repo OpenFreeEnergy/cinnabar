@@ -32,6 +32,7 @@ def _master_plot(
     axis_padding: float = 0.5,
     xy_lim: list = [],
     font_sizes: dict = {"title": 12, "labels": 9, "other": 12},
+    marker_size : float = 10,
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -87,6 +88,8 @@ def _master_plot(
         contains the minimium and maximum values to use for the x and y axes. if specified, axis_padding is ignored
     font_sizes : dict, default {"title": 12, "labels": 9, "other": 12}
         font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other")
+    marker_size : float, default 10
+        size of the markers representing each data point in the scatter plot
 
     Returns
     -------
@@ -156,7 +159,7 @@ def _master_plot(
         elinewidth=2.0,
         zorder=1,
     )
-    plt.scatter(x, y, color=color, s=10, marker="o", zorder=2)
+    plt.scatter(x, y, color=color, s=marker_size, marker="o", zorder=2)
 
     # Label points
     texts = []
