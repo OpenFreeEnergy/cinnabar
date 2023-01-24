@@ -146,45 +146,52 @@ def test_correlation_positive(fe_map):
         ), f"Correlation must be positive for this data. {stat} is {bss['mle']}"
 
 
-def test_confidence_intervals(fe_map):
+@pytest.fixture(scope='module')
+def example_data(fe_map):
     """
-    Test that the bootstrapped confidence intervals
-    for RMSE and MUE contain the corresponding statistics.
-    Uses the example data in `cinnabar/data/example.csv`
+    Returns data w/ error bars from `cinnabar/data/example.csv`
     """
-
     nodes = fe_map.graph.nodes
 
     x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
     y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
     xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
     yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
+    
+    return x_data, y_data, xerr, yerr
 
-    error_message =  "The RMSE must lie within the bootstrapped 95% CI"
 
-    # RMSE (default mode)
+def test_confidence_intervals_defaults(example_data):
+    """
+    Test that boostrap confidence intervals contains
+    the 'mle' value when using defaults.
+    """
+    error_message =  "The stat must lie within the bootstrapped 95% CI"
+    x_data, y_data, xerr, yerr = example_data
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
     assert bss['low'] < bss['mle'] < bss['high'], error_message
 
-    # MUE (default mode)
-    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="MUE")
-    assert bss['low'] < bss['mle'] < bss['high'], error_message
 
-    # RMSE (including xerr in bootstrapping)
-    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
-                              include_true_uncertainty=True)
-    assert bss['low'] < bss['mean'] < bss['high'], error_message
-
-    # RMSE (including yerr in bootstrapping)
-    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
-                              include_pred_uncertainty=True)
-    assert bss['low'] < bss['mean'] < bss['high'], error_message
-
-    # RMSE (including both xerr and yerr in bootstrapping)
-    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
-                              include_true_uncertainty=True,
-                              include_pred_uncertainty=True)
-    assert bss['low'] < bss['mean'] < bss['high'], error_message
+@pytest.mark.parametrize('stat,true_uncert,pred_uncert,estimate', [
+    ['RMSE', False, False, 'mle'],
+    ['MUE', False, False, 'mle'],
+    ['RMSE', True, False, 'mean'],
+    ['RMSE', False, True, 'mean'],
+    ['RMSE', True, True, 'mean'],
+])
+def test_confidence_intervals(example_data, stat, true_uncert,
+                              pred_uncert, estimate):
+    """
+    Test that the bootstrapped confidence intervals contain the
+    corresponding statistics.
+    Uses the example data in `cinnabar/data/example.csv`
+    """
+    error_message =  "The stat must lie within the bootstrapped 95% CI"
+    x_data, y_data, xerr, yerr = example_data
+    bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic=stat,
+                              include_true_uncertainty=true_uncert,
+                              include_pred_uncertainty=pred_uncert)
+    assert bss['low'] < bss[estimate] < bss['high'], error_message
 
 
 def test_confidence_interval_edge_case():
