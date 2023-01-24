@@ -2,8 +2,10 @@ import itertools
 
 import networkx as nx
 import numpy as np
+import pytest
 from cinnabar import stats
 from cinnabar.stats import bootstrap_statistic
+
 
 def test_mle_easy():
     """
