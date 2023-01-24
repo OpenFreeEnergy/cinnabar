@@ -158,6 +158,9 @@ def _master_plot(
     origins: bool = True,
     statistics: list = ["RMSE", "MUE"],
     filename: Optional[str] = None,
+    bootstrap_x_uncertainty: bool = False,
+    bootstrap_y_uncertainty: bool = False,
+    statistic_type: str = "mle",
 ):
     nsamples = len(x)
     ax_min = min(min(x), min(y)) - 0.5
@@ -266,11 +269,18 @@ def _master_plot(
 
     # stats and title
     string = []
+    if statistic_type not in ['mle', 'mean']:
+        raise ValueError(f"Unknown statistic type {statistic_type}")
     for statistic in statistics:
-        bss = stats.bootstrap_statistic(x, y, statistic=statistic)
-
+        bss = stats.bootstrap_statistic(x,
+                                        y,
+                                        xerr,
+                                        yerr,
+                                        statistic=statistic,
+                                        include_true_uncertainty=bootstrap_x_uncertainty,
+                                        include_pred_uncertainty=bootstrap_y_uncertainty)
         string.append(
-            f"{statistic + ':':5s}{bss['mle']:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
+            f"{statistic + ':':5s}{bss[statistic_type]:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
         )
     stats_string = "<br>".join(string)
 

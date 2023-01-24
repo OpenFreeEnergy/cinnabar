@@ -14,6 +14,8 @@ def bootstrap_statistic(
     statistic: str = "RMSE",
     nbootstrap: int = 1000,
     plot_type: str = "dG",
+    include_true_uncertainty: bool = False,
+    include_pred_uncertainty: bool = False,
 ) -> dict:
 
     """Compute mean and confidence intervals of specified statistic.
@@ -36,6 +38,10 @@ def bootstrap_statistic(
         Number of bootstrap samples
     plot_type : str, optional, default='dG'
         'dG' or 'ddG'
+    include_true_uncertainty : bool, default False
+        whether to account for the uncertainty in y_true when bootstrapping
+    include_pred_uncertainty : bool, default False
+        whether to account for the uncertainty in y_pred when bootstrapping
 
     Returns
     -------
@@ -114,8 +120,10 @@ def bootstrap_statistic(
         for i, j in enumerate(
             np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)
         ):
-            y_true_sample[i] = np.random.normal(loc=y_true[j], scale=np.fabs(dy_true[j]), size=1)
-            y_pred_sample[i] = np.random.normal(loc=y_pred[j], scale=np.fabs(dy_pred[j]), size=1)
+            stddev_true = np.fabs(dy_true[j]) if include_true_uncertainty else 0
+            stddev_pred = np.fabs(dy_pred[j]) if include_pred_uncertainty else 0
+            y_true_sample[i] = np.random.normal(loc=y_true[j], scale=stddev_true, size=1)
+            y_pred_sample[i] = np.random.normal(loc=y_pred[j], scale=stddev_pred, size=1)
         s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
 
     rmse_stats = dict()
