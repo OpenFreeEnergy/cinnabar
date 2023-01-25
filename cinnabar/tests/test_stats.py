@@ -214,4 +214,4 @@ def test_confidence_interval_edge_case():
                               include_true_uncertainty=False,
                               include_pred_uncertainty=False)
     error_message = "The stat must lie within the bootstrapped 95% CI"
-    assert (bss['low'] < bss['mle']) or (bss['mle'] < bss['high']), error_message
+    assert (bss['low'] < bss['mle']) and (bss['mle'] < bss['high']), error_message
