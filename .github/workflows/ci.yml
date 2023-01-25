@@ -73,6 +73,7 @@ jobs:
           pytest -v --cov=cinnabar --cov-report=xml --cov-report=term --color=yes cinnabar/tests/
       - uses: codecov/codecov-action@v2
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
