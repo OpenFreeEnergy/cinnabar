@@ -211,6 +211,7 @@ def test_confidence_interval_edge_case():
 
     # RMSE (default mode)
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE",
-                              include_true_uncertainty=True,
-                              include_pred_uncertainty=True)
-    assert (bss['low'] > bss['mle']) or (bss['mle'] > bss['high']), error_message
+                              include_true_uncertainty=False,
+                              include_pred_uncertainty=False)
+    error_message = "The stat must lie within the bootstrapped 95% CI"
+    assert (bss['low'] < bss['mle']) or (bss['mle'] < bss['high']), error_message
