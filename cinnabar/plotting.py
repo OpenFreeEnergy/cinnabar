@@ -29,11 +29,10 @@ def _master_plot(
     figsize: float = 3.25,
     dpi: Union[float, str] = "figure",
     data_labels: list = [],
-    data_label_filter: Optional[float] = None,
     axis_padding: float = 0.5,
     xy_lim: list = [],
     font_sizes: dict = {"title": 12, "labels": 9, "other": 12},
-    marker_size: float = 10,
+    marker_size : float = 10,
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -83,8 +82,6 @@ def _master_plot(
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
     data_labels : list of str, default []
         list of labels for each data point
-    data_label_filter : float, default None
-        only show labels for data points where the abs(x - y) > data_label_filter
     axis_padding : float, default = 0.5
         padding to add to maximum axis value and subtract from the minimum axis value
     xy_lim : list, default []
@@ -165,13 +162,8 @@ def _master_plot(
     plt.scatter(x, y, color=color, s=marker_size, marker="o", zorder=2)
 
     # Label points
-    # If data_label_filter is specified, only label data points that are outliers
-    # (i.e. where the difference in x and y is larger than data_label_filter)
     texts = []
     for i, label in enumerate(data_labels):
-        if data_label_filter is not None:
-            if abs(x[i] - y[i]) <= data_label_filter:
-                continue
         texts.append(plt.text(x[i] + 0.03, y[i] + 0.03, label, fontsize=font_sizes["labels"]))
     adjust_text(texts)
 
