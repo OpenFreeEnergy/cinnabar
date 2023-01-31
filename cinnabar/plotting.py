@@ -35,7 +35,7 @@ def _master_plot(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: str = "mle",
-    scatter_kwargs: dict = {},
+    scatter_kwargs: dict = {"s": 10, "marker": "o"},
 ):
     """Handles the aesthetics of the plots in one place.
 
