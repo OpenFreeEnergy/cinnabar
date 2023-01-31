@@ -98,7 +98,7 @@ def _master_plot(
     statistic_type : str, default 'mle'
         the type of statistic to use, either 'mle' (i.e. sample statistic)
         or 'mean' (i.e. bootstrapped mean statistic)
-    scatter_kwargs : dict, default {}
+    scatter_kwargs : dict, default {"s": 10, "marker": "o"}
         arguments to control plt.scatter()
 
     Returns
