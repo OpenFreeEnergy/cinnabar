@@ -1,6 +1,7 @@
 import pathlib
 from typing import Union
-from pydantic import BaseModel
+from openff.models.models import DefaultModel
+from openff.models.types import FloatQuantity
 import warnings
 
 import matplotlib.pyplot as plt
@@ -25,7 +26,7 @@ def read_csv(filepath: pathlib.Path) -> dict:
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
                 ligand, DG, dDG = line.split(",")
                 expt = AbsoluteMeasurement(ligand=ligand,
-                                           DF=float(DG),
+                                           DG=float(DG),
                                            uncertainty=float(dDG),
                                            computational=False)
                 raw_results["Experimental"][expt.ligand] = expt
@@ -41,18 +42,18 @@ def read_csv(filepath: pathlib.Path) -> dict:
     return raw_results
 
 
-class RelativeMeasurement(BaseModel):
+class RelativeMeasurement(DefaultModel):
     ligandA: str
     ligandB: str
-    DDG: float
-    uncertainty: float
+    DDG: FloatQuantity['kilojoule_per_mole']
+    uncertainty: FloatQuantity['kilojoule_per_mole']
     computational: bool
 
 
-class AbsoluteMeasurement(BaseModel):
+class AbsoluteMeasurement(DefaultModel):
     ligand: str
-    DG: float
-    uncertainty: float
+    DG: FloatQuantity['kilojoule_per_mole']
+    uncertainty: FloatQuantity['kilojoule_per_mole']
     computational: bool
 
 
