@@ -93,6 +93,10 @@ class FEMap:
     computational_graph: nx.MultiDiGraph
     experimental_graph: nx.MultiDiGraph
 
+    def __init__(self):
+        self.computational_graph = nx.MultiDiGraph()
+        self.experimental_graph = nx.MultiDiGraph()
+
     @classmethod
     def from_csv(cls, filename):
         """Construct from legacy csv format"""
