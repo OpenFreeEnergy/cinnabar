@@ -169,10 +169,20 @@ class FEMap:
 
     def draw_graph(self, title: str = "", filename: Union[str, None] = None):
         plt.figure(figsize=(10, 10))
-        self._id_to_name = {}
-        for i, j in self._name_to_id.items():
-            self._id_to_name[j] = i
-        nx.draw_circular(self.graph, labels=self._id_to_name, node_color="hotpink", node_size=250)
+
+        graph = nx.DiGraph()
+        for a, b, d in self.computational_graph.edges(data=True):
+            graph.add_edge(a, b,
+                           calc_DDG=d['DDG'].magnitude,
+                           calc_dDDG=d['uncertainty'].magnitude)
+
+        for node in graph.nodes(data=True):
+            expt = self.experimental_graph.get_edge_data('NULL', node[0])[0]
+
+            node[1]["exp_DG"] = expt['DDG'].magnitude
+            node[1]["exp_dDG"] = expt['uncertainty'].magnitude
+
+        nx.draw_circular(graph, node_color="hotpink", node_size=250)
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
         plt.title(long_title)
         if filename is None:
