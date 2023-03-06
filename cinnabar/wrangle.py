@@ -163,6 +163,7 @@ class FEMap:
         return self.n_measurements / self.n_ligands
 
     def is_weakly_connected(self) -> bool:
+        """Checks if all results in the graph are reachable from other results"""
         # todo; cache
         undirected_graph = self.computational_graph.to_undirected()
         return nx.is_connected(undirected_graph)
