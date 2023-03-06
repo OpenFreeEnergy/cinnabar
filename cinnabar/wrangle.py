@@ -73,13 +73,15 @@ class FEMap:
 
     >>> fe = wrangle.FEMap.from_csv('../data/example.csv')
 
-    To read from a dict-like object:
+    To construct manually:
 
     >>> # Load/create experimental results
-    >>> experimental_result1 = ExperimentalResult("CAT-13a", expt_DG=-8.83, expt_dDG=0.10)
-    >>> experimental_result2 = ExperimentalResult("CAT-17g", expt_DG=-9.73, expt_dDG=0.10)
+    >>> kJpm = unit.kilojoule_per_mole
+    >>> experimental_result1 = AbsoluteMeasurement(label="CAT-13a", DG=-8.83 * kJpm, uncertainty=0.10 * kJpm)
+    >>> experimental_result2 = AbsoluteMeasurement(label="CAT-17g", DG=-9.73 * kJpm, uncertainty=0.10 * kJpm)
     >>> # Load/create calculated results
-    >>> calculated_result = RelativeMeasurement("CAT-13a", "CAT-17g", calc_DDG=0.36, mbar_error=0.11, other_error=0.0)
+    >>> calculated_result = RelativeMeasurement(labelA="CAT-13a", labelB="CAT-17g", DDG=0.36 * kJpm,
+    ...                                         uncertainty=0.11 * kJpm)
     >>> # Incrementally created FEMap
     >>> fe = FEMap()
     >>> fe.add_measurement(experimental_result1)
@@ -106,7 +108,7 @@ class FEMap:
         return fe
 
     def add_measurement(self, measurement: Union[RelativeMeasurement, AbsoluteMeasurement]):
-        """Add new observation to FEMap, modifies in place
+        """Add new observation to FEMap, modifies the FEMap in-place
 
         Any other attributes on the measurement are used as annotations
 
@@ -124,7 +126,7 @@ class FEMap:
         elif isinstance(measurement, RelativeMeasurement):
             meas_ = measurement
         else:
-            raise TypeError()
+            raise ValueError()
 
         # slurp out tasty data, anything but labels
         d = dict(meas_)
