@@ -1,7 +1,7 @@
 import pytest
 from importlib import resources
 
-from cinnabar.wrangle import FEMap
+from cinnabar import FEMap
 
 
 @pytest.fixture(scope="session")

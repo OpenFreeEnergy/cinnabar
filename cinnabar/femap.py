@@ -1,7 +1,5 @@
 import pathlib
 from typing import Union
-from openff.models.models import DefaultModel
-from openff.models.types import FloatQuantity
 from openff.units import unit
 import warnings
 
@@ -10,7 +8,7 @@ import networkx as nx
 import numpy as np
 
 from . import stats
-
+from .measurements import RelativeMeasurement, AbsoluteMeasurement
 
 _kJpm = unit.kilojoule_per_mole
 
@@ -48,22 +46,6 @@ def read_csv(filepath: pathlib.Path) -> dict:
     return raw_results
 
 
-class RelativeMeasurement(DefaultModel):
-    """The free energy difference of moving from A to B"""
-    labelA: str
-    labelB: str
-    DDG: FloatQuantity['kilojoule_per_mole']
-    uncertainty: FloatQuantity['kilojoule_per_mole']
-    computational: bool
-
-
-class AbsoluteMeasurement(DefaultModel):
-    label: str
-    DG: FloatQuantity['kilojoule_per_mole']
-    uncertainty: FloatQuantity['kilojoule_per_mole']
-    computational: bool
-
-
 class FEMap:
     """Free Energy map of both simulations and bench measurements
 
@@ -88,8 +70,10 @@ class FEMap:
     >>> fe.add_measurement(experimental_result2)
     >>> fe.add_measurement(calculated_result)
     """
-    # MultiGraph allows multiple *relative* measurements, but not multiple identical nodes
-    # so maybe instead make absolute results all relative to a dummy node
+    # Measurements are split between computational and experimental graphs
+    # each relative Measurement is an edge between two labels (ligands)
+    # absolute Measurements are an edge between 'NULL' and the label
+    # all edges are directed, all edges can be multiply defined
     computational_graph: nx.MultiDiGraph
     experimental_graph: nx.MultiDiGraph
 
