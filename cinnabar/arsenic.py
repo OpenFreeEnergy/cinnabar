@@ -1,7 +1,7 @@
 # this will combine a single command that will run all analysis and save everything
 import argparse
 
-from arsenic import plotting, wrangle
+from . import FEMap, plotting
 
 
 def main():
@@ -38,7 +38,7 @@ def main():
     if args.plot == ["all"]:
         args.plot = ["ddg", "dg", "all ddg", "network"]
 
-    network = wrangle.FEMapFromCSV(args.csv)
+    network = FEMap.from_csv(args.csv)
     # this generates the three plots that we need
     if "network" in args.plot:
         network.draw_graph(title=args.title, filename=f"{args.prefix}network.png")
