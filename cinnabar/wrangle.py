@@ -12,6 +12,8 @@ from . import stats
 
 
 def read_csv(filepath: pathlib.Path) -> dict:
+    warnings.warn("Assuming kJ/mol units on measurements")
+
     path_obj = pathlib.Path(filepath)
     raw_results = {"Experimental": {}, "Calculated": []}
     expt_block = False
