@@ -146,6 +146,10 @@ class FEMap:
         """Average degree of all nodes"""
         return self.n_measurements / self.n_ligands
 
+    @property
+    def n_edges(self) -> int:
+        return len(self.computational_graph.edges)
+
     def is_weakly_connected(self) -> bool:
         """Checks if all results in the graph are reachable from other results"""
         # todo; cache
