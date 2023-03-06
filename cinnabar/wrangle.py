@@ -138,7 +138,11 @@ class FEMap:
     @property
     def n_ligands(self) -> int:
         """Total number of unique ligands"""
-        return len(self.experimental_graph.nodes | self.computational_graph.nodes)
+        # must ignore NULL sentinel node
+        exptl = self.experimental_graph.nodes - {'NULL'}
+        compt = self.computational_graph.nodes
+
+        return len(exptl | compt)
 
     @property
     def degree(self) -> float:
