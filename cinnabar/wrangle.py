@@ -2,6 +2,7 @@ import pathlib
 from typing import Union
 from openff.models.models import DefaultModel
 from openff.models.types import FloatQuantity
+from openff.units import unit
 import warnings
 
 import matplotlib.pyplot as plt
@@ -9,6 +10,9 @@ import networkx as nx
 import numpy as np
 
 from . import stats
+
+
+_kJpm = unit.kilojoule_per_mole
 
 
 def read_csv(filepath: pathlib.Path) -> dict:
@@ -27,33 +31,34 @@ def read_csv(filepath: pathlib.Path) -> dict:
                 calc_block = True
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
                 ligand, DG, dDG = line.split(",")
-                expt = AbsoluteMeasurement(ligand=ligand,
-                                           DG=float(DG),
-                                           uncertainty=float(dDG),
+                expt = AbsoluteMeasurement(label=ligand,
+                                           DG=float(DG) * _kJpm,
+                                           uncertainty=float(dDG) * _kJpm,
                                            computational=False)
-                raw_results["Experimental"][expt.ligand] = expt
+                raw_results["Experimental"][expt.label] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
                 ligA, ligB, calc_DDG, mbar_err, other_err = line.split(',')
 
-                calc = RelativeMeasurement(ligandA=ligA.strip(),
-                                           ligandB=ligB.strip(),
-                                           DDG=float(calc_DDG),
-                                           uncertainty=float(mbar_err) + float(other_err),
+                calc = RelativeMeasurement(labelA=ligA.strip(),
+                                           labelB=ligB.strip(),
+                                           DDG=float(calc_DDG) * _kJpm,
+                                           uncertainty=(float(mbar_err) + float(other_err)) * _kJpm,
                                            computational=True)
                 raw_results["Calculated"].append(calc)
     return raw_results
 
 
 class RelativeMeasurement(DefaultModel):
-    ligandA: str
-    ligandB: str
+    """The free energy difference of moving from A to B"""
+    labelA: str
+    labelB: str
     DDG: FloatQuantity['kilojoule_per_mole']
     uncertainty: FloatQuantity['kilojoule_per_mole']
     computational: bool
 
 
 class AbsoluteMeasurement(DefaultModel):
-    ligand: str
+    label: str
     DG: FloatQuantity['kilojoule_per_mole']
     uncertainty: FloatQuantity['kilojoule_per_mole']
     computational: bool
@@ -110,9 +115,9 @@ class FEMap:
         ValueError : if bad type given
         """
         if isinstance(measurement, AbsoluteMeasurement):
-            # coerse to relative to simplify logic
-            meas_ = RelativeMeasurement(ligandA='NULL',
-                                        ligandB=measurement.ligand,
+            # coerce to relative to simplify logic
+            meas_ = RelativeMeasurement(labelA='NULL',
+                                        labelB=measurement.label,
                                         DDG=measurement.DG,
                                         uncertainty=measurement.uncertainty,
                                         computational=measurement.computational)
@@ -123,14 +128,14 @@ class FEMap:
 
         # slurp out tasty data, anything but labels
         d = dict(meas_)
-        d.pop('ligandA', None)
-        d.pop('ligandB', None)
-        d.pop('ligand', None)
+        d.pop('labelA', None)
+        d.pop('labelB', None)
+        d.pop('label', None)
 
         if meas_.computational:
-            self.computational_graph.add_edge(meas_.ligandA, meas_.ligandB, **d)
+            self.computational_graph.add_edge(meas_.labelA, meas_.labelB, **d)
         else:
-            self.experimental_graph.add_edge(meas_.ligandA, meas_.ligandB, **d)
+            self.experimental_graph.add_edge(meas_.labelA, meas_.labelB, **d)
 
     @property
     def n_measurements(self) -> int:
