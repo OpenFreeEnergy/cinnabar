@@ -58,6 +58,7 @@ class FEMap:
     To construct manually:
 
     >>> # Load/create experimental results
+    >>> from openff.units import unit
     >>> kJpm = unit.kilojoule_per_mole
     >>> experimental_result1 = AbsoluteMeasurement(label="CAT-13a", DG=-8.83 * kJpm, uncertainty=0.10 * kJpm)
     >>> experimental_result2 = AbsoluteMeasurement(label="CAT-17g", DG=-9.73 * kJpm, uncertainty=0.10 * kJpm)
