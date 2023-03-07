@@ -23,6 +23,25 @@ def test_read_csv(example_csv):
     assert len(data['Calculated']) == 58
 
 
+@pytest.fixture(scope='session')
+def example_map(example_csv):
+    return cinnabar.FEMap.from_csv(example_csv)
+
+
+def test_from_csv(example_map):
+    assert example_map.n_ligands == 36
+    assert len(example_map.computational_graph.edges) == 58
+    assert len(example_map.experimental_graph.edges) == 36
+
+
+def test_degree(example_map):
+    assert example_map.degree == pytest.approx(58/36)
+
+
+def test_weakly_connected(example_map):
+    assert example_map.check_weakly_connected() is True
+
+
 def test_femap():
     m = cinnabar.FEMap()
 

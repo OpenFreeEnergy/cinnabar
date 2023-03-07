@@ -144,7 +144,7 @@ class FEMap:
     @property
     def degree(self) -> float:
         """Average degree of all nodes"""
-        return self.n_measurements / self.n_ligands
+        return len(self.computational_graph.edges) / self.n_ligands
 
     @property
     def n_edges(self) -> int:
