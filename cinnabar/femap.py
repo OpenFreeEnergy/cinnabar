@@ -166,25 +166,62 @@ class FEMap:
             f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
             variance = np.diagonal(C_calc)
             for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
-                self.graph.nodes[i]["calc_DG"] = f_i
-                self.graph.nodes[i]["calc_dDG"] = df_i
+                graph.nodes[i]["calc_DG"] = f_i
+                graph.nodes[i]["calc_dDG"] = df_i
+
+    def to_legacy_graph(self) -> nx.DiGraph:
+        """Produce single graph version of this FEMap
+
+        This graph will feature:
+        - experimental DDG values calculated as the difference between experimental DG values
+        - calculated DG values calculated via mle
+
+        This matches the legacy format of this object, notably:
+        - drops multi edge capability
+        - removes units from values
+        """
+        # reduces to nx.DiGraph
+        g = nx.DiGraph()
+        # add DDG values from computational graph
+        for a, b, d in self.computational_graph.edges(data=True):
+            g.add_edge(a, b, calc_DDG=d['DDG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
+        # add DG values from experiment graph
+        for node, d in g.nodes(data=True):
+            expt = self.experimental_graph.get_edge_data('NULL', node)[0]
+
+            d["exp_DG"] = expt['DDG'].magnitude
+            d["exp_dDG"] = expt['uncertainty'].magnitude
+        # infer experiment DDG values
+        for A, B, d in g.edges(data=True):
+            DG_A = g.nodes[A]["exp_DG"]
+            dDG_A = g.nodes[A]["exp_dDG"]
+            DG_B = g.nodes[B]["exp_DG"]
+            dDG_B = g.nodes[B]["exp_dDG"]
+
+            d["exp_DDG"] = DG_B - DG_A
+            d["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
+        # apply MLE for calculated DG values
+        if self.check_weakly_connected():
+            f_i_calc, C_calc = stats.mle(g, factor="calc_DDG")
+            variance = np.diagonal(C_calc)
+            variance = variance ** 0.5
+
+            for (_, d), f_i, df_i in zip(g.nodes(data=True), f_i_calc, variance):
+                d['calc_DG'] = f_i
+                d['calc_dDG'] = df_i
+        else:
+            warnings.warn("Graph is not connected enough to compute absolute values")
+
+        return g
 
     def draw_graph(self, title: str = "", filename: Union[str, None] = None):
         plt.figure(figsize=(10, 10))
 
-        graph = nx.DiGraph()
-        for a, b, d in self.computational_graph.edges(data=True):
-            graph.add_edge(a, b,
-                           calc_DDG=d['DDG'].magnitude,
-                           calc_dDDG=d['uncertainty'].magnitude)
+        graph = self.to_legacy_graph()
 
-        for node in graph.nodes(data=True):
-            expt = self.experimental_graph.get_edge_data('NULL', node[0])[0]
+        labels = {n: n for n in self.computational_graph.nodes}
 
-            node[1]["exp_DG"] = expt['DDG'].magnitude
-            node[1]["exp_dDG"] = expt['uncertainty'].magnitude
-
-        nx.draw_circular(graph, node_color="hotpink", node_size=250)
+        nx.draw_circular(graph, labels=labels, node_color="hotpink", node_size=250)
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
         plt.title(long_title)
         if filename is None:
