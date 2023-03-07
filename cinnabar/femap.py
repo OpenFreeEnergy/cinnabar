@@ -137,7 +137,7 @@ class FEMap:
         """Total number of unique ligands"""
         # must ignore NULL sentinel node
         exptl = self.experimental_graph.nodes - {'NULL'}
-        compt = self.computational_graph.nodes
+        compt = self.computational_graph.nodes - {'NULL'}
 
         return len(exptl | compt)
 
