@@ -150,7 +150,7 @@ class FEMap:
     def n_edges(self) -> int:
         return len(self.computational_graph.edges)
 
-    def is_weakly_connected(self) -> bool:
+    def check_weakly_connected(self) -> bool:
         """Checks if all results in the graph are reachable from other results"""
         # todo; cache
         undirected_graph = self.computational_graph.to_undirected()
@@ -160,8 +160,10 @@ class FEMap:
         # TODO: Make this return a new Graph with computational nodes annotated with DG values
 
         # TODO this could work if either relative or absolute expt values are provided
-        if self.is_weakly_connected():
-            f_i_calc, C_calc = stats.mle(self.graph, factor="calc_DDG")
+        if self.check_weakly_connected():
+            graph = self.to_legacy_graph()
+
+            f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
             variance = np.diagonal(C_calc)
             for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
                 self.graph.nodes[i]["calc_DG"] = f_i
