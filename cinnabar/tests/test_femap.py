@@ -25,8 +25,8 @@ def example_map(example_csv):
 
 def test_from_csv(example_map):
     assert example_map.n_ligands == 36
-    assert len(example_map.computational_graph.edges) == 58
-    assert len(example_map.experimental_graph.edges) == 36
+    assert example_map.n_edges == 58
+    assert len(example_map.graph.edges) == 58 + 36
 
 
 def test_degree(example_map):

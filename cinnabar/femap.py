@@ -70,16 +70,13 @@ class FEMap:
     >>> fe.add_measurement(experimental_result2)
     >>> fe.add_measurement(calculated_result)
     """
-    # Measurements are split between computational and experimental graphs
-    # each relative Measurement is an edge between two labels (ligands)
+    # graph with measurements as edges
     # absolute Measurements are an edge between 'NULL' and the label
     # all edges are directed, all edges can be multiply defined
-    computational_graph: nx.MultiDiGraph
-    experimental_graph: nx.MultiDiGraph
+    graph: nx.MultiDiGraph
 
     def __init__(self):
-        self.computational_graph = nx.MultiDiGraph()
-        self.experimental_graph = nx.MultiDiGraph()
+        self.graph = nx.MultiDiGraph()
 
     @classmethod
     def from_csv(cls, filename):
@@ -122,39 +119,39 @@ class FEMap:
         d.pop('labelB', None)
         d.pop('label', None)
 
-        if meas_.computational:
-            self.computational_graph.add_edge(meas_.labelA, meas_.labelB, **d)
-        else:
-            self.experimental_graph.add_edge(meas_.labelA, meas_.labelB, **d)
+        self.graph.add_edge(meas_.labelA, meas_.labelB, **d)
 
     @property
     def n_measurements(self) -> int:
         """Total number of both experimental and computational measurements"""
-        return len(self.experimental_graph.edges) + len(self.computational_graph.edges)
+        return len(self.graph.edges)
 
     @property
     def n_ligands(self) -> int:
         """Total number of unique ligands"""
         # must ignore NULL sentinel node
-        exptl = self.experimental_graph.nodes - {'NULL'}
-        compt = self.computational_graph.nodes - {'NULL'}
-
-        return len(exptl | compt)
+        return len(self.graph.nodes - {'NULL'})
 
     @property
     def degree(self) -> float:
-        """Average degree of all nodes"""
-        return len(self.computational_graph.edges) / self.n_ligands
+        """Average degree of computational nodes"""
+        return self.n_edges / self.n_ligands
 
     @property
     def n_edges(self) -> int:
-        return len(self.computational_graph.edges)
+        """Number of computational edges"""
+        return sum(1 for _, _, d in self.graph.edges(data=True) if d['computational'])
 
     def check_weakly_connected(self) -> bool:
         """Checks if all results in the graph are reachable from other results"""
         # todo; cache
-        undirected_graph = self.computational_graph.to_undirected()
-        return nx.is_connected(undirected_graph)
+        comp_graph = nx.MultiGraph()
+        for a, b, d in self.graph.edges(data=True):
+            if not d['computational']:
+                continue
+            comp_graph.add_edge(a, b)
+
+        return nx.is_connected(comp_graph)
 
     def generate_absolute_values(self):
         # TODO: Make this return a new Graph with computational nodes annotated with DG values
@@ -183,11 +180,13 @@ class FEMap:
         # reduces to nx.DiGraph
         g = nx.DiGraph()
         # add DDG values from computational graph
-        for a, b, d in self.computational_graph.edges(data=True):
+        for a, b, d in self.graph.edges(data=True):
+            if not d['computational']:
+                continue
             g.add_edge(a, b, calc_DDG=d['DDG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
-            expt = self.experimental_graph.get_edge_data('NULL', node)[0]
+            expt = self.graph.get_edge_data('NULL', node)[0]
 
             d["exp_DG"] = expt['DDG'].magnitude
             d["exp_dDG"] = expt['uncertainty'].magnitude
@@ -219,7 +218,7 @@ class FEMap:
 
         graph = self.to_legacy_graph()
 
-        labels = {n: n for n in self.computational_graph.nodes}
+        labels = {n: n for n in graph.nodes}
 
         nx.draw_circular(graph, labels=labels, node_color="hotpink", node_size=250)
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
