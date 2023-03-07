@@ -44,15 +44,15 @@ def main():
         network.draw_graph(title=args.title, filename=f"{args.prefix}network.png")
     if "ddg" in args.plot:
         plotting.plot_DDGs(
-            network.graph, title=args.title, filename=f"{args.prefix}DDGs.png"
+            network.to_legacy_graph(), title=args.title, filename=f"{args.prefix}DDGs.png"
         )
     if "dg" in args.plot:
         plotting.plot_DGs(
-            network.graph, title=args.title, filename=f"{args.prefix}DGs.png"
+            network.to_legacy_graph(), title=args.title, filename=f"{args.prefix}DGs.png"
         )
     if "all ddg" in args.plot:
         plotting.plot_all_DDGs(
-            network.graph, title=args.title, filename=f"{args.prefix}all_DDGs.png"
+            network.to_legacy_graph(), title=args.title, filename=f"{args.prefix}all_DDGs.png"
         )
 
 
