@@ -113,11 +113,13 @@ class FEMap:
                                         labelB=measurement.label,
                                         DDG=measurement.DG,
                                         uncertainty=measurement.uncertainty,
-                                        computational=measurement.computational)
+                                        computational=measurement.computational,
+                                        source=measurement.source)
         elif isinstance(measurement, RelativeMeasurement):
             meas_ = measurement
         else:
-            raise ValueError()
+            raise ValueError("Expected either AbsoluteMeasurement or RelativeMeasurement,"
+                             f" got {measurement.__class__.__name__}")
 
         # slurp out tasty data, anything but labels
         d = dict(meas_)
