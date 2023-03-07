@@ -85,9 +85,9 @@ class FEMap:
         self.graph = nx.MultiDiGraph()
 
     @classmethod
-    def from_csv(cls, filename):
+    def from_csv(cls, filename, units: Optional[unit.Quantity] = None):
         """Construct from legacy csv format"""
-        data = read_csv(filename)
+        data = read_csv(filename, units=units)
 
         # unpack data dictionary
         fe = cls()
