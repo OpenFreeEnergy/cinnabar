@@ -9,8 +9,14 @@ def test_cli_smoke():
     assert p.returncode == 0, p.stderr
 
 
+@pytest.fixture
+def in_tmpdir(tmpdir):
+    with tmpdir.as_cwd():
+        yield
+
+
 @pytest.mark.parametrize('mode', ['all', 'ddg', 'dg', 'all ddg', 'network'])
-def test_cli_plot(mode, example_csv):
+def test_cli_plot(in_tmpdir, mode, example_csv):
     p = subprocess.run(['cinnabar', example_csv, '--plot', mode],
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
