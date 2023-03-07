@@ -9,6 +9,7 @@ class RelativeMeasurement(DefaultModel):
     DDG: FloatQuantity['kilojoule_per_mole']
     uncertainty: FloatQuantity['kilojoule_per_mole']
     computational: bool
+    source: str = ""
 
 
 class AbsoluteMeasurement(DefaultModel):
@@ -16,3 +17,4 @@ class AbsoluteMeasurement(DefaultModel):
     DG: FloatQuantity['kilojoule_per_mole']
     uncertainty: FloatQuantity['kilojoule_per_mole']
     computational: bool
+    source: str = ""
