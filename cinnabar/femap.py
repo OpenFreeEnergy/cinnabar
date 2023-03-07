@@ -13,13 +13,13 @@ import numpy as np
 from . import stats
 from .measurements import RelativeMeasurement, AbsoluteMeasurement
 
-_kJpm = unit.kilojoule_per_mole
+_kcalpm = unit.kilocalorie_per_mole
 
 
 def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
     if units is None:
-        warnings.warn("Assuming kJ/mol units on measurements")
-        units = _kJpm
+        warnings.warn("Assuming kcal/mol units on measurements")
+        units = _kcalpm
 
     path_obj = pathlib.Path(filepath)
     raw_results = {"Experimental": {}, "Calculated": []}
