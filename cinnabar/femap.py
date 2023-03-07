@@ -1,7 +1,10 @@
 import pathlib
 from typing import Union
+
+import openff.units
 from openff.units import unit
 import warnings
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -13,8 +16,10 @@ from .measurements import RelativeMeasurement, AbsoluteMeasurement
 _kJpm = unit.kilojoule_per_mole
 
 
-def read_csv(filepath: pathlib.Path) -> dict:
-    warnings.warn("Assuming kJ/mol units on measurements")
+def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
+    if units is None:
+        warnings.warn("Assuming kJ/mol units on measurements")
+        units = _kJpm
 
     path_obj = pathlib.Path(filepath)
     raw_results = {"Experimental": {}, "Calculated": []}
@@ -30,8 +35,8 @@ def read_csv(filepath: pathlib.Path) -> dict:
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
                 ligand, DG, dDG = line.split(",")
                 expt = AbsoluteMeasurement(label=ligand,
-                                           DG=float(DG) * _kJpm,
-                                           uncertainty=float(dDG) * _kJpm,
+                                           DG=float(DG) * units,
+                                           uncertainty=float(dDG) * units,
                                            computational=False)
                 raw_results["Experimental"][expt.label] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
@@ -39,8 +44,8 @@ def read_csv(filepath: pathlib.Path) -> dict:
 
                 calc = RelativeMeasurement(labelA=ligA.strip(),
                                            labelB=ligB.strip(),
-                                           DDG=float(calc_DDG) * _kJpm,
-                                           uncertainty=(float(mbar_err) + float(other_err)) * _kJpm,
+                                           DDG=float(calc_DDG) * units,
+                                           uncertainty=(float(mbar_err) + float(other_err)) * units,
                                            computational=True)
                 raw_results["Calculated"].append(calc)
     return raw_results
