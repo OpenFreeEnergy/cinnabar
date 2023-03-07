@@ -130,7 +130,7 @@ def test_correlation_positive(fe_map):
     in `cinnabar/data/example.csv`
     """
 
-    nodes = fe_map.graph.nodes
+    nodes = fe_map.to_legacy_graph().nodes
 
     x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
     y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
@@ -153,7 +153,7 @@ def example_data(fe_map):
     """
     Returns data w/ error bars from `cinnabar/data/example.csv`
     """
-    nodes = fe_map.graph.nodes
+    nodes = fe_map.to_legacy_graph().nodes
 
     x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
     y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
