@@ -53,7 +53,7 @@ class FEMap:
     --------
     To read from a csv file specifically formatted for this, you can use:
 
-    >>> fe = wrangle.FEMap.from_csv('../data/example.csv')
+    >>> fe = FEMap.from_csv('../data/example.csv')
 
     To construct manually:
 
