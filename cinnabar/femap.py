@@ -162,17 +162,32 @@ class FEMap:
         return nx.is_connected(comp_graph)
 
     def generate_absolute_values(self):
+        """Populate the FEMap with absolute computational values based on MLE"""
         # TODO: Make this return a new Graph with computational nodes annotated with DG values
-
         # TODO this could work if either relative or absolute expt values are provided
         if self.check_weakly_connected():
             graph = self.to_legacy_graph()
+            # for now, we must all be in the same units for this to work
+            # grab unit of first measurement
+            mes = list(graph.edges(data=True))
+            u = mes[0][-1].u
+            # check all over values are this unit
+            if not all(d['DDG'].u == u for _, _, d in mes):
+                raise ValueError("All units must be the same")
 
             f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
-            variance = np.diagonal(C_calc)
-            for i, (f_i, df_i) in enumerate(zip(f_i_calc, variance**0.5)):
-                graph.nodes[i]["calc_DG"] = f_i
-                graph.nodes[i]["calc_dDG"] = df_i
+            variance = np.diagonal(C_calc) ** 0.5
+
+            for n, f_i, df_i in zip(graph.nodes, f_i_calc, variance):
+                self.add_measurement(
+                    AbsoluteMeasurement(
+                        label=n,
+                        DG=f_i * u,
+                        uncertainty=df_i * u,
+                        computational=True,
+                        source='MLE',
+                    )
+                )
 
     def to_legacy_graph(self) -> nx.DiGraph:
         """Produce single graph version of this FEMap
