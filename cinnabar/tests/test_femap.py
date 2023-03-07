@@ -1,6 +1,7 @@
 from importlib import resources
 import pytest
-
+import json
+import networkx as nx
 from openff.units import unit
 
 import cinnabar
@@ -51,3 +52,14 @@ def test_femap():
     m.add_measurement(m3)
 
     assert m.n_ligands == 2
+
+
+def test_to_legacy(example_map, ref_legacy):
+    # checks contents of legacy graph output against reference
+    g = example_map.to_legacy_graph()
+
+    s = json.dumps(nx.to_dict_of_dicts(g),
+                   indent=1, sort_keys=True,
+                   default=lambda x: x.magnitude)  # removes units
+
+    assert s == ref_legacy
