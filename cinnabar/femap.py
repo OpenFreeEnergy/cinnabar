@@ -191,6 +191,9 @@ class FEMap:
         for a, b, d in self.graph.edges(data=True):
             if not d['computational']:
                 continue
+            if a == 'NULL':  # skip absolute measurements
+                continue
+
             g.add_edge(a, b, calc_DDG=d['DDG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
