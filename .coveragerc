@@ -1,0 +1,12 @@
+[run]
+omit =
+    */_version.py
+    */data/*
+
+[report]
+exclude_lines =
+    if __name__ == "__main__"
+    pragma: no cover
+    pragma: no-cover
+    -no-cov
+    raise NotImplementedError
