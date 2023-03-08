@@ -15,4 +15,5 @@ del get_versions, versions
 from .measurements import AbsoluteMeasurement, RelativeMeasurement
 from .femap import FEMap, unit
 from . import stats
-# from . import plotting
+from . import plotting
+from . import plotlying
