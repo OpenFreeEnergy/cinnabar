@@ -22,7 +22,7 @@ defaults:
 jobs:
   test:
     name: "tests"
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false
       matrix:
