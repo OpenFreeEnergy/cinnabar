@@ -4,7 +4,7 @@ from typing import Union
 import openff.units
 from openff.units import unit
 import warnings
-from typing import Optional
+from typing import Optional, Iterable
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -128,6 +128,76 @@ class FEMap:
         d.pop('label', None)
 
         self.graph.add_edge(meas_.labelA, meas_.labelB, **d)
+
+    def _get_measurements(self,
+                          relative: bool,
+                          label: Optional[str] = None,
+                          computational: Optional[bool] = None,
+                          source: Optional[str] = None):
+        for a, b, data in self.graph.edges(data=True):
+            # xor; i.e. either relative and no null labels OR not relative and has null label
+            if not (relative ^ (a == 'NULL' or b == 'NULL')):
+                continue
+
+            if label is not None:
+                if not (a == label or b == label):
+                    continue
+            if computational is not None:
+                if data['computational'] != computational:
+                    continue
+            if source is not None:
+                if data['source'] != source:
+                    continue
+
+            if relative:
+                yield RelativeMeasurement(labelA=a, labelB=b, **data)
+            else:
+                DG = data.pop('DDG')
+                yield AbsoluteMeasurement(label=b, DG=DG, **data)
+
+    def get_relative_measurements(self,
+                                  label: Optional[str] = None,
+                                  computational: Optional[bool] = None,
+                                  source: Optional[str] = None) -> Iterable[RelativeMeasurement]:
+        """Access relative measurements
+
+        Parameters
+        ----------
+        label : optional, str
+          only give results pertaining to this label
+        computational : optional, bool
+          if True/False filter only measurements which match this
+        source : optional, str
+          if given, filter only measurements that match this, e.g. source='gromacs' would only yield measurements
+          that were tagged as 'gromacs'
+
+        Returns
+        -------
+        measurements : iterable of RelativeMeasurement
+        """
+        return self._get_measurements(relative=True, label=label, computational=computational, source=source)
+
+    def get_absolute_measurements(self,
+                                  label: Optional[str] = None,
+                                  computational: Optional[bool] = None,
+                                  source: Optional[str] = None) -> Iterable[RelativeMeasurement]:
+        """
+
+        Parameters
+        ----------
+        label : optional, str
+          only give results pertaining to this label
+        computational : optional, bool
+          if True/False filter only measurements which match this
+        source : optional, str
+          if given, filter only measurements that match this, e.g. source='gromacs' would only yield measurements
+          that were tagged as 'gromacs'
+
+        Returns
+        -------
+        measurements : iterable of AbsoluteMeasurement
+        """
+        return self._get_measurements(relative=False, label=label, computational=computational, source=source)
 
     @property
     def n_measurements(self) -> int:
