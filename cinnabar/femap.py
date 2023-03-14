@@ -152,8 +152,10 @@ class FEMap:
             if relative:
                 yield RelativeMeasurement(labelA=a, labelB=b, **data)
             else:
-                DG = data.pop('DDG')
-                yield AbsoluteMeasurement(label=b, DG=DG, **data)
+                # avoid modifying the actual data, so shallow copy
+                data2 = dict(**data)
+                DG = data2.pop('DDG')
+                yield AbsoluteMeasurement(label=b, DG=DG, **data2)
 
     def get_relative_measurements(self,
                                   label: Optional[str] = None,
@@ -180,7 +182,7 @@ class FEMap:
     def get_absolute_measurements(self,
                                   label: Optional[str] = None,
                                   computational: Optional[bool] = None,
-                                  source: Optional[str] = None) -> Iterable[RelativeMeasurement]:
+                                  source: Optional[str] = None) -> Iterable[AbsoluteMeasurement]:
         """
 
         Parameters
