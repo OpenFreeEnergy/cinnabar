@@ -165,16 +165,16 @@ class FEMap:
         """Populate the FEMap with absolute computational values based on MLE"""
         # TODO: Make this return a new Graph with computational nodes annotated with DG values
         # TODO this could work if either relative or absolute expt values are provided
+        mes = list(self.graph.edges(data=True))
+        # for now, we must all be in the same units for this to work
+        # grab unit of first measurement
+        u = mes[0][-1]['DDG'].u
+        # check all over values are this unit
+        if not all(d['DDG'].u == u for _, _, d in mes):
+            raise ValueError("All units must be the same")
+
         if self.check_weakly_connected():
             graph = self.to_legacy_graph()
-            # for now, we must all be in the same units for this to work
-            # grab unit of first measurement
-            mes = list(graph.edges(data=True))
-            u = mes[0][-1].u
-            # check all over values are this unit
-            if not all(d['DDG'].u == u for _, _, d in mes):
-                raise ValueError("All units must be the same")
-
             f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
             variance = np.diagonal(C_calc) ** 0.5
 
