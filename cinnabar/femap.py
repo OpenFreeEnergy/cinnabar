@@ -212,19 +212,25 @@ class FEMap:
             g.add_edge(a, b, calc_DDG=d['DDG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
-            expt = self.graph.get_edge_data('NULL', node)[0]
+            expt = self.graph.get_edge_data('NULL', node)
+            if expt is None:
+                continue
+            expt = expt[0]
 
             d["exp_DG"] = expt['DDG'].magnitude
             d["exp_dDG"] = expt['uncertainty'].magnitude
         # infer experiment DDG values
         for A, B, d in g.edges(data=True):
-            DG_A = g.nodes[A]["exp_DG"]
-            dDG_A = g.nodes[A]["exp_dDG"]
-            DG_B = g.nodes[B]["exp_DG"]
-            dDG_B = g.nodes[B]["exp_dDG"]
-
-            d["exp_DDG"] = DG_B - DG_A
-            d["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
+            try:
+                DG_A = g.nodes[A]["exp_DG"]
+                dDG_A = g.nodes[A]["exp_dDG"]
+                DG_B = g.nodes[B]["exp_DG"]
+                dDG_B = g.nodes[B]["exp_dDG"]
+            except KeyError:
+                continue
+            else:
+                d["exp_DDG"] = DG_B - DG_A
+                d["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
         # apply MLE for calculated DG values
         if self.check_weakly_connected():
             f_i_calc, C_calc = stats.mle(g, factor="calc_DDG")
