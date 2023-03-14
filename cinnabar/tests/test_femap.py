@@ -63,3 +63,23 @@ def test_to_legacy(example_map, ref_legacy):
                    default=lambda x: x.magnitude)  # removes units
 
     assert s == ref_legacy
+
+
+def test_generate_absolute_values(example_map, ref_mle_results):
+    example_map.generate_absolute_values()
+
+    edges = list(example_map.graph['NULL'])
+    for e in edges:
+        data = example_map.graph.get_edge_data('NULL', e)
+        # grab the dict containing MLE data
+        for _, d in data.items():
+            if d['source'] == 'MLE':
+                break
+
+        y = d['DDG']
+        yerr = d['uncertainty']
+
+        y_ref, yerr_ref = ref_mle_results[e]
+
+        assert y.magnitude == pytest.approx(y_ref), e
+        assert yerr.magnitude == pytest.approx(yerr_ref), e
