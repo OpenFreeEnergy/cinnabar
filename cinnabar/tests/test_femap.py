@@ -83,3 +83,87 @@ def test_generate_absolute_values(example_map, ref_mle_results):
 
         assert y.magnitude == pytest.approx(y_ref), e
         assert yerr.magnitude == pytest.approx(yerr_ref), e
+
+
+@pytest.fixture(scope='session')
+def everything_map():
+    m = cinnabar.FEMap()
+
+    m.add_measurement(
+        cinnabar.RelativeMeasurement(
+            labelA='alpha', labelB='beta',
+            DDG=11.0 * unit.kilocalorie_per_mole, uncertainty=1.2 * unit.kilocalorie_per_mole,
+            computational=True, source='theft',
+        )
+    )
+    m.add_measurement(
+        cinnabar.RelativeMeasurement(
+            labelA='alpha', labelB='gamma',
+            DDG=12.0 * unit.kilocalorie_per_mole, uncertainty=1.4 * unit.kilocalorie_per_mole,
+            computational=True, source='found',
+        )
+    )
+    m.add_measurement(
+        cinnabar.AbsoluteMeasurement(
+            label='beta',
+            DG=24.0 * unit.kilocalorie_per_mole, uncertainty=1.6 * unit.kilocalorie_per_mole,
+            computational=True, source='found',
+        )
+    )
+    m.add_measurement(
+        cinnabar.AbsoluteMeasurement(
+            label='gamma',
+            DG=24.0 * unit.kilocalorie_per_mole, uncertainty=1.6 * unit.kilocalorie_per_mole,
+            computational=False, source='literature',
+        )
+    )
+
+    return m
+
+
+class TestFEMapGet:
+    def test_absolute_comp(self, everything_map):
+        res = list(everything_map.get_absolute_measurements())
+        expt_res = list(everything_map.get_absolute_measurements(computational=False))
+        comp_res = list(everything_map.get_absolute_measurements(computational=True))
+
+        assert len(res) == 2
+        assert len(expt_res) == 1
+        assert len(comp_res) == 1
+
+    def test_absolute_source(self, everything_map):
+        res = list(everything_map.get_absolute_measurements(source='literature'))
+
+        assert len(res) == 1
+        assert res[0].label == 'gamma'
+
+    def test_absolute_label(self, everything_map):
+        res1 = list(everything_map.get_absolute_measurements(label='delta'))
+        res2 = list(everything_map.get_absolute_measurements(label='beta'))
+
+        assert len(res1) == 0
+        assert len(res2) == 1
+        assert res2[0].source == 'found'
+
+    def test_relative_comp(self, everything_map):
+        res = list(everything_map.get_relative_measurements())
+        expt_res = list(everything_map.get_relative_measurements(computational=False))
+        comp_res = list(everything_map.get_relative_measurements(computational=True))
+
+        assert len(res) == 2
+        assert len(expt_res) == 0
+        assert len(comp_res) == 2
+
+    def test_relative_source(self, everything_map):
+        res = list(everything_map.get_relative_measurements(source='theft'))
+
+        assert len(res) == 1
+        assert res[0].labelA == 'alpha'
+
+    def test_relative_label(self, everything_map):
+        res1 = list(everything_map.get_relative_measurements(label='delta'))
+        res2 = list(everything_map.get_relative_measurements(label='alpha'))
+
+        assert len(res1) == 0
+        assert len(res2) == 2
+        assert {m.labelB for m in res2} == {'beta', 'gamma'}
