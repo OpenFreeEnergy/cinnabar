@@ -40,12 +40,14 @@ def test_weakly_connected(example_map):
 def test_femap():
     m = cinnabar.FEMap()
 
-    m1 = cinnabar.RelativeMeasurement(labelA='ligA', labelB='ligB', DDG=1.1 * unit.kilojoule_per_mole,
-                                      uncertainty=0.1 * unit.kilojoule_per_mole, computational=True)
-    m2 = cinnabar.AbsoluteMeasurement(label='ligA', DG=10.0 * unit.kilojoule_per_mole,
-                                      uncertainty=0.2 * unit.kilojoule_per_mole, computational=False)
-    m3 = cinnabar.AbsoluteMeasurement(label='ligB', DG=11.0 * unit.kilojoule_per_mole,
-                                      uncertainty=0.3 * unit.kilojoule_per_mole, computational=False)
+    m1 = cinnabar.Measurement(labelA='ligA', labelB='ligB', DG=1.1 * unit.kilojoule_per_mole,
+                              uncertainty=0.1 * unit.kilojoule_per_mole, computational=True)
+
+    g = cinnabar.GroundState()
+    m2 = cinnabar.Measurement(labelA=g, labelB='ligA', DG=10.0 * unit.kilojoule_per_mole,
+                              uncertainty=0.2 * unit.kilojoule_per_mole, computational=False)
+    m3 = cinnabar.Measurement(labelA=g, labelB='ligB', DG=11.0 * unit.kilojoule_per_mole,
+                              uncertainty=0.3 * unit.kilojoule_per_mole, computational=False)
 
     m.add_measurement(m1)
     m.add_measurement(m2)
@@ -68,15 +70,15 @@ def test_to_legacy(example_map, ref_legacy):
 def test_generate_absolute_values(example_map, ref_mle_results):
     example_map.generate_absolute_values()
 
-    edges = list(example_map.graph['NULL'])
+    edges = list(example_map.graph[cinnabar.GroundState()])
     for e in edges:
-        data = example_map.graph.get_edge_data('NULL', e)
+        data = example_map.graph.get_edge_data(cinnabar.GroundState(label='MLE'), e)
         # grab the dict containing MLE data
         for _, d in data.items():
             if d['source'] == 'MLE':
                 break
 
-        y = d['DDG']
+        y = d['DG']
         yerr = d['uncertainty']
 
         y_ref, yerr_ref = ref_mle_results[e]
