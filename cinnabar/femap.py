@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from . import stats
-from .measurements import RelativeMeasurement, AbsoluteMeasurement
+from . import stats, GroundState, Measurement
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -25,6 +24,9 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
     raw_results = {"Experimental": {}, "Calculated": []}
     expt_block = False
     calc_block = False
+
+    ground = GroundState()
+
     with path_obj.open() as f:
         for line in f:
             if "Experiment" in line:
@@ -34,19 +36,20 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
                 calc_block = True
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
                 ligand, DG, dDG = line.split(",")
-                expt = AbsoluteMeasurement(label=ligand,
-                                           DG=float(DG) * units,
-                                           uncertainty=float(dDG) * units,
-                                           computational=False)
-                raw_results["Experimental"][expt.label] = expt
+                expt = Measurement(labelA=ground,
+                                   labelB=ligand,
+                                   DG=float(DG) * units,
+                                   uncertainty=float(dDG) * units,
+                                   computational=False)
+                raw_results["Experimental"][expt.labelB] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
                 ligA, ligB, calc_DDG, mbar_err, other_err = line.split(',')
 
-                calc = RelativeMeasurement(labelA=ligA.strip(),
-                                           labelB=ligB.strip(),
-                                           DDG=float(calc_DDG) * units,
-                                           uncertainty=(float(mbar_err) + float(other_err)) * units,
-                                           computational=True)
+                calc = Measurement(labelA=ligA.strip(),
+                                   labelB=ligB.strip(),
+                                   DG=float(calc_DDG) * units,
+                                   uncertainty=(float(mbar_err) + float(other_err)) * units,
+                                   computational=True)
                 raw_results["Calculated"].append(calc)
     return raw_results
 
@@ -65,11 +68,12 @@ class FEMap:
     >>> # Load/create experimental results
     >>> from openff.units import unit
     >>> kJpm = unit.kilojoule_per_mole
-    >>> experimental_result1 = AbsoluteMeasurement(label="CAT-13a", DG=-8.83 * kJpm, uncertainty=0.10 * kJpm)
-    >>> experimental_result2 = AbsoluteMeasurement(label="CAT-17g", DG=-9.73 * kJpm, uncertainty=0.10 * kJpm)
+    >>> g = GroundState()
+    >>> experimental_result1 = Measurement(labelA=g, labelB="CAT-13a", DG=-8.83 * kJpm, uncertainty=0.10 * kJpm)
+    >>> experimental_result2 = Measurement(labelA=g, labelB="CAT-17g", DG=-9.73 * kJpm, uncertainty=0.10 * kJpm)
     >>> # Load/create calculated results
-    >>> calculated_result = RelativeMeasurement(labelA="CAT-13a", labelB="CAT-17g", DDG=0.36 * kJpm,
-    ...                                         uncertainty=0.11 * kJpm)
+    >>> calculated_result = Measurement(labelA="CAT-13a", labelB="CAT-17g", DG=0.36 * kJpm,
+    ...                                 uncertainty=0.11 * kJpm)
     >>> # Incrementally created FEMap
     >>> fe = FEMap()
     >>> fe.add_measurement(experimental_result1)
@@ -77,7 +81,7 @@ class FEMap:
     >>> fe.add_measurement(calculated_result)
     """
     # graph with measurements as edges
-    # absolute Measurements are an edge between 'NULL' and the label
+    # absolute Measurements are an edge between 'GroundState' and the label
     # all edges are directed, all edges can be multiply defined
     graph: nx.MultiDiGraph
 
@@ -98,7 +102,7 @@ class FEMap:
 
         return fe
 
-    def add_measurement(self, measurement: Union[RelativeMeasurement, AbsoluteMeasurement]):
+    def add_measurement(self, measurement: Measurement):
         """Add new observation to FEMap, modifies the FEMap in-place
 
         Any other attributes on the measurement are used as annotations
@@ -107,27 +111,12 @@ class FEMap:
         ------
         ValueError : if bad type given
         """
-        if isinstance(measurement, AbsoluteMeasurement):
-            # coerce to relative to simplify logic
-            meas_ = RelativeMeasurement(labelA='NULL',
-                                        labelB=measurement.label,
-                                        DDG=measurement.DG,
-                                        uncertainty=measurement.uncertainty,
-                                        computational=measurement.computational,
-                                        source=measurement.source)
-        elif isinstance(measurement, RelativeMeasurement):
-            meas_ = measurement
-        else:
-            raise ValueError("Expected either AbsoluteMeasurement or RelativeMeasurement,"
-                             f" got {measurement.__class__.__name__}")
-
         # slurp out tasty data, anything but labels
-        d = dict(meas_)
+        d = dict(measurement)
         d.pop('labelA', None)
         d.pop('labelB', None)
-        d.pop('label', None)
 
-        self.graph.add_edge(meas_.labelA, meas_.labelB, **d)
+        self.graph.add_edge(measurement.labelA, measurement.labelB, **d)
 
     @property
     def n_measurements(self) -> int:
@@ -137,8 +126,8 @@ class FEMap:
     @property
     def n_ligands(self) -> int:
         """Total number of unique ligands"""
-        # must ignore NULL sentinel node
-        return len(self.graph.nodes - {'NULL'})
+        # must ignore GroundState nodes
+        return sum(1 for n in self.graph.nodes if not isinstance(n, GroundState))
 
     @property
     def degree(self) -> float:
@@ -168,9 +157,9 @@ class FEMap:
         mes = list(self.graph.edges(data=True))
         # for now, we must all be in the same units for this to work
         # grab unit of first measurement
-        u = mes[0][-1]['DDG'].u
+        u = mes[0][-1]['DG'].u
         # check all over values are this unit
-        if not all(d['DDG'].u == u for _, _, d in mes):
+        if not all(d['DG'].u == u for _, _, d in mes):
             raise ValueError("All units must be the same")
 
         if self.check_weakly_connected():
@@ -178,10 +167,13 @@ class FEMap:
             f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
             variance = np.diagonal(C_calc) ** 0.5
 
+            g = GroundState(label='MLE')
+
             for n, f_i, df_i in zip(graph.nodes, f_i_calc, variance):
                 self.add_measurement(
-                    AbsoluteMeasurement(
-                        label=n,
+                    Measurement(
+                        labelA=g,
+                        labelB=n,
                         DG=f_i * u,
                         uncertainty=df_i * u,
                         computational=True,
@@ -206,18 +198,18 @@ class FEMap:
         for a, b, d in self.graph.edges(data=True):
             if not d['computational']:
                 continue
-            if a == 'NULL':  # skip absolute measurements
+            if isinstance(a, GroundState):  # skip absolute measurements
                 continue
 
-            g.add_edge(a, b, calc_DDG=d['DDG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
+            g.add_edge(a, b, calc_DDG=d['DG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
-            expt = self.graph.get_edge_data('NULL', node)
+            expt = self.graph.get_edge_data(GroundState(), node)
             if expt is None:
                 continue
             expt = expt[0]
 
-            d["exp_DG"] = expt['DDG'].magnitude
+            d["exp_DG"] = expt['DG'].magnitude
             d["exp_dDG"] = expt['uncertainty'].magnitude
         # infer experiment DDG values
         for A, B, d in g.edges(data=True):
