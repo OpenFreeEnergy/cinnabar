@@ -66,9 +66,11 @@ jobs:
         run: |
           pytest -v --cov=cinnabar --cov-report=xml --cov-report=term --color=yes cinnabar/tests/
 
-      - uses: codecov/codecov-action@v3
+      - name: codecov
+        if: ${{ github.repository == 'OpenFreeEnergy/cinnabar' && github.event_name != 'schedule'}}
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
-          fail_ci_if_error: true # optional (default = false)
+          fail_ci_if_error: false
           verbose: true # optional (default = false)
