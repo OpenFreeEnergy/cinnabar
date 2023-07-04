@@ -1,20 +1,16 @@
 name: cinnabar
 channels:
-  - conda-forge
+- conda-forge
 dependencies:
-  # Base depends
-  - python
-  - pip
-  - numpy
-  - networkx
-  - scikit-learn
-  - adjustText
-  - openff-units
-
-  # docs
-  - sphinx
-  - sphinx_rtd_theme
-
+- python
+- pip
+- numpy
+- networkx
+- scikit-learn
+- adjustText
+- openff-units
+- sphinx
+- sphinx_rtd_theme
 - pip:
   - sphinx-design
   - sphinx-toolbox
