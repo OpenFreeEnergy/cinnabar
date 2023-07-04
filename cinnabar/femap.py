@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from . import stats, GroundState, Measurement
+from . import stats, GroundState, Measurement, TrueGround
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -25,7 +25,7 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
     expt_block = False
     calc_block = False
 
-    ground = GroundState()
+    ground = TrueGround()
 
     with path_obj.open() as f:
         for line in f:
