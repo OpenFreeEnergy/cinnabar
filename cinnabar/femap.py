@@ -116,12 +116,15 @@ class FEMap:
         d.pop('labelA', None)
         d.pop('labelB', None)
 
+        # add both directions, but flip sign for the other direction
+        d_backwards = {**d, 'DDG': - d['DDG'], 'source': 'reverse'}
         self.graph.add_edge(measurement.labelA, measurement.labelB, **d)
+        self.graph.add_edge(meas_.labelB, meas_.labelA, **d_backwards)
 
     @property
     def n_measurements(self) -> int:
         """Total number of both experimental and computational measurements"""
-        return len(self.graph.edges)
+        return len(self.graph.edges) // 2
 
     @property
     def n_ligands(self) -> int:
@@ -137,7 +140,8 @@ class FEMap:
     @property
     def n_edges(self) -> int:
         """Number of computational edges"""
-        return sum(1 for _, _, d in self.graph.edges(data=True) if d['computational'])
+        return sum(1 for _, _, d in self.graph.edges(data=True)
+                   if d['computational']) // 2
 
     def check_weakly_connected(self) -> bool:
         """Checks if all results in the graph are reachable from other results"""
@@ -199,6 +203,8 @@ class FEMap:
             if not d['computational']:
                 continue
             if isinstance(a, GroundState):  # skip absolute measurements
+                continue
+            if d['source'] == 'reverse':  # skip mirrors
                 continue
 
             g.add_edge(a, b, calc_DDG=d['DG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
