@@ -1,5 +1,6 @@
 from openff.models.models import DefaultModel
 from openff.models.types import FloatQuantity
+from openff.units import unit
 from typing import Hashable, Optional
 import uuid
 
@@ -70,3 +71,22 @@ class Measurement(DefaultModel):
     uncertainty: FloatQuantity['kilocalorie_per_mole']
     computational: bool
     source: str = ""
+
+    @classmethod
+    def from_experiment(cls,
+                        pIC50: float,
+                        label: str,
+                        source: str = '',
+                        ):
+        """Create Measurement from experimental data
+
+        Parameters
+        ----------
+        """
+        return cls(labelA=TrueGround(),
+                   labelB=label,
+                   DG=1.0 * unit.kilocalorie_per_mol,
+                   uncertainty=0.0 * unit.kilocalorie_per_mol,
+                   computational=False,
+                   source=source,
+                   )
