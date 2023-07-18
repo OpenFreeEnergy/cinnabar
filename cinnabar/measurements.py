@@ -1,8 +1,7 @@
 from openff.models.models import DefaultModel
 from openff.models.types import FloatQuantity
 from openff.units import unit
-from typing import Hashable, Optional
-import uuid
+from typing import Hashable
 
 
 class GroundState:
@@ -10,32 +9,25 @@ class GroundState:
 
     E.g. an absolute measurement for "LigandA" is defined as::
 
-    >>> m = Measurement(labelA=GroundState(label='foo'), labelB='LigandA', ...)
+    >>> m = Measurement(labelA=GroundState(), labelB='LigandA',
+    ...                 DG=2.4 * unit.kilocalorie_per_mol,
+    ...                 uncertainty=0.2 * unit.kilocalorie_per_mol,
+    ...                 source='gromacs')
 
-    A ``GroundState`` has a label, which is used to differentiate it to other absolute measurements that
-    might be relative to a different reference point.  If not label is given on creating the GroundState
-    then one is randomly generated.  This means that two GroundState objects created independently
-    aren't considered equal::
-
-    >>> g1 = GroundState()
-    >>> g2 = GroundState()
-    >>> assert g1 != g2
-
-
-    The ``TrueGround`` class is used to denote the reference point of "true" Ground.
+    A ``GroundState`` optionally has a label, which is used to differentiate it
+    to other absolute measurements that might be relative to a different
+    reference point.
     """
     label: str
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str = ""):
         """
         Parameters
         ----------
         label: str, optional
-          label for this reference point.  If no label is given, a unique label will randomly be
-          assigned
+          label for this reference point.  If no label is given, an empty string
+          is used, signifying the "true zero" reference point.
         """
-        if label is None:
-            label = str(uuid.uuid4())
         self.label = label
 
     def is_true_ground(self) -> bool:
@@ -46,21 +38,6 @@ class GroundState:
 
     def __hash__(self):
         return hash(self.label)
-
-
-class TrueGround(GroundState):
-    """A reference to a hypothetical True Ground state"""
-    _instance = None
-    label: str
-
-    def __new__(cls, *args, **kwargs):
-        # singleton pattern
-        if not cls._instance:
-            cls._instance = super().__new__(cls, *args, **kwargs)
-        return cls._instance
-
-    def __init__(self):
-        super().__init__(label='')
 
 
 class Measurement(DefaultModel):
@@ -83,7 +60,7 @@ class Measurement(DefaultModel):
         Parameters
         ----------
         """
-        return cls(labelA=TrueGround(),
+        return cls(labelA=GroundState(),
                    labelB=label,
                    DG=1.0 * unit.kilocalorie_per_mol,
                    uncertainty=0.0 * unit.kilocalorie_per_mol,
