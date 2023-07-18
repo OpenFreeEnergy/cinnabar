@@ -2,6 +2,8 @@ from openff.models.models import DefaultModel
 from openff.models.types import FloatQuantity
 from openff.units import unit
 from typing import Hashable
+import math
+import warnings
 
 
 class ReferenceState:
@@ -52,19 +54,52 @@ class Measurement(DefaultModel):
 
     @classmethod
     def from_experiment(cls,
-                        pIC50: float,
+                        IC50: float,
                         label: str,
+                        uncertainty: float = 0,
                         source: str = '',
+                        temperature: float = 298,
                         ):
         """Create Measurement from experimental data
 
         Parameters
         ----------
+        IC50: float
+          experimental IC50 value in unit nM
+        label: str, optional
+          label for this data point.
+        uncertainty: float, optional
+          uncertainty of the experimental value in nM, default is zero if no uncertainty is provided
+        source: str, optional
+          source of experimental measurement
+        temperature: float
+          temperature in K at which the experimental measurement was carried out. By default: 298 K
         """
+        R = 1.9872042586408 * 0.001 * unit.kilocalorie_per_mole / unit.kelvin # Gas constant in kcal/mol/K
+        IC50_upper = IC50 * unit.nanomolar + uncertainty * unit.nanomolar
+        IC50_lower = IC50 * unit.nanomolar - uncertainty * unit.nanomolar
+        if IC50 > 0:
+            # Check if IC50 potentially given in M instead of nM.
+            if 0 < IC50 < 10**-6:
+                wmsg = ("IC50 < 1 femtomolar. Check if the IC50 was given in unit nM or potentially M")
+                warnings.warn(wmsg)
+            # dG = RT ln IC50
+            DG = R * temperature * unit.kelvin * math.log(IC50 * unit.nanomolar/ 10 ** 9 * unit.nanomolar)
+        else:
+            raise ValueError(
+                "IC50 value cannot be zero or negative. Check if dG value was provided instead of IC50."
+            )
+        #Convert IC50 uncertainty into dG uncertainty
+        if uncertainty >= 0:
+            uncertainty_DG = 0.5 * R * temperature * unit.kelvin * math.log(IC50_upper / IC50_lower)
+        else:
+            raise ValueError(
+                "Uncertainty cannot be negative. Check input."
+            )
         return cls(labelA=ReferenceState(),
                    labelB=label,
-                   DG=1.0 * unit.kilocalorie_per_mol,
-                   uncertainty=0.0 * unit.kilocalorie_per_mol,
+                   DG=DG,
+                   uncertainty=uncertainty_DG,
                    computational=False,
                    source=source,
                    )
