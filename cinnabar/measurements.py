@@ -4,19 +4,20 @@ from openff.units import unit
 from typing import Hashable
 
 
-class GroundState:
+class ReferenceState:
     """A label indicating a reference point to which absolute measurements are relative
 
     E.g. an absolute measurement for "LigandA" is defined as::
 
-    >>> m = Measurement(labelA=GroundState(), labelB='LigandA',
+    >>> m = Measurement(labelA=ReferenceState(), labelB='LigandA',
     ...                 DG=2.4 * unit.kilocalorie_per_mol,
     ...                 uncertainty=0.2 * unit.kilocalorie_per_mol,
     ...                 source='gromacs')
 
-    A ``GroundState`` optionally has a label, which is used to differentiate it
-    to other absolute measurements that might be relative to a different
-    reference point.
+    A ``ReferenceState`` optionally has a label, which is used to differentiate
+    it to other absolute measurements that might be relative to a different
+    reference point.  E.g. MLE measurements are against an arbitrary reference
+    state that must be linked to the reference point of experiments.
     """
     label: str
 
@@ -60,7 +61,7 @@ class Measurement(DefaultModel):
         Parameters
         ----------
         """
-        return cls(labelA=GroundState(),
+        return cls(labelA=ReferenceState(),
                    labelB=label,
                    DG=1.0 * unit.kilocalorie_per_mol,
                    uncertainty=0.0 * unit.kilocalorie_per_mol,
