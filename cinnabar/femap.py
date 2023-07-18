@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from . import stats, GroundState, Measurement, TrueGround
+from . import stats, GroundState, Measurement
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -25,7 +25,7 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
     expt_block = False
     calc_block = False
 
-    ground = TrueGround()
+    ground = GroundState()
 
     with path_obj.open() as f:
         for line in f:
@@ -117,9 +117,9 @@ class FEMap:
         d.pop('labelB', None)
 
         # add both directions, but flip sign for the other direction
-        d_backwards = {**d, 'DDG': - d['DDG'], 'source': 'reverse'}
+        d_backwards = {**d, 'DG': - d['DG'], 'source': 'reverse'}
         self.graph.add_edge(measurement.labelA, measurement.labelB, **d)
-        self.graph.add_edge(meas_.labelB, meas_.labelA, **d_backwards)
+        self.graph.add_edge(measurement.labelB, measurement.labelA, **d_backwards)
 
     @property
     def n_measurements(self) -> int:
