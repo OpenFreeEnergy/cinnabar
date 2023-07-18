@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from . import stats, GroundState, Measurement
+from . import stats, ReferenceState, Measurement
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -25,7 +25,7 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
     expt_block = False
     calc_block = False
 
-    ground = GroundState()
+    ground = ReferenceState()
 
     with path_obj.open() as f:
         for line in f:
@@ -68,7 +68,7 @@ class FEMap:
     >>> # Load/create experimental results
     >>> from openff.units import unit
     >>> kJpm = unit.kilojoule_per_mole
-    >>> g = GroundState()
+    >>> g = ReferenceState()
     >>> experimental_result1 = Measurement(labelA=g, labelB="CAT-13a", DG=-8.83 * kJpm, uncertainty=0.10 * kJpm)
     >>> experimental_result2 = Measurement(labelA=g, labelB="CAT-17g", DG=-9.73 * kJpm, uncertainty=0.10 * kJpm)
     >>> # Load/create calculated results
@@ -81,7 +81,7 @@ class FEMap:
     >>> fe.add_measurement(calculated_result)
     """
     # graph with measurements as edges
-    # absolute Measurements are an edge between 'GroundState' and the label
+    # absolute Measurements are an edge between 'ReferenceState' and the label
     # all edges are directed, all edges can be multiply defined
     graph: nx.MultiDiGraph
 
@@ -129,8 +129,8 @@ class FEMap:
     @property
     def n_ligands(self) -> int:
         """Total number of unique ligands"""
-        # must ignore GroundState nodes
-        return sum(1 for n in self.graph.nodes if not isinstance(n, GroundState))
+        # must ignore ReferenceState nodes
+        return sum(1 for n in self.graph.nodes if not isinstance(n, ReferenceState))
 
     @property
     def degree(self) -> float:
@@ -171,7 +171,7 @@ class FEMap:
             f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
             variance = np.diagonal(C_calc) ** 0.5
 
-            g = GroundState(label='MLE')
+            g = ReferenceState(label='MLE')
 
             for n, f_i, df_i in zip(graph.nodes, f_i_calc, variance):
                 self.add_measurement(
@@ -202,7 +202,7 @@ class FEMap:
         for a, b, d in self.graph.edges(data=True):
             if not d['computational']:
                 continue
-            if isinstance(a, GroundState):  # skip absolute measurements
+            if isinstance(a, ReferenceState):  # skip absolute measurements
                 continue
             if d['source'] == 'reverse':  # skip mirrors
                 continue
@@ -210,7 +210,7 @@ class FEMap:
             g.add_edge(a, b, calc_DDG=d['DG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
-            expt = self.graph.get_edge_data(GroundState(), node)
+            expt = self.graph.get_edge_data(ReferenceState(), node)
             if expt is None:
                 continue
             expt = expt[0]
