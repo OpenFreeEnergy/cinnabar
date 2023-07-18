@@ -43,7 +43,7 @@ def test_femap():
     m1 = cinnabar.Measurement(labelA='ligA', labelB='ligB', DG=1.1 * unit.kilojoule_per_mole,
                               uncertainty=0.1 * unit.kilojoule_per_mole, computational=True)
 
-    g = cinnabar.GroundState()
+    g = cinnabar.ReferenceState()
     m2 = cinnabar.Measurement(labelA=g, labelB='ligA', DG=10.0 * unit.kilojoule_per_mole,
                               uncertainty=0.2 * unit.kilojoule_per_mole, computational=False)
     m3 = cinnabar.Measurement(labelA=g, labelB='ligB', DG=11.0 * unit.kilojoule_per_mole,
@@ -70,9 +70,9 @@ def test_to_legacy(example_map, ref_legacy):
 def test_generate_absolute_values(example_map, ref_mle_results):
     example_map.generate_absolute_values()
 
-    edges = list(example_map.graph[cinnabar.GroundState()])
+    edges = list(example_map.graph[cinnabar.ReferenceState()])
     for e in edges:
-        data = example_map.graph.get_edge_data(cinnabar.GroundState(label='MLE'), e)
+        data = example_map.graph.get_edge_data(cinnabar.ReferenceState(label='MLE'), e)
         # grab the dict containing MLE data
         for _, d in data.items():
             if d['source'] == 'MLE':
