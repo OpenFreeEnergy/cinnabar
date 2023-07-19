@@ -34,6 +34,12 @@ class ReferenceState:
     def is_true_ground(self) -> bool:
         return not self.label
 
+    def __repr__(self):
+        if self.is_true_ground():
+            return "<ReferenceState Zero>"
+        else:
+            return f"<ReferenceState ({self.label})>"
+
     def __eq__(self, other):
         return other.__class__ == self.__class__ and other.label == self.label
 
