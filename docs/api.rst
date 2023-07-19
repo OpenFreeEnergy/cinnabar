@@ -7,4 +7,3 @@ API Documentation
    cinnabar.plotting
    cinnabar.plotlying
    cinnabar.stats
-   cinnabar.wrangle
