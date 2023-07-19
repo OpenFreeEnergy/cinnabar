@@ -54,44 +54,43 @@ class Measurement(DefaultModel):
 
     @classmethod
     def from_experiment(cls,
-                        IC50: float,
+                        Ki: unit.Quantity,
                         label: str,
-                        uncertainty: float = 0,
+                        uncertainty: unit.Quantity = 0 * unit.nanomolar,
                         source: str = '',
-                        temperature: float = 298,
+                        temperature: unit.Quantity = 298.15 * unit.kelvin,
                         ):
         """Create Measurement from experimental data
 
         Parameters
         ----------
-        IC50: float
-          experimental IC50 value in unit nM
+        Ki: unit.Quantity
+          experimental Ki value
+          ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar
         label: str, optional
           label for this data point.
-        uncertainty: float, optional
-          uncertainty of the experimental value in nM, default is zero if no uncertainty is provided
+        uncertainty: unit.Quantity
+          uncertainty of the experimental value, default is zero if no uncertainty is provided (0 * unit.nanomolar)
         source: str, optional
           source of experimental measurement
-        temperature: float
-          temperature in K at which the experimental measurement was carried out. By default: 298 K
+        temperature: unit.Quantity
+          temperature in K at which the experimental measurement was carried out. By default: 298 K (298.15 * unit.kelvin)
         """
         R = 1.9872042586408 * 0.001 * unit.kilocalorie_per_mole / unit.kelvin # Gas constant in kcal/mol/K
-        IC50_upper = IC50 * unit.nanomolar + uncertainty * unit.nanomolar
-        IC50_lower = IC50 * unit.nanomolar - uncertainty * unit.nanomolar
-        if IC50 > 0:
-            # Check if IC50 potentially given in M instead of nM.
-            if 0 < IC50 < 10**-6:
-                wmsg = ("IC50 < 1 femtomolar. Check if the IC50 was given in unit nM or potentially M")
-                warnings.warn(wmsg)
-            # dG = RT ln IC50
-            DG = R * temperature * unit.kelvin * math.log(IC50 * unit.nanomolar/ 10 ** 9 * unit.nanomolar)
+        # Convert Ki and uncertainty to molar, then strip the unit off for the math
+        Ki = Ki.to(unit.molar).m
+        uncertainty = uncertainty.to(unit.molar).m
+        if Ki > 0:
+            # dG = RT ln Ki
+            DG = R.m * temperature.m * math.log(Ki) * unit.kilocalorie_per_mole
         else:
             raise ValueError(
-                "IC50 value cannot be zero or negative. Check if dG value was provided instead of IC50."
+                "Ki value cannot be zero or negative. Check if dG value was provided instead of Ki."
             )
-        #Convert IC50 uncertainty into dG uncertainty
+        # Convert Ki uncertainty into dG uncertainty: RT * uncertainty/Ki
+        # https://physics.stackexchange.com/questions/95254/the-error-of-the-natural-logarithm
         if uncertainty >= 0:
-            uncertainty_DG = 0.5 * R * temperature * unit.kelvin * math.log(IC50_upper / IC50_lower)
+            uncertainty_DG = R.m * temperature.m * uncertainty / Ki * unit.kilocalorie_per_mole
         else:
             raise ValueError(
                 "Uncertainty cannot be negative. Check input."
