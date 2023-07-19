@@ -129,8 +129,14 @@ class FEMap:
     @property
     def n_ligands(self) -> int:
         """Total number of unique ligands"""
+        return len(self.ligands)
+
+    @property
+    def ligands(self) -> list:
+        """All ligands in the graph"""
         # must ignore ReferenceState nodes
-        return sum(1 for n in self.graph.nodes if not isinstance(n, ReferenceState))
+        return [n for n in self.graph.nodes
+                if not isinstance(n, ReferenceState)]
 
     @property
     def degree(self) -> float:
@@ -184,6 +190,33 @@ class FEMap:
                         source='MLE',
                     )
                 )
+
+            # find all computational result labels
+            comp_ligands = set()
+            for A, B, d in self.graph.edges(data=True):
+                if not d['computational']:
+                    continue
+                comp_ligands.add(A)
+                comp_ligands.add(B)
+
+            # find corresponding experimental results
+
+            # use mean of experimental results to offset MLE reference point
+
+            # add connection to MLE reference state and true reference state
+            self.add_measurement(
+                Measurement(
+                    labelA=ReferenceState(),
+                    labelB=g,
+                    DG=0.1*u,
+                    uncertainty=0.0 * u,
+                    computational=True,
+                    source='MLE',
+                )
+            )
+        else:
+            # TODO: This can eventually be worked around surely?
+            raise ValueError("Computational results are not fully connected")
 
     def to_legacy_graph(self) -> nx.DiGraph:
         """Produce single graph version of this FEMap
