@@ -13,14 +13,17 @@ def test_ground():
     assert g1 != g3
     assert g3 == g4
 
+@pytest.mark.parametrize('Ki,uncertainty,dG,dG_uncertainty,label,temp', [
+    [100 * unit.nanomolar, 10 * unit.nanomolar, -9.55 * unit.kilocalorie_per_mole,
+     0.059 * unit.kilocalorie_per_mole, 'lig', 298.15 * unit.kelvin],
+    [0.1 * unit.micromolar, 0.01 * unit.micromolar, -9.55 * unit.kilocalorie_per_mole,
+     0.059 * unit.kilocalorie_per_mole, 'lig', 298.15 * unit.kelvin],
+    [100 * unit.nanomolar, 10 * unit.nanomolar, -10.57 * unit.kilocalorie_per_mole,
+     0.066 * unit.kilocalorie_per_mole, 'lig', 330 * unit.kelvin],
+])
+def test_Ki_to_DG(Ki, uncertainty, dG, dG_uncertainty, label, temp):
 
-def test_Ki_to_DG():
-    Ki = 100 * unit.nanomolar
-    uncertainty = 10 * unit.nanomolar
-    dG = -9.55 * unit.kilocalorie_per_mole
-    dG_uncertainty = 0.059 * unit.kilocalorie_per_mole
-    label = 'lig'
-    Ki_to_DG = cinnabar.Measurement.from_experiment(Ki, label, uncertainty)
+    Ki_to_DG = cinnabar.Measurement.from_experiment(Ki, label, uncertainty, '', temp)
 
     assert pytest.approx(dG, 0.001) == Ki_to_DG.DG
     assert pytest.approx(dG_uncertainty, 0.01) == Ki_to_DG.uncertainty
