@@ -49,6 +49,7 @@ class Measurement(DefaultModel):
     labelB: Hashable
     DG: FloatQuantity['kilocalorie_per_mole']
     uncertainty: FloatQuantity['kilocalorie_per_mole']
+    temperature: FloatQuantity['kelvin'] = 298.15 * unit.kelvin
     computational: bool
     source: str = ""
 

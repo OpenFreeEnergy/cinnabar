@@ -13,6 +13,7 @@ def test_ground():
     assert g1 != g3
     assert g3 == g4
 
+
 def test_Ki_to_DG():
     Ki = 100 * unit.nanomolar
     uncertainty = 10 * unit.nanomolar
@@ -23,3 +24,15 @@ def test_Ki_to_DG():
 
     assert pytest.approx(dG, 0.001) == Ki_to_DG.DG
     assert pytest.approx(dG_uncertainty, 0.01) == Ki_to_DG.uncertainty
+
+
+def test_measurement_temp():
+    m = cinnabar.Measurement(
+        labelA='foo',
+        labelB='bar',
+        DG=2.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.2 * unit.kilocalorie_per_mole,
+        computational=True,
+    )
+
+    assert m.temperature == 298.15 * unit.kelvin
