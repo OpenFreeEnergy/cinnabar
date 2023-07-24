@@ -28,6 +28,15 @@ def test_Ki_to_DG(Ki, uncertainty, dG, dG_uncertainty, label, temp):
     assert pytest.approx(dG, 0.001) == Ki_to_DG.DG
     assert pytest.approx(dG_uncertainty, 0.01) == Ki_to_DG.uncertainty
 
+def test_negative_Ki():
+
+    with pytest.raises(ValueError, match=r"Ki value cannot be zero or negative. Check if dG value was provided instead of Ki."):
+        cinnabar.Measurement.from_experiment(-100 * unit.nanomolar, "Test Label")
+
+def test_negative_uncertainty():
+
+    with pytest.raises(ValueError, match=r"Uncertainty cannot be negative. Check input."):
+        cinnabar.Measurement.from_experiment(100 * unit.nanomolar, "Test Label", -10 * unit.nanomolar)
 
 def test_measurement_temp():
     m = cinnabar.Measurement(
