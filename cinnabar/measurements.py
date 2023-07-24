@@ -78,8 +78,8 @@ class Measurement(DefaultModel):
             temperature in K at which the experimental measurement was carried out.
             By default: 298 K (298.15 * unit.kelvin)
         """
-        R = 1.9872042586408 * 0.001 * unit.kilocalorie_per_mole / unit.kelvin  # Gas constant in kcal/mol/K
-        # Convert Ki and uncertainty to molar, then strip the unit off for the math
+        R = 1.9872042586408 * 0.001 * unit.kilocalorie_per_mole / unit.kelvin
+        # Convert Ki and uncertainty to molar, then strip unit off for the math
         Ki = Ki.to(unit.molar).m
         uncertainty = uncertainty.to(unit.molar).m
         if Ki > 0:
@@ -87,12 +87,14 @@ class Measurement(DefaultModel):
             DG = R.m * temperature.m * math.log(Ki) * unit.kilocalorie_per_mole
         else:
             raise ValueError(
-                "Ki value cannot be zero or negative. Check if dG value was provided instead of Ki."
+                "Ki value cannot be zero or negative. "
+                "Check if dG value was provided instead of Ki."
             )
         # Convert Ki uncertainty into dG uncertainty: RT * uncertainty/Ki
         # https://physics.stackexchange.com/questions/95254/the-error-of-the-natural-logarithm
         if uncertainty >= 0:
-            uncertainty_DG = R.m * temperature.m * uncertainty / Ki * unit.kilocalorie_per_mole
+            uncertainty_DG = R.m * temperature.m * uncertainty / \
+                             Ki * unit.kilocalorie_per_mole
         else:
             raise ValueError(
                 "Uncertainty cannot be negative. Check input."
