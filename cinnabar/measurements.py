@@ -2,6 +2,7 @@ from openff.models.models import DefaultModel
 from openff.models.types import FloatQuantity
 from openff.units import unit
 from typing import Hashable
+import math
 
 
 class ReferenceState:
@@ -59,19 +60,51 @@ class Measurement(DefaultModel):
 
     @classmethod
     def from_experiment(cls,
-                        pIC50: float,
+                        Ki: unit.Quantity,
                         label: str,
+                        uncertainty: unit.Quantity = 0 * unit.nanomolar,
                         source: str = '',
+                        temperature: unit.Quantity = 298.15 * unit.kelvin,
                         ):
         """Create Measurement from experimental data
 
         Parameters
         ----------
+        Ki: unit.Quantity
+            experimental Ki value
+            ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar
+        label: str, optional
+            label for this data point.
+        uncertainty: unit.Quantity
+            uncertainty of the experimental value
+            default is zero if no uncertainty is provided (0 * unit.nanomolar)
+        source: str, optional
+            source of experimental measurement
+        temperature: unit.Quantity
+            temperature in K at which the experimental measurement was carried out.
+            By default: 298 K (298.15 * unit.kelvin)
         """
+        if Ki > 0 * unit.molar:
+            DG = (unit.molar_gas_constant * temperature.to(unit.kelvin)
+                  * math.log( Ki / unit.molar)).to(unit.kilocalorie_per_mole)
+        else:
+            raise ValueError(
+                "Ki value cannot be zero or negative. "
+                "Check if dG value was provided instead of Ki."
+            )
+        # Convert Ki uncertainty into dG uncertainty: RT * uncertainty/Ki
+        # https://physics.stackexchange.com/questions/95254/the-error-of-the-natural-logarithm
+        if uncertainty >= 0 * unit.molar:
+            uncertainty_DG = (unit.molar_gas_constant * temperature.to(unit.kelvin)
+                              * uncertainty / Ki).to(unit.kilocalorie_per_mole)
+        else:
+            raise ValueError(
+                "Uncertainty cannot be negative. Check input."
+            )
         return cls(labelA=ReferenceState(),
                    labelB=label,
-                   DG=1.0 * unit.kilocalorie_per_mol,
-                   uncertainty=0.0 * unit.kilocalorie_per_mol,
+                   DG=DG,
+                   uncertainty=uncertainty_DG,
                    computational=False,
                    source=source,
                    )
