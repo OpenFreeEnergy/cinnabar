@@ -78,13 +78,9 @@ class Measurement(DefaultModel):
             temperature in K at which the experimental measurement was carried out.
             By default: 298 K (298.15 * unit.kelvin)
         """
-        R = 1.9872042586408 * 0.001 * unit.kilocalorie_per_mole / unit.kelvin
-        # Convert Ki and uncertainty to molar, then strip unit off for the math
-        Ki = Ki.to(unit.molar).m
-        uncertainty = uncertainty.to(unit.molar).m
-        if Ki > 0:
-            # dG = RT ln Ki
-            DG = R.m * temperature.m * math.log(Ki) * unit.kilocalorie_per_mole
+        if Ki > 0 * unit.molar:
+            DG = (unit.molar_gas_constant * temperature.to(unit.kelvin)
+                  * math.log( Ki / unit.molar)).to(unit.kilocalorie_per_mole)
         else:
             raise ValueError(
                 "Ki value cannot be zero or negative. "
