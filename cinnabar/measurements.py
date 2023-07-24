@@ -3,7 +3,6 @@ from openff.models.types import FloatQuantity
 from openff.units import unit
 from typing import Hashable
 import math
-import warnings
 
 
 class ReferenceState:
@@ -66,18 +65,20 @@ class Measurement(DefaultModel):
         Parameters
         ----------
         Ki: unit.Quantity
-          experimental Ki value
-          ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar
+            experimental Ki value
+            ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar
         label: str, optional
-          label for this data point.
+            label for this data point.
         uncertainty: unit.Quantity
-          uncertainty of the experimental value, default is zero if no uncertainty is provided (0 * unit.nanomolar)
+            uncertainty of the experimental value
+            default is zero if no uncertainty is provided (0 * unit.nanomolar)
         source: str, optional
-          source of experimental measurement
+            source of experimental measurement
         temperature: unit.Quantity
-          temperature in K at which the experimental measurement was carried out. By default: 298 K (298.15 * unit.kelvin)
+            temperature in K at which the experimental measurement was carried out.
+            By default: 298 K (298.15 * unit.kelvin)
         """
-        R = 1.9872042586408 * 0.001 * unit.kilocalorie_per_mole / unit.kelvin # Gas constant in kcal/mol/K
+        R = 1.9872042586408 * 0.001 * unit.kilocalorie_per_mole / unit.kelvin  # Gas constant in kcal/mol/K
         # Convert Ki and uncertainty to molar, then strip the unit off for the math
         Ki = Ki.to(unit.molar).m
         uncertainty = uncertainty.to(unit.molar).m
