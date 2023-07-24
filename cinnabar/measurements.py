@@ -89,8 +89,8 @@ class Measurement(DefaultModel):
         # Convert Ki uncertainty into dG uncertainty: RT * uncertainty/Ki
         # https://physics.stackexchange.com/questions/95254/the-error-of-the-natural-logarithm
         if uncertainty >= 0 * unit.molar:
-            uncertainty_DG = (unit.molar_gas_constantt * temperature.to(unit.kelvin)
-                              * uncertainty / Ki).to(unit.kilocalcorie_per_mole)
+            uncertainty_DG = (unit.molar_gas_constant * temperature.to(unit.kelvin)
+                              * uncertainty / Ki).to(unit.kilocalorie_per_mole)
         else:
             raise ValueError(
                 "Uncertainty cannot be negative. Check input."
