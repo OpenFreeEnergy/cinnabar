@@ -2,6 +2,7 @@ import pathlib
 from typing import Union
 
 import openff.units
+import pandas as pd
 from openff.units import unit
 import warnings
 from typing import Optional, Hashable
@@ -247,6 +248,79 @@ class FEMap:
             computational=True,
         )
         self.add_measurement(m)
+
+    def get_relative_results(self) -> pd.DataFrame:
+        """Gets a dataframe of all relative results
+
+        The pandas DataFrame will have the following columns:
+        - labelA
+        - labelB
+        - DDG
+        - uncertainty
+        - source
+        - computational
+        """
+        kcpm = unit.kilocalorie_per_mole
+        data = []
+        for l1, l2, d in self.graph.edges(data=True):
+            if d['source'] == 'reverse':
+                continue
+            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState):
+                continue
+
+            data.append((
+                l1, l2,
+                d['DG'].to(kcpm).m, d['uncertainty'].to(kcpm).m,
+                d['source'], d['computational']
+            ))
+
+        cols = [
+            'labelA', 'labelB',
+            'DDG (kcal/mol)', 'uncertainty (kcal/mol)',
+            'source', 'computational'
+        ]
+
+        return pd.DataFrame(
+            data=data,
+            columns=cols,
+        )
+
+    def get_absolute_results(self) -> pd.DataFrame:
+        """Get a dataframe of all absolute results
+
+        The dataframe will have the following columns:
+        - label
+        - DG
+        - uncertainty
+        - source
+        - computational
+        """
+        kcpm = unit.kilocalorie_per_mole
+        data = []
+        for l1, l2, d in self.graph.edges(data=True):
+            if d['source'] == 'reverse':
+                continue
+            if not isinstance(l1, ReferenceState):
+                continue
+            if isinstance(l2, ReferenceState):
+                continue
+
+            data.append((
+                l2,
+                d['DG'].to(kcpm).m, d['uncertainty'].to(kcpm).m,
+                d['source'], d['computational']
+            ))
+
+        cols = [
+            'label',
+            'DG (kcal/mol)', 'uncertainty (kcal/mol)',
+            'source', 'computational'
+        ]
+
+        return pd.DataFrame(
+            data=data,
+            columns=cols,
+        )
 
     @property
     def n_measurements(self) -> int:
