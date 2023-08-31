@@ -4,7 +4,7 @@ from typing import Union
 import openff.units
 from openff.units import unit
 import warnings
-from typing import Optional
+from typing import Optional, Hashable
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -16,6 +16,20 @@ _kcalpm = unit.kilocalorie_per_mole
 
 
 def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
+    """Read a legacy arsenic format csv file
+
+    Parameters
+    ----------
+    filepath
+      path to the csv file
+    units : openff.units.Quantity, optional
+      the units to use for values in the file, defaults to kcal/mol
+
+    Returns
+    -------
+    raw_results : dict
+      a dict with Experimental and Calculated keys
+    """
     if units is None:
         warnings.warn("Assuming kcal/mol units on measurements")
         units = _kcalpm
@@ -120,6 +134,115 @@ class FEMap:
         d_backwards = {**d, 'DG': - d['DG'], 'source': 'reverse'}
         self.graph.add_edge(measurement.labelA, measurement.labelB, **d)
         self.graph.add_edge(measurement.labelB, measurement.labelA, **d_backwards)
+
+    def add_experimental_measurement(self,
+                                     label: str | Hashable,
+                                     value: openff.units.Quantity,
+                                     uncertainty: openff.units.Quantity,
+                                     *,
+                                     source: str = "",
+                                     temperature=298.15 * unit.kelvin,
+                                     ):
+        """Add a single experimental measurement
+
+        Parameters
+        ----------
+        label
+          the ligand being measured
+        value : openff.units.Quantity
+          the measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
+          of input is determined by the units of the input.
+        uncertainty : openff.units.Quantity
+          the uncertainty in the measurement
+        source : str, optional
+          an identifier for the source of the data
+        temperature : openff.units.Quantity, optional
+          the temperature the measurement was taken at, defaults to 298.15 K
+        """
+        if value.is_compatible_with('molar'):
+            m = Measurement.from_experiment(label, value, uncertainty,
+                                            source=source, temperature=temperature)
+        else:  # value.is_compatible_with('kilocalorie_per_mole'):
+            m = Measurement(
+                labelA=ReferenceState(),
+                labelB=label,
+                DG=value,
+                uncertainty=uncertainty,
+                source=source, temperature=temperature,
+                computational=False,
+            )
+
+        self.add_measurement(m)
+
+    def add_relative_calculation(self,
+                                 labelA: str | Hashable,
+                                 labelB: str | Hashable,
+                                 value: openff.units.Quantity,
+                                 uncertainty: openff.units.Quantity,
+                                 *,
+                                 source: str = "",
+                                 temperature=298.15 * unit.kelvin,
+                                 ):
+        """Add a single RBFE calculation
+
+        Parameters
+        ----------
+        labelA, labelB
+          the ligands being measured.  The measurement is taken from ligandA
+          to ligandB, i.e. ligandA is the "old" or lambda=0.0 state, and ligandB
+          is the "new" or lambda=1.0 state.
+        value : openff.units.Quantity
+          the measured DDG value, as kcal/mol, or kJ/mol.
+        uncertainty : openff.units.Quantity
+          the uncertainty in the measurement
+        source : str, optional
+          an identifier for the source of the data
+        temperature : openff.units.Quantity, optional
+          the temperature the measurement was taken at, defaults to 298.15 K
+        """
+        self.add_measurement(
+            Measurement(
+                labelA=labelA,
+                labelB=labelB,
+                DG=value,
+                uncertainty=uncertainty,
+                source=source,
+                temperature=temperature,
+                computational=True,
+            )
+        )
+
+    def add_absolute_calculation(self,
+                                 label,
+                                 value: openff.units.Quantity,
+                                 uncertainty: openff.units.Quantity,
+                                 *,
+                                 source: str = "",
+                                 temperature=298.15 * unit.kelvin,
+                                 ):
+        """Add a single ABFE calculation
+
+        Parameters
+        ----------
+        label
+          the ligand being measured
+        value : openff.units.Quantity
+          the measured value, as kcal/mol, or kJ/mol.
+        uncertainty : openff.units.Quantity
+          the uncertainty in the measurement
+        source : str, optional
+          an identifier for the source of the data
+        temperature : openff.units.Quantity, optional
+          the temperature the measurement was taken at, defaults to 298.15 K
+        """
+        m = Measurement(
+            labelA=ReferenceState(),
+            labelB=label,
+            DG=value, uncertainty=uncertainty,
+            source=source, temperature=temperature,
+            computational=True,
+        )
+        self.add_measurement(m)
 
     @property
     def n_measurements(self) -> int:
