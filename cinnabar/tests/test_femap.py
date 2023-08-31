@@ -37,7 +37,7 @@ def test_weakly_connected(example_map):
     assert example_map.check_weakly_connected() is True
 
 
-def test_femap():
+def test_femap_add_measurement():
     m = cinnabar.FEMap()
 
     m1 = cinnabar.Measurement(labelA='ligA', labelB='ligB', DG=1.1 * unit.kilojoule_per_mole,
@@ -54,6 +54,37 @@ def test_femap():
     m.add_measurement(m3)
 
     assert m.n_ligands == 2
+    assert set(m.ligands) == {'ligA', 'ligB'}
+
+
+@pytest.mark.parametrize('ki', [False, True])
+def test_femap_add_experimental(ki):
+    ref_v = -9.58015754 * unit.kilocalorie_per_mole
+    ref_u = 0.0594372794 * unit.kilocalorie_per_mole
+
+    if ki:
+        v = 100 * unit.nanomolar
+        u = 10 * unit.nanomolar
+    else:
+        v = ref_v
+        u = ref_u
+    m = cinnabar.FEMap()
+
+    m.add_experimental_measurement(
+        'ligA', v, u,
+        source='voodoo',
+        temperature=299.1 * unit.kelvin
+    )
+
+    assert set(m.ligands) == {'ligA'}
+    d = m.graph.get_edge_data(cinnabar.ReferenceState(), 'ligA')
+    assert d.keys() == {0}
+    d = d[0]
+    assert d['computational'] is False
+    assert d['source'] == 'voodoo'
+    assert d['temperature'] == 299.1 * unit.kelvin
+    assert d['DG'].m == pytest.approx(ref_v.m)
+    assert d['uncertainty'].m == pytest.approx(ref_u.m)
 
 
 def test_to_legacy(example_map, ref_legacy):
