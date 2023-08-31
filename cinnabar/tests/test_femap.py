@@ -87,6 +87,70 @@ def test_femap_add_experimental(ki):
     assert d['uncertainty'].m == pytest.approx(ref_u.m)
 
 
+def test_femap_add_experimental_float_VE():
+    v = -9.58015754
+    u = 0.0594372794
+
+    m = cinnabar.FEMap()
+
+    with pytest.raises(ValueError, match="Must include units"):
+        m.add_experimental_measurement(
+            'ligA', v, u,
+            source='voodoo',
+            temperature=299.1 * unit.kelvin
+        )
+
+
+@pytest.mark.parametrize('default_T', [True, False])
+def test_add_ABFE(default_T):
+    v = -9.58015754 * unit.kilocalorie_per_mole
+    u = 0.0594372794 * unit.kilocalorie_per_mole
+    T = 299.1 * unit.kelvin if not default_T else 298.15 * unit.kelvin
+    m = cinnabar.FEMap()
+
+    if default_T:
+        m.add_absolute_calculation(label='foo',
+                                   value=v, uncertainty=u,
+                                   source='ebay')
+    else:
+        m.add_absolute_calculation(label='foo',
+                                   value=v, uncertainty=u,
+                                   source='ebay', temperature=T)
+
+    assert set(m.ligands) == {'foo'}
+    d = m.graph.get_edge_data(cinnabar.ReferenceState(), 'foo')
+    assert len(d) == 1
+    d = d[0]
+    assert d['DG'] == v
+    assert d['uncertainty'] == u
+    assert d['temperature'] == T
+
+
+@pytest.mark.parametrize('default_T', [True, False])
+def test_add_RBFE(default_T):
+    v = -9.58015754 * unit.kilocalorie_per_mole
+    u = 0.0594372794 * unit.kilocalorie_per_mole
+    T = 299.1 * unit.kelvin if not default_T else 298.15 * unit.kelvin
+    m = cinnabar.FEMap()
+
+    if default_T:
+        m.add_relative_calculation(labelA='foo', labelB='bar',
+                                   value=v, uncertainty=u,
+                                   source='ebay')
+    else:
+        m.add_relative_calculation(labelA='foo', labelB='bar',
+                                   value=v, uncertainty=u,
+                                   source='ebay', temperature=T)
+
+    assert set(m.ligands) == {'foo', 'bar'}
+    d = m.graph.get_edge_data('foo', 'bar')
+    assert len(d) == 1
+    d = d[0]
+    assert d['DG'] == v
+    assert d['uncertainty'] == u
+    assert d['temperature'] == T
+
+
 def test_to_legacy(example_map, ref_legacy):
     # checks contents of legacy graph output against reference
     g = example_map.to_legacy_graph()

@@ -159,6 +159,10 @@ class FEMap:
         temperature : openff.units.Quantity, optional
           the temperature the measurement was taken at, defaults to 298.15 K
         """
+        if not isinstance(value, openff.units.Quantity):
+            raise ValueError("Must include units with values, "
+                             "e.g. openff.units.unit.kilocalorie_per_mole")
+
         if value.is_compatible_with('molar'):
             m = Measurement.from_experiment(label, value, uncertainty,
                                             source=source, temperature=temperature)
