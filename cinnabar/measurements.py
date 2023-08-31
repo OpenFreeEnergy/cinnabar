@@ -108,4 +108,5 @@ class Measurement(DefaultModel):
                    uncertainty=uncertainty_DG,
                    computational=False,
                    source=source,
+                   temperature=temperature,
                    )
