@@ -60,9 +60,10 @@ class Measurement(DefaultModel):
 
     @classmethod
     def from_experiment(cls,
+                        label: str | Hashable,
                         Ki: unit.Quantity,
-                        label: str,
                         uncertainty: unit.Quantity = 0 * unit.nanomolar,
+                        *,
                         source: str = '',
                         temperature: unit.Quantity = 298.15 * unit.kelvin,
                         ):
@@ -70,11 +71,11 @@ class Measurement(DefaultModel):
 
         Parameters
         ----------
+        label: str | Hashable
+            label for this data point.
         Ki: unit.Quantity
             experimental Ki value
             ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar
-        label: str, optional
-            label for this data point.
         uncertainty: unit.Quantity
             uncertainty of the experimental value
             default is zero if no uncertainty is provided (0 * unit.nanomolar)

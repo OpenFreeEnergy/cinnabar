@@ -24,7 +24,7 @@ def test_ground():
 ])
 def test_Ki_to_DG(Ki, uncertainty, dG, dG_uncertainty, label, temp):
 
-    Ki_to_DG = cinnabar.Measurement.from_experiment(Ki, label, uncertainty, '', temp)
+    Ki_to_DG = cinnabar.Measurement.from_experiment(label, Ki, uncertainty, '', temp)
     
     assert Ki_to_DG.DG.units == unit.kilocalorie_per_mole
     assert Ki_to_DG.uncertainty.units == unit.kilocalorie_per_mole
@@ -37,15 +37,14 @@ def test_negative_Ki():
     with pytest.raises(ValueError,
                        match=r'Ki value cannot be zero or negative. Check if '
                              r'dG value was provided instead of Ki.'):
-        cinnabar.Measurement.from_experiment(-100 * unit.nanomolar, "Test Label")
+        cinnabar.Measurement.from_experiment("Test Label", -100 * unit.nanomolar)
 
 
 def test_negative_uncertainty():
 
     with pytest.raises(ValueError, match=r"Uncertainty cannot be negative. "
                                          r"Check input."):
-        cinnabar.Measurement.from_experiment(100 * unit.nanomolar, "Test Label",
-                                             -10 * unit.nanomolar)
+        cinnabar.Measurement.from_experiment("Test Label", 100 * unit.nanomolar, -10 * unit.nanomolar)
 
 
 def test_measurement_temp():
