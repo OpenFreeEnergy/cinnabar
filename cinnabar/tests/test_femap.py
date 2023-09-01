@@ -18,7 +18,7 @@ def test_read_csv(example_csv):
     assert len(data['Calculated']) == 58
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def example_map(example_csv):
     return cinnabar.FEMap.from_csv(example_csv)
 
@@ -184,9 +184,6 @@ def test_generate_absolute_values(example_map, ref_mle_results):
 def test_to_dataframe(example_map):
     abs_df = example_map.get_absolute_dataframe()
     rel_df = example_map.get_relative_dataframe()
-
-    print(abs_df)
-    print(rel_df)
 
     assert abs_df.shape == (36, 5)
     assert rel_df.shape == (58, 6)
