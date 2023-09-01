@@ -24,7 +24,9 @@ def test_ground():
 ])
 def test_Ki_to_DG(Ki, uncertainty, dG, dG_uncertainty, label, temp):
 
-    Ki_to_DG = cinnabar.Measurement.from_experiment(label, Ki, uncertainty, '', temp)
+    Ki_to_DG = cinnabar.Measurement.from_experiment(label, Ki, uncertainty,
+                                                    source='',
+                                                    temperature=temp)
     
     assert Ki_to_DG.DG.units == unit.kilocalorie_per_mole
     assert Ki_to_DG.uncertainty.units == unit.kilocalorie_per_mole
