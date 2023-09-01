@@ -185,6 +185,9 @@ def test_to_dataframe(example_map):
     abs_df = example_map.get_absolute_dataframe()
     rel_df = example_map.get_relative_dataframe()
 
+    print(abs_df)
+    print(rel_df)
+
     assert abs_df.shape == (36, 5)
     assert rel_df.shape == (58, 6)
 
