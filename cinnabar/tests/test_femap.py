@@ -165,8 +165,7 @@ def test_to_legacy(example_map, ref_legacy):
 def test_generate_absolute_values(example_map, ref_mle_results):
     example_map.generate_absolute_values()
 
-    edges = list(example_map.graph[cinnabar.ReferenceState()])
-    for e in edges:
+    for e, (y_ref, yerr_ref) in ref_mle_results.items():
         data = example_map.graph.get_edge_data(cinnabar.ReferenceState(label='MLE'), e)
         # grab the dict containing MLE data
         for _, d in data.items():
