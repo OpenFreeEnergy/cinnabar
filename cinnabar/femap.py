@@ -5,7 +5,7 @@ import openff.units
 import pandas as pd
 from openff.units import unit
 import warnings
-from typing import Optional, Hashable
+from typing import Optional, Hashable, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -137,7 +137,7 @@ class FEMap:
         self.graph.add_edge(measurement.labelB, measurement.labelA, **d_backwards)
 
     def add_experimental_measurement(self,
-                                     label: str | Hashable,
+                                     label: Union[str, Hashable],
                                      value: openff.units.Quantity,
                                      uncertainty: openff.units.Quantity,
                                      *,
@@ -180,8 +180,8 @@ class FEMap:
         self.add_measurement(m)
 
     def add_relative_calculation(self,
-                                 labelA: str | Hashable,
-                                 labelB: str | Hashable,
+                                 labelA: Union[str, Hashable],
+                                 labelB: Union[str, Hashable],
                                  value: openff.units.Quantity,
                                  uncertainty: openff.units.Quantity,
                                  *,
