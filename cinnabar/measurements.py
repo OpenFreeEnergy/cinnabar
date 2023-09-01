@@ -1,7 +1,7 @@
 from openff.models.models import DefaultModel
 from openff.models.types import FloatQuantity
 from openff.units import unit
-from typing import Hashable
+from typing import Hashable, Union
 import math
 
 
@@ -60,7 +60,7 @@ class Measurement(DefaultModel):
 
     @classmethod
     def from_experiment(cls,
-                        label: str | Hashable,
+                        label: Union[str, Hashable],
                         Ki: unit.Quantity,
                         uncertainty: unit.Quantity = 0 * unit.nanomolar,
                         *,
