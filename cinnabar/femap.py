@@ -249,7 +249,7 @@ class FEMap:
         )
         self.add_measurement(m)
 
-    def get_relative_results(self) -> pd.DataFrame:
+    def get_relative_dataframe(self) -> pd.DataFrame:
         """Gets a dataframe of all relative results
 
         The pandas DataFrame will have the following columns:
@@ -285,7 +285,7 @@ class FEMap:
             columns=cols,
         )
 
-    def get_absolute_results(self) -> pd.DataFrame:
+    def get_absolute_dataframe(self) -> pd.DataFrame:
         """Get a dataframe of all absolute results
 
         The dataframe will have the following columns:

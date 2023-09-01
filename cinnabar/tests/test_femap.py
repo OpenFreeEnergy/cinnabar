@@ -182,15 +182,15 @@ def test_generate_absolute_values(example_map, ref_mle_results):
 
 
 def test_to_dataframe(example_map):
-    abs_df = example_map.get_absolute_results()
-    rel_df = example_map.get_relative_results()
+    abs_df = example_map.get_absolute_dataframe()
+    rel_df = example_map.get_relative_dataframe()
 
     assert abs_df.shape == (36, 5)
     assert rel_df.shape == (58, 6)
 
     example_map.generate_absolute_values()
 
-    abs_df2 = example_map.get_absolute_results()
+    abs_df2 = example_map.get_absolute_dataframe()
     assert abs_df2.shape == (72, 5)
     assert abs_df2.loc[abs_df2.computational].shape == (36, 5)
     assert abs_df2.loc[~abs_df2.computational].shape == (36, 5)
