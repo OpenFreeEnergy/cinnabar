@@ -132,9 +132,12 @@ class FEMap:
         d.pop('labelB', None)
 
         # add both directions, but flip sign for the other direction
-        d_backwards = {**d, 'DG': - d['DG'], 'source': 'reverse'}
-        self.graph.add_edge(measurement.labelA, measurement.labelB, **d)
-        self.graph.add_edge(measurement.labelB, measurement.labelA, **d_backwards)
+        d_backwards = {**d, 'DG': - d['DG']}
+        self.graph.add_edge(measurement.labelA, measurement.labelB, **d,
+                            reverse=False)
+        self.graph.add_edge(measurement.labelB, measurement.labelA,
+                            **d_backwards,
+                            reverse=True)
 
     def add_experimental_measurement(self,
                                      label: Union[str, Hashable],
@@ -263,7 +266,7 @@ class FEMap:
         kcpm = unit.kilocalorie_per_mole
         data = []
         for l1, l2, d in self.graph.edges(data=True):
-            if d['source'] == 'reverse':
+            if d['reverse']:
                 continue
             if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState):
                 continue
@@ -298,7 +301,7 @@ class FEMap:
         kcpm = unit.kilocalorie_per_mole
         data = []
         for l1, l2, d in self.graph.edges(data=True):
-            if d['source'] == 'reverse':
+            if d['reverse']:
                 continue
             if not isinstance(l1, ReferenceState):
                 continue
@@ -438,7 +441,7 @@ class FEMap:
                 continue
             if isinstance(a, ReferenceState):  # skip absolute measurements
                 continue
-            if d['source'] == 'reverse':  # skip mirrors
+            if d['reverse']:  # skip mirrors
                 continue
 
             g.add_edge(a, b, calc_DDG=d['DG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
