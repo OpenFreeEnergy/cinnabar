@@ -54,7 +54,7 @@ def test_femap_add_measurement():
     m.add_measurement(m3)
 
     assert m.n_ligands == 2
-    assert set(m.ligands) == {'ligA', 'ligB'}
+    assert set(m.states) == {'ligA', 'ligB'}
 
 
 @pytest.mark.parametrize('ki', [False, True])
@@ -76,7 +76,7 @@ def test_femap_add_experimental(ki):
         temperature=299.1 * unit.kelvin
     )
 
-    assert set(m.ligands) == {'ligA'}
+    assert set(m.states) == {'ligA'}
     d = m.graph.get_edge_data(cinnabar.ReferenceState(), 'ligA')
     assert d.keys() == {0}
     d = d[0]
@@ -117,7 +117,7 @@ def test_add_ABFE(default_T):
                                    value=v, uncertainty=u,
                                    source='ebay', temperature=T)
 
-    assert set(m.ligands) == {'foo'}
+    assert set(m.states) == {'foo'}
     d = m.graph.get_edge_data(cinnabar.ReferenceState(), 'foo')
     assert len(d) == 1
     d = d[0]
@@ -142,7 +142,7 @@ def test_add_RBFE(default_T):
                                    value=v, uncertainty=u,
                                    source='ebay', temperature=T)
 
-    assert set(m.ligands) == {'foo', 'bar'}
+    assert set(m.states) == {'foo', 'bar'}
     d = m.graph.get_edge_data('foo', 'bar')
     assert len(d) == 1
     d = d[0]

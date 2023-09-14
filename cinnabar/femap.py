@@ -332,12 +332,12 @@ class FEMap:
 
     @property
     def n_ligands(self) -> int:
-        """Total number of unique ligands"""
-        return len(self.ligands)
+        """Total number of unique states"""
+        return len(self.states)
 
     @property
-    def ligands(self) -> list:
-        """All ligands in the graph"""
+    def states(self) -> list:
+        """All states in the graph"""
         # must ignore ReferenceState nodes
         return [n for n in self.graph.nodes
                 if not isinstance(n, ReferenceState)]
