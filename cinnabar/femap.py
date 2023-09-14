@@ -1,5 +1,4 @@
 import pathlib
-from typing import Union
 
 import openff.units
 import pandas as pd
@@ -480,7 +479,7 @@ class FEMap:
 
         return g
 
-    def draw_graph(self, title: str = "", filename: Union[str, None] = None):
+    def draw_graph(self, title: str = "", filename: Optional[str] = None):
         plt.figure(figsize=(10, 10))
 
         graph = self.to_legacy_graph()
