@@ -248,17 +248,21 @@ def plot_DDGs(
         whether to use plotly to generate the plot
     data_label_type : str or None, default = None
         type of data label to add to each edge
-        if None, data labels will not be added
-        if 'small-molecule', edge labels will be f"{node_A_name}→{node_B_name}"
-            if both node names start with "-", the label will be f"-({node_A_name[1]}→{node_B_name[1:})", representing
-            the negative of the transformation
-        if 'protein-mutation', edge labels will be f"{node_A_name}{node_B_name[0]}"
-            where node names are formatted f"{one_letter_amino_acid_code}{residue id}"
-            e.g. if node A is Y29 and node B is A29, the edge label will be Y29A
-            if both node names start with "-", the label will be f"-({node_A_name[1:]}{node_B_name[1]})", representing
-            the negative of the transformation
+
+        if ``None`` data labels will not be added
+
+        if ``'small-molecule'`` edge labels will be ``f"{node_A_name}→{node_B_name}"``.
+
+        if ``'protein-mutation'`` edge labels will given as single letter amino
+        acid codes separated by the mutated residue index (eg. ``"Y29A"``)
+
+        If both node names start with ``"-"``, the negative sign will be factored
+        out (eg. ``"-(Y29A)"`` or ``"-(benzene→toluene)"``).
+
         currently unsupported for plotly-generated plots
-        TODO: implement data labeling for the case where plotly=True
+
+        .. TODO: implement data labeling for the case where plotly=True
+        
     bootstrap_x_uncertainty : bool, default False
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
