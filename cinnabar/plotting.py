@@ -262,7 +262,7 @@ def plot_DDGs(
         currently unsupported for plotly-generated plots
 
         .. TODO: implement data labeling for the case where plotly=True
-        
+
     bootstrap_x_uncertainty : bool, default False
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
