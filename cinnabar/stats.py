@@ -242,7 +242,7 @@ def form_edge_matrix(
 ) -> np.ndarray:
     """
     Extract the labeled property from edges into a matrix.
-    
+
     Parameters
     ----------
     graph : nx.Graph
