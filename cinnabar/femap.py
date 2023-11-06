@@ -22,14 +22,14 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
     Parameters
     ----------
     filepath
-        path to the csv file
-        units : openff.units.Quantity, optional
-          the units to use for values in the file, defaults to kcal/mol
+      path to the csv file
+    units : openff.units.Quantity, optional
+      the units to use for values in the file, defaults to kcal/mol
 
     Returns
     -------
     raw_results : dict
-        a dict with Experimental and Calculated keys
+      a dict with Experimental and Calculated keys
     """
     if units is None:
         warnings.warn("Assuming kcal/mol units on measurements")
@@ -409,7 +409,7 @@ class FEMap:
                 Measurement(
                     labelA=ReferenceState(),
                     labelB=g,
-                    DG=0.1 * u,
+                    DG=0.1*u,
                     uncertainty=0.0 * u,
                     computational=True,
                     source='MLE',
