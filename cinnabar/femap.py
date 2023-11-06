@@ -492,7 +492,6 @@ class FEMap:
         else:
             plt.savefig(filename, bbox_inches="tight")
 
-
     def get_cycle_closure(self):
         """Calculate the sum of DDG along all ligand cycles as a measure of convergence."""
         network = self.to_legacy_graph()
