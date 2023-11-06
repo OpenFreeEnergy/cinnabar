@@ -2,9 +2,10 @@ import pathlib
 from typing import Union
 
 import openff.units
+import pandas as pd
 from openff.units import unit
 import warnings
-from typing import Optional
+from typing import Optional, Hashable, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -16,6 +17,20 @@ _kcalpm = unit.kilocalorie_per_mole
 
 
 def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
+    """Read a legacy arsenic format csv file
+
+    Parameters
+    ----------
+    filepath
+        path to the csv file
+        units : openff.units.Quantity, optional
+          the units to use for values in the file, defaults to kcal/mol
+
+    Returns
+    -------
+    raw_results : dict
+        a dict with Experimental and Calculated keys
+    """
     if units is None:
         warnings.warn("Assuming kcal/mol units on measurements")
         units = _kcalpm
@@ -121,6 +136,192 @@ class FEMap:
         self.graph.add_edge(measurement.labelA, measurement.labelB, **d)
         self.graph.add_edge(measurement.labelB, measurement.labelA, **d_backwards)
 
+    def add_experimental_measurement(self,
+                                     label: Union[str, Hashable],
+                                     value: openff.units.Quantity,
+                                     uncertainty: openff.units.Quantity,
+                                     *,
+                                     source: str = "",
+                                     temperature=298.15 * unit.kelvin,
+                                     ):
+        """Add a single experimental measurement
+
+        Parameters
+        ----------
+        label
+          the ligand being measured
+        value : openff.units.Quantity
+          the measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
+          of input is determined by the units of the input.
+        uncertainty : openff.units.Quantity
+          the uncertainty in the measurement
+        source : str, optional
+          an identifier for the source of the data
+        temperature : openff.units.Quantity, optional
+          the temperature the measurement was taken at, defaults to 298.15 K
+        """
+        if not isinstance(value, openff.units.Quantity):
+            raise ValueError("Must include units with values, "
+                             "e.g. openff.units.unit.kilocalorie_per_mole")
+
+        if value.is_compatible_with('molar'):
+            m = Measurement.from_experiment(label, value, uncertainty,
+                                            source=source, temperature=temperature)
+        else:  # value.is_compatible_with('kilocalorie_per_mole'):
+            m = Measurement(
+                labelA=ReferenceState(),
+                labelB=label,
+                DG=value,
+                uncertainty=uncertainty,
+                source=source, temperature=temperature,
+                computational=False,
+            )
+
+        self.add_measurement(m)
+
+    def add_relative_calculation(self,
+                                 labelA: Union[str, Hashable],
+                                 labelB: Union[str, Hashable],
+                                 value: openff.units.Quantity,
+                                 uncertainty: openff.units.Quantity,
+                                 *,
+                                 source: str = "",
+                                 temperature=298.15 * unit.kelvin,
+                                 ):
+        """Add a single RBFE calculation
+
+        Parameters
+        ----------
+        labelA, labelB
+          the ligands being measured.  The measurement is taken from ligandA
+          to ligandB, i.e. ligandA is the "old" or lambda=0.0 state, and ligandB
+          is the "new" or lambda=1.0 state.
+        value : openff.units.Quantity
+          the measured DDG value, as kcal/mol, or kJ/mol.
+        uncertainty : openff.units.Quantity
+          the uncertainty in the measurement
+        source : str, optional
+          an identifier for the source of the data
+        temperature : openff.units.Quantity, optional
+          the temperature the measurement was taken at, defaults to 298.15 K
+        """
+        self.add_measurement(
+            Measurement(
+                labelA=labelA,
+                labelB=labelB,
+                DG=value,
+                uncertainty=uncertainty,
+                source=source,
+                temperature=temperature,
+                computational=True,
+            )
+        )
+
+    def add_absolute_calculation(self,
+                                 label,
+                                 value: openff.units.Quantity,
+                                 uncertainty: openff.units.Quantity,
+                                 *,
+                                 source: str = "",
+                                 temperature=298.15 * unit.kelvin,
+                                 ):
+        """Add a single ABFE calculation
+
+        Parameters
+        ----------
+        label
+          the ligand being measured
+        value : openff.units.Quantity
+          the measured value, as kcal/mol, or kJ/mol.
+        uncertainty : openff.units.Quantity
+          the uncertainty in the measurement
+        source : str, optional
+          an identifier for the source of the data
+        temperature : openff.units.Quantity, optional
+          the temperature the measurement was taken at, defaults to 298.15 K
+        """
+        m = Measurement(
+            labelA=ReferenceState(),
+            labelB=label,
+            DG=value, uncertainty=uncertainty,
+            source=source, temperature=temperature,
+            computational=True,
+        )
+        self.add_measurement(m)
+
+    def get_relative_dataframe(self) -> pd.DataFrame:
+        """Gets a dataframe of all relative results
+
+        The pandas DataFrame will have the following columns:
+        - labelA
+        - labelB
+        - DDG
+        - uncertainty
+        - source
+        - computational
+        """
+        kcpm = unit.kilocalorie_per_mole
+        data = []
+        for l1, l2, d in self.graph.edges(data=True):
+            if d['source'] == 'reverse':
+                continue
+            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState):
+                continue
+
+            data.append((
+                l1, l2,
+                d['DG'].to(kcpm).m, d['uncertainty'].to(kcpm).m,
+                d['source'], d['computational']
+            ))
+
+        cols = [
+            'labelA', 'labelB',
+            'DDG (kcal/mol)', 'uncertainty (kcal/mol)',
+            'source', 'computational'
+        ]
+
+        return pd.DataFrame(
+            data=data,
+            columns=cols,
+        )
+
+    def get_absolute_dataframe(self) -> pd.DataFrame:
+        """Get a dataframe of all absolute results
+
+        The dataframe will have the following columns:
+        - label
+        - DG
+        - uncertainty
+        - source
+        - computational
+        """
+        kcpm = unit.kilocalorie_per_mole
+        data = []
+        for l1, l2, d in self.graph.edges(data=True):
+            if d['source'] == 'reverse':
+                continue
+            if not isinstance(l1, ReferenceState):
+                continue
+            if isinstance(l2, ReferenceState):
+                continue
+
+            data.append((
+                l2,
+                d['DG'].to(kcpm).m, d['uncertainty'].to(kcpm).m,
+                d['source'], d['computational']
+            ))
+
+        cols = [
+            'label',
+            'DG (kcal/mol)', 'uncertainty (kcal/mol)',
+            'source', 'computational'
+        ]
+
+        return pd.DataFrame(
+            data=data,
+            columns=cols,
+        )
+
     @property
     def n_measurements(self) -> int:
         """Total number of both experimental and computational measurements"""
@@ -129,8 +330,14 @@ class FEMap:
     @property
     def n_ligands(self) -> int:
         """Total number of unique ligands"""
+        return len(self.ligands)
+
+    @property
+    def ligands(self) -> list:
+        """All ligands in the graph"""
         # must ignore ReferenceState nodes
-        return sum(1 for n in self.graph.nodes if not isinstance(n, ReferenceState))
+        return [n for n in self.graph.nodes
+                if not isinstance(n, ReferenceState)]
 
     @property
     def degree(self) -> float:
@@ -184,6 +391,33 @@ class FEMap:
                         source='MLE',
                     )
                 )
+
+            # find all computational result labels
+            comp_ligands = set()
+            for A, B, d in self.graph.edges(data=True):
+                if not d['computational']:
+                    continue
+                comp_ligands.add(A)
+                comp_ligands.add(B)
+
+            # find corresponding experimental results
+
+            # use mean of experimental results to offset MLE reference point
+
+            # add connection to MLE reference state and true reference state
+            self.add_measurement(
+                Measurement(
+                    labelA=ReferenceState(),
+                    labelB=g,
+                    DG=0.1 * u,
+                    uncertainty=0.0 * u,
+                    computational=True,
+                    source='MLE',
+                )
+            )
+        else:
+            # TODO: This can eventually be worked around surely?
+            raise ValueError("Computational results are not fully connected")
 
     def to_legacy_graph(self) -> nx.DiGraph:
         """Produce single graph version of this FEMap
