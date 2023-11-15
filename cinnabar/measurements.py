@@ -50,6 +50,9 @@ class ReferenceState:
 
 class Measurement(DefaultModel):
     """The free energy difference of moving from A to B"""
+    class Config:
+        frozen = True
+
     labelA: Hashable
     labelB: Hashable
     DG: FloatQuantity['kilocalorie_per_mole']
