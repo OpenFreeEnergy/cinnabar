@@ -208,3 +208,20 @@ def test_to_dataframe(example_map):
     assert abs_df2.shape == (72, 5)
     assert abs_df2.loc[abs_df2.computational].shape == (36, 5)
     assert abs_df2.loc[~abs_df2.computational].shape == (36, 5)
+
+
+def test_to_networkx(example_map):
+    g = example_map.to_networkx()
+
+    assert g
+    assert isinstance(g, nx.MultiDiGraph)
+    # should have (exptl + comp edges) * 2
+    assert len(g.edges) == 2 * (36 + 58)
+
+
+def test_from_networkx(example_map):
+    g = example_map.to_networkx()
+
+    m2 = cinnabar.FEMap.from_networkx(g)
+
+    assert example_map == m2
