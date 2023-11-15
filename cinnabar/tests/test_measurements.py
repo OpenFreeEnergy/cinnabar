@@ -14,6 +14,33 @@ def test_ground():
     assert g3 == g4
 
 
+def test_measurement_hash():
+    m1 = cinnabar.Measurement(
+        labelA='foo', labelB='bar',
+        DG=0.1 * unit.kilocalorie_per_mole,
+        uncertainty=0.01 * unit.kilocalorie_per_mole,
+        computational=True,
+    )
+    m1a = cinnabar.Measurement(
+        labelA='foo', labelB='bar',
+        DG=0.1 * unit.kilocalorie_per_mole,
+        uncertainty=0.01 * unit.kilocalorie_per_mole,
+        computational=True,
+    )
+    m2 = cinnabar.Measurement(
+        labelA='foo', labelB='bar',
+        DG=0.11 * unit.kilocalorie_per_mole,
+        uncertainty=0.01 * unit.kilocalorie_per_mole,
+        computational=False,
+    )
+
+    thing = set([m1, m1a, m2])
+
+    assert len(thing) == 2
+    assert m1 in thing
+    assert m2 in thing
+
+
 @pytest.mark.parametrize('Ki,uncertainty,dG,dG_uncertainty,label,temp', [
     [100 * unit.nanomolar, 10 * unit.nanomolar, -9.55 * unit.kilocalorie_per_mole,
      0.059 * unit.kilocalorie_per_mole, 'lig', 298.15 * unit.kelvin],
