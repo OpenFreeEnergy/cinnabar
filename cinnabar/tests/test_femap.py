@@ -26,7 +26,21 @@ def example_map(example_csv):
 def test_from_csv(example_map):
     assert example_map.n_ligands == 36
     assert example_map.n_edges == 58
-    assert len(example_map.graph.edges) == (58 + 36) * 2
+    assert len(example_map._graph.edges) == (58 + 36) * 2
+
+
+def test_eq(example_csv):
+    m1 = cinnabar.FEMap.from_csv(example_csv)
+    m2 = cinnabar.FEMap.from_csv(example_csv)
+    m3 = cinnabar.FEMap.from_csv(example_csv)
+    m3.add_experimental_measurement(
+        label='this',
+        value=4.2 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+
+    assert m1 == m2
+    assert m1 != m3
 
 
 def test_degree(example_map):
@@ -77,7 +91,7 @@ def test_femap_add_experimental(ki):
     )
 
     assert set(m.ligands) == {'ligA'}
-    d = m.graph.get_edge_data(cinnabar.ReferenceState(), 'ligA')
+    d = m._graph.get_edge_data(cinnabar.ReferenceState(), 'ligA')
     assert d.keys() == {0}
     d = d[0]
     assert d['computational'] is False
@@ -118,7 +132,7 @@ def test_add_ABFE(default_T):
                                    source='ebay', temperature=T)
 
     assert set(m.ligands) == {'foo'}
-    d = m.graph.get_edge_data(cinnabar.ReferenceState(), 'foo')
+    d = m._graph.get_edge_data(cinnabar.ReferenceState(), 'foo')
     assert len(d) == 1
     d = d[0]
     assert d['DG'] == v
@@ -143,7 +157,7 @@ def test_add_RBFE(default_T):
                                    source='ebay', temperature=T)
 
     assert set(m.ligands) == {'foo', 'bar'}
-    d = m.graph.get_edge_data('foo', 'bar')
+    d = m._graph.get_edge_data('foo', 'bar')
     assert len(d) == 1
     d = d[0]
     assert d['DG'] == v
@@ -166,7 +180,7 @@ def test_generate_absolute_values(example_map, ref_mle_results):
     example_map.generate_absolute_values()
 
     for e, (y_ref, yerr_ref) in ref_mle_results.items():
-        data = example_map.graph.get_edge_data(cinnabar.ReferenceState(label='MLE'), e)
+        data = example_map._graph.get_edge_data(cinnabar.ReferenceState(label='MLE'), e)
         # grab the dict containing MLE data
         for _, d in data.items():
             if d['source'] == 'MLE':
