@@ -225,3 +225,71 @@ def test_from_networkx(example_map):
     m2 = cinnabar.FEMap.from_networkx(g)
 
     assert example_map == m2
+
+
+def test_add():
+    m1 = cinnabar.FEMap()
+    m1.add_experimental_measurement(
+        label='c1',
+        value=10.1 * unit.nanomolar,
+        uncertainty=0.2 * unit.nanomolar,
+    )
+    m1.add_experimental_measurement(
+        label='c2',
+        value=10.2 * unit.nanomolar,
+        uncertainty=0.3 * unit.nanomolar,
+    )
+
+    m2 = cinnabar.FEMap()
+    m2.add_absolute_calculation(
+        label='c1',
+        value=-9.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.4 * unit.kilocalorie_per_mole,
+    )
+
+    m3 = m1 + m2
+
+    assert len(m3) == 3
+    measurements = set(m3)
+
+    ref1 = set(m1)
+    ref2 = set(m2)
+
+    assert measurements == ref1 | ref2
+
+
+def test_add_duplicate():
+    # adding, but the two maps have a duplicate measurement
+    m1 = cinnabar.FEMap()
+    m1.add_experimental_measurement(
+        label='c1',
+        value=10.1 * unit.nanomolar,
+        uncertainty=0.2 * unit.nanomolar,
+    )
+    m1.add_experimental_measurement(
+        label='c2',
+        value=10.2 * unit.nanomolar,
+        uncertainty=0.3 * unit.nanomolar,
+    )
+
+    m2 = cinnabar.FEMap()
+    m2.add_experimental_measurement(
+        label='c1',
+        value=10.1 * unit.nanomolar,
+        uncertainty=0.2 * unit.nanomolar,
+    )
+    m2.add_absolute_calculation(
+        label='c1',
+        value=-9.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.4 * unit.kilocalorie_per_mole,
+    )
+
+    m3 = m1 + m2
+
+    assert len(m3) == 3
+    measurements = set(m3)
+
+    ref1 = set(m1)
+    ref2 = set(m2)
+
+    assert measurements == ref1 | ref2
