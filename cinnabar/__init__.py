@@ -16,3 +16,5 @@ from .measurements import ReferenceState, Measurement
 from .femap import FEMap, unit
 from . import stats
 # from . import plotting
+
+from . import estimators
