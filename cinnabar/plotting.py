@@ -35,7 +35,7 @@ def _master_plot(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: str = "mle",
-    scatter_kwargs: dict = {"s": 10, "marker": "o"},
+    scatter_kwargs: dict = {"s": 20, "marker": "o"},
 ):
     """Handles the aesthetics of the plots in one place.
 
@@ -98,7 +98,7 @@ def _master_plot(
     statistic_type : str, default 'mle'
         the type of statistic to use, either 'mle' (i.e. sample statistic)
         or 'mean' (i.e. bootstrapped mean statistic)
-    scatter_kwargs : dict, default {"s": 10, "marker": "o"}
+    scatter_kwargs : dict, default {"s": 20, "marker": "o"}
         arguments to control plt.scatter()
 
     Returns
@@ -169,7 +169,7 @@ def _master_plot(
         elinewidth=2.0,
         zorder=1,
     )
-    plt.scatter(x, y, color=color, zorder=2, **scatter_kwargs)
+    plt.scatter(x, y, color=color, zorder=2, edgecolors='dimgrey', linewidths=0.7, **scatter_kwargs)
 
     # Label points
     texts = []
