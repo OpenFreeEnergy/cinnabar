@@ -72,6 +72,8 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
 class FEMap:
     """Free Energy map of both simulations and bench measurements
 
+    Contains a set (non-duplicate entries) of different measurements.
+
     Examples
     --------
     To read from a csv file specifically formatted for this, you can use:
@@ -119,6 +121,22 @@ class FEMap:
 
         # iter returns hashable Measurements, so this will compare contents
         return set(self) == set(other)
+
+    def __add__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        # deduplicate based on hashing the Measurements from iter
+        my_items = set(self)
+        other_items = set(other)
+
+        new = self.__class__()
+        for m in my_items | other_items:
+            new.add_measurement(m)
+
+        return new
+
+    def __len__(self):
+        return len(list(iter(self)))
 
     def to_networkx(self) -> nx.MultiDiGraph:
         """A *copy* of the FEMap as a networkx Graph
