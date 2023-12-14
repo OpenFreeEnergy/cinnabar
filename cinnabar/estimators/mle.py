@@ -79,6 +79,9 @@ class MLEEstimator(BaseEstimator):
                 i = label2id[m.labelA]
                 j = label2id[m.labelB]
 
+
+            # TODO: If abs measurement isn't against absolute zero
+            #       find the link from ref point to true zero
             if f_ij[i, j]:
                 raise ValueError("Currently can't handle multiple values for "
                                  "a single edge")
@@ -128,6 +131,8 @@ class MLEEstimator(BaseEstimator):
         # put the computed values into a new map and return this
         fem = FEMap()
         # a custom reference point that the MLE values are against
+        # TODO: this reference point is unique to this calculation,
+        #       so tag it as such using a uuid
         g = ReferenceState(label='MLE')
         for name, MLE_f, MLE_df in zip(id2label, f_i, df_i):
             fem.add_measurement(
@@ -140,7 +145,46 @@ class MLEEstimator(BaseEstimator):
                 )
             )
 
-        # TODO: Add edge from true zero to MLE zero based on expt. values,
-        #       assuming that the MLE values have same mean as expt. values
+        # find expt. measurements which have an comp. counterpart
+        expt_labels = set()
+        expt_values = []
+        for m in prior:
+            if m.computational:
+                continue
+            l = _abs_label(m)
+            if l is None or not l in label2id:
+                # skip expt. values that weren't in computational batch for MLE
+                continue
+            expt_labels.add(l)
+            expt_values.append(m.to(u).m)
+
+        # find mean (and uncertainty of it) of those expt. values
+        expt_mean = np.mean(expt_values)
+        expt_mean_unc = np.std(expt_values) / np.sqrt(len(expt_values))
+
+        # find mean of the comp. values **where there is a matching expt. value**
+        # (if this was all of the MLE values it will be zero)
+        comp_values = []
+        for label, value in zip(id2label, f_i):
+            if not label in expt_values:
+                continue
+            comp_mean.append(value)
+        comp_mean = np.mean(comp_values)
+        comp_mean_unc = np.std(comp_values) / np.sqrt(len(comp_values))
+
+        # the mean of those comp. values is assumed to be the same as the expt. mean
+        mean_adjustment = expt_mean - comp_mean
+        mean_adjustment_unc = np.sqrt(expt_mean_unc ** 2 + comp_mean_unc ** 2)
+
+        # add this MLE reference adjustment to the FEMap
+        fem.add_measurement(
+            Measurement(
+                labelA=_REF,
+                labelB=g,
+                DF=mean_adjustment * u,
+                uncertainty=mean_adjustment_unc * u,
+                computational=True,
+                source='MLE',
+        )
 
         return fem
