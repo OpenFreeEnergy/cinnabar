@@ -1,4 +1,9 @@
-# this will combine a single command that will run all analysis and save everything
+"""
+cinnabar.arsenic
+================
+
+Containing the command line interface usage of cinnabar.
+"""
 import argparse
 
 from . import FEMap, plotting
