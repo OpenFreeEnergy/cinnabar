@@ -2,8 +2,11 @@ API Documentation
 =================
 
 .. autosummary::
-   :toctree: autosummary
+   :toctree: generated
 
-   cinnabar.plotting
+   cinnabar.arsenic
+   cinnabar.femap
+   cinnabar.measurements
    cinnabar.plotlying
+   cinnabar.plotting
    cinnabar.stats

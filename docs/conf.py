@@ -167,7 +167,7 @@ texinfo_documents = [
         "cinnabar Documentation",
         author,
         "cinnabar",
-        "Report results for free energy simualtions",
+        "Report results for free energy simulations",
         "Miscellaneous",
     ),
 ]

@@ -1,3 +1,11 @@
+"""
+Measurements
+============
+
+Contains the :class:`Measurement` class which is used to define a single free energy difference,
+as well as the :class:`ReferenceState` class which denotes the end point for absolute measurements.
+
+"""
 from openff.models.models import DefaultModel
 from openff.models.types import FloatQuantity
 from openff.units import unit
@@ -8,17 +16,10 @@ import math
 class ReferenceState:
     """A label indicating a reference point to which absolute measurements are relative
 
-    E.g. an absolute measurement for "LigandA" is defined as::
-
-    >>> m = Measurement(labelA=ReferenceState(), labelB='LigandA',
-    ...                 DG=2.4 * unit.kilocalorie_per_mol,
-    ...                 uncertainty=0.2 * unit.kilocalorie_per_mol,
-    ...                 source='gromacs')
-
     A ``ReferenceState`` optionally has a label, which is used to differentiate
     it to other absolute measurements that might be relative to a different
-    reference point.  E.g. MLE measurements are against an arbitrary reference
-    state that must be linked to the reference point of experiments.
+    reference point.  E.g. MLE estimations are against an arbitrary reference
+    state that can be linked to the reference point of experiments.
     """
     label: str
 
@@ -33,6 +34,7 @@ class ReferenceState:
         self.label = label
 
     def is_true_ground(self) -> bool:
+        """If this ReferenceState is the zero point of all other measurements"""
         return not self.label
 
     def __repr__(self):
@@ -49,17 +51,52 @@ class ReferenceState:
 
 
 class Measurement(DefaultModel):
-    """The free energy difference of moving from A to B"""
+    """The free energy difference of moving from A to B
+
+    All quantities are accompanied by units, to prevent mix-ups associated with
+    kcal and kJ.  This is done via the `openff.units` package::
+
+      >>> m = Measurement(labelA='LigandA', labelB='LigandB',
+      ...                 DG=2.4 * unit.kilocalorie_per_mol,
+      ...                 uncertainty=0.2 * unit.kilocalorie_per_mol,
+      ...                 computational=True,
+      ...                 source='gromacs')
+
+    Alternatively strings are automatically coerced into quantities, making this
+    equivalent to above::
+
+      >>> m = Measurement(labelA='LigandA', labelB='LigandB',
+      ...                 DG='2.4 kcal/mol',
+      ...                 uncertainty='0.2 kcal/mol',
+      ...                 computational=True,
+      ...                 source='gromacs')
+
+    Where a measurement is "absolute" then a `ReferenceState` can be used as the
+    label at one end of the measurement.  I.e. it is relative to a reference
+    ground state. E.g. an absolute measurement for "LigandA" is defined as::
+
+      >>> m = Measurement(labelA=ReferenceState(), labelB='LigandA',
+      ...                 DG=-11.2 * unit.kilocalorie_per_mol,
+      ...                 uncertainty=0.3 * unit.kilocalorie_per_mol,
+      ...                 computational=False)
+    """
     class Config:
         frozen = True
 
     labelA: Hashable
+    """Label of state A, e.g. a ligand name or any hashable Python object"""
     labelB: Hashable
+    """Label of state B"""
     DG: FloatQuantity['kilocalorie_per_mole']
+    """The free energy difference of moving from A to B"""
     uncertainty: FloatQuantity['kilocalorie_per_mole']
+    """The uncertainty of the DG measurement"""
     temperature: FloatQuantity['kelvin'] = 298.15 * unit.kelvin
+    """Temperature that the measurement was taken as"""
     computational: bool
+    """If this measurement is computationally based (or experimental)"""
     source: str = ""
+    """An arbitrary label to group measurements from a common source"""
 
     @classmethod
     def from_experiment(cls,
@@ -70,7 +107,9 @@ class Measurement(DefaultModel):
                         source: str = '',
                         temperature: unit.Quantity = 298.15 * unit.kelvin,
                         ):
-        """Create Measurement from experimental data
+        """Shortcut to create a Measurement from experimental data
+
+        Can perform conversion from Ki values to kcal/mol values.
 
         Parameters
         ----------
@@ -84,7 +123,7 @@ class Measurement(DefaultModel):
             default is zero if no uncertainty is provided (0 * unit.nanomolar)
         source: str, optional
             source of experimental measurement
-        temperature: unit.Quantity
+        temperature: unit.Quantity, optional
             temperature in K at which the experimental measurement was carried out.
             By default: 298 K (298.15 * unit.kelvin)
         """

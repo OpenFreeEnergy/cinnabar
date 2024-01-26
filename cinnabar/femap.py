@@ -1,3 +1,11 @@
+"""
+FEMap
+=====
+
+The workhorse of cinnabar, a :class:`FEMap` contains many measurements of free energy differences,
+both relative and absolute,
+which form an interconnected "network" of values.
+"""
 import pathlib
 from typing import Union
 import copy
@@ -76,26 +84,28 @@ class FEMap:
 
     Examples
     --------
-    To read from a csv file specifically formatted for this, you can use:
-
-    >>> fe = FEMap.from_csv('../data/example.csv')
-
-    To construct manually:
+    To construct a FEMap by hand:
 
     >>> # Load/create experimental results
     >>> from openff.units import unit
     >>> kJpm = unit.kilojoule_per_mole
     >>> g = ReferenceState()
-    >>> experimental_result1 = Measurement(labelA=g, labelB="CAT-13a", DG=-8.83 * kJpm, uncertainty=0.10 * kJpm)
-    >>> experimental_result2 = Measurement(labelA=g, labelB="CAT-17g", DG=-9.73 * kJpm, uncertainty=0.10 * kJpm)
+    >>> experimental_result1 = Measurement(labelA=g, labelB="CAT-13a", DG=-8.83 * kJpm, uncertainty=0.10 * kJpm,
+    ...                                    computational=False)
+    >>> experimental_result2 = Measurement(labelA=g, labelB="CAT-17g", DG=-9.73 * kJpm, uncertainty=0.10 * kJpm,
+    ...                                    computational=False)
     >>> # Load/create calculated results
     >>> calculated_result = Measurement(labelA="CAT-13a", labelB="CAT-17g", DG=0.36 * kJpm,
-    ...                                 uncertainty=0.11 * kJpm)
+    ...                                 uncertainty=0.11 * kJpm, computational=True)
     >>> # Incrementally created FEMap
     >>> fe = FEMap()
     >>> fe.add_measurement(experimental_result1)
     >>> fe.add_measurement(experimental_result2)
     >>> fe.add_measurement(calculated_result)
+
+    To read from a legacy csv file specifically formatted for this, you can use:
+
+    >>> fe = FEMap.from_csv('../data/example.csv')
     """
     # internal representation:
     # graph with measurements as edges
@@ -144,12 +154,13 @@ class FEMap:
         The FEMap is represented as a multi-edged directional graph
 
         Edges have the following attributes:
-        - DG: the free energy difference of going from the first edge label to
+
+        * DG: the free energy difference of going from the first edge label to
           the second edge label
-        - uncertainty: uncertainty of the DG value
-        - temperature: the temperature at which DG was measured
-        - computational: boolean label of the original source of the data
-        - source: a string describing the source of data.
+        * uncertainty: uncertainty of the DG value
+        * temperature: the temperature at which DG was measured
+        * computational: boolean label of the original source of the data
+        * source: a string describing the source of data.
 
         Note
         ----
