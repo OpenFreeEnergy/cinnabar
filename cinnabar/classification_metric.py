@@ -7,7 +7,7 @@ import numpy as np
 import ast
 
 
-def _experiment_prediction_binning(experiment_dG: Iterable[float], predict_dG: Iterable[float], n_classes:int =2):
+def _experiment_prediction_binning(experiment_dG: Iterable[float], predict_dG: Iterable[float], n_classes:int =2, best_class_fraction:float=None):
     """
     Helper function: bins the predicted and experimental values into n*n classes and gives back the number of occurance.
 
@@ -19,10 +19,20 @@ def _experiment_prediction_binning(experiment_dG: Iterable[float], predict_dG: I
     minV = np.min([experiment_dG, predict_dG])
     maxV = np.max([experiment_dG, predict_dG])
 
-    step = 1 / n_classes
+    if best_class_fraction is not None:
+        step = (1-best_class_fraction) / (n_classes - 1)
+        fracs = [ best_class_fraction ]
+        for f in range(1, n_classes-1):
+            fracs.append(f*step)
+    else:
+        step = 1 / n_classes
+        fracs = [ best_class_fraction ]
+        for f in range(1, n_classes-1):
+            fracs.append(f*step)
+
     bin_borders = [minV]
-    for n in range(1, n_classes):
-        upper_border = np.quantile(experiment_dG, n * step)
+    for f in fracs:
+        upper_border = np.quantile(experiment_dG, f)
         bin_borders.append(upper_border)
     bin_borders.append(maxV)
 
@@ -82,7 +92,7 @@ def classification_accuracy(experiment_dG:Iterable[float], perdict_dG: Iterable[
         accuracy of the classification.
 
     """
-    bins, borders = _experiment_prediction_binning(experiment_dG, perdict_dG, n_classes=n_classes)
+    bins, borders = _experiment_prediction_binning(experiment_dG, perdict_dG, n_classes=n_classes, best_class_fraction=best_class_fraction)
 
     acc, n_classifications = _calculate_classification_accuracy(bins, n_classes=n_classes)
 
