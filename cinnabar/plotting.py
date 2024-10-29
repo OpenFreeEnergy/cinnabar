@@ -285,7 +285,7 @@ def plot_DDGs(
     # labels
     data_labels = []
     if data_label_type:
-        node_names = {node_id: node_data["name"] for node_id, node_data in graph.nodes(data=True)}
+        node_names = {node_id: node_data.get("name", node_id) for node_id, node_data in graph.nodes(data=True)}
         data_labels = []
         for node_A, node_B, edge_data in graph.edges(data=True):
             node_A_name = node_names[node_A]
