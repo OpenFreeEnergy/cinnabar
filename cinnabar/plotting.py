@@ -259,10 +259,6 @@ def plot_DDGs(
         If both node names start with ``"-"``, the negative sign will be factored
         out (eg. ``"-(Y29A)"`` or ``"-(benzene→toluene)"``).
 
-        currently unsupported for plotly-generated plots
-
-        .. TODO: implement data labeling for the case where plotly=True
-
     bootstrap_x_uncertainty : bool, default False
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
@@ -279,9 +275,6 @@ def plot_DDGs(
     assert (
         int(symmetrise) + int(map_positive) != 2
     ), "Symmetrise and map_positive cannot both be True in the same plot"
-
-    if data_label_type:
-        assert not plotly, "We currently do not support data labeling for plotly-generated plots"
 
     # data
     x = [x[2]["exp_DDG"] for x in graph.edges(data=True)]
@@ -351,6 +344,7 @@ def plot_DDGs(
             title=title,
             method_name=method_name,
             target_name=target_name,
+            data_labels=data_labels,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             statistic_type=statistic_type,
@@ -381,6 +375,7 @@ def plot_DGs(
     title: str = "",
     filename: Optional[str] = None,
     plotly: bool = False,
+    data_label_type: str = None,
     centralizing: bool = True,
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
@@ -402,6 +397,15 @@ def plot_DGs(
         Title for the plot
     filename : str, default = None
         filename for plot
+    plotly : bool, default = False
+        whether to use plotly to generate the plot
+    data_label_type : str or None, default = None
+        type of data label to add to each edge
+
+        if ``None`` data labels will not be added
+
+        if ``'small-molecule'`` labels will be ``f"{node_name}"``.
+        
     bootstrap_x_uncertainty : bool, default False
         whether to account for uncertainty in x when bootstrapping
     bootstrap_y_uncertainty : bool, default False
@@ -421,6 +425,14 @@ def plot_DGs(
     xerr = np.asarray([node[1]["exp_dDG"] for node in graph.nodes(data=True)])
     yerr = np.asarray([node[1]["calc_dDG"] for node in graph.nodes(data=True)])
 
+    # labels
+    data_labels = []
+    if data_label_type:
+        if data_label_type == "small-molecule":
+            data_labels = [node_data.get("name", node_id) for node_id, node_data in graph.nodes(data=True)]
+        else:
+            raise Exception("data_label_type unsupported. supported types: 'small-molecule'")
+         
     # centralising
     # this should be replaced by providing one experimental result
     if centralizing == True:
@@ -439,6 +451,7 @@ def plot_DGs(
             title=title,
             method_name=method_name,
             target_name=target_name,
+            data_labels=data_labels,
             filename=filename,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
@@ -458,6 +471,7 @@ def plot_DGs(
             method_name=method_name,
             target_name=target_name,
             filename=filename,
+            data_labels=data_labels,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
             statistic_type=statistic_type,
