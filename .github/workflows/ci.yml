@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - "main"
@@ -28,14 +29,15 @@ jobs:
       matrix:
         os: ['ubuntu', 'macos']
         python-version:
-          - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
+          - "3.13"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
@@ -68,7 +70,7 @@ jobs:
 
       - name: codecov
         if: ${{ github.repository == 'OpenFreeEnergy/cinnabar' && github.event_name != 'schedule'}}
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
