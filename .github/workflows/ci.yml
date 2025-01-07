@@ -44,7 +44,7 @@ jobs:
           channel-priority: true
           environment-file: devtools/conda-envs/env.yaml
           use-mamba: true
-          miniforge-variant: Mambaforge3
+          miniforge-variant: Miniforge3
 
       - name: Additional info about the build
         run: |
