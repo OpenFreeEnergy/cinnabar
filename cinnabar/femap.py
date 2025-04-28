@@ -11,7 +11,7 @@ from typing import Union
 import copy
 import openff.units
 import pandas as pd
-from openff.units import unit
+from openff.units import unit, Quantity
 import warnings
 from typing import Optional, Hashable, Union
 
@@ -184,7 +184,7 @@ class FEMap:
         return m
 
     @classmethod
-    def from_csv(cls, filename, units: Optional[unit.Quantity] = None):
+    def from_csv(cls, filename, units: Optional[Quantity] = None):
         """Construct from legacy csv format"""
         data = read_csv(filename, units=units)
 

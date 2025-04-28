@@ -2,6 +2,7 @@
 omit =
     */_version.py
     */data/*
+    */vendor/*
 
 [report]
 exclude_lines =
