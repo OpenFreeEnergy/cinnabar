@@ -6,7 +6,7 @@ Contains the :class:`Measurement` class which is used to define a single free en
 as well as the :class:`ReferenceState` class which denotes the end point for absolute measurements.
 
 """
-from cinnibar.vendor.openff.models.models import DefaultModel
+from cinnabar.vendor.openff.models.models import DefaultModel
 from cinnabar.vendor.openff.models.types import FloatQuantity
 from openff.units import unit
 from typing import Hashable, Union
