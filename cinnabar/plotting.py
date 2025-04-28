@@ -202,11 +202,7 @@ def _master_plot(
         family="monospace",
     )
 
-    if filename is None:
-        plt.show()
-    else:
-        plt.savefig(filename, bbox_inches="tight", dpi=dpi)
-    return fig
+    return fig, plt
 
 
 def plot_DDGs(
