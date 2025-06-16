@@ -55,13 +55,13 @@ def _master_plot(
         name of method associated with results, e.g. 'perses'
     target_name : string, optional
         name of system for results, e.g. 'Thrombin'
-    quantity : str, default = r'$\Delta \Delta$ G'
+    quantity : str, default = '$\\Delta \\Delta$ G'
         metric that is being plotted
     xlabel : str, default = 'Experimental'
         label for xaxis
     ylabel : str, default = 'Calculated'
         label for yaxis
-    units : str, default = r'$\mathrm{kcal\,mol^{-1}}$'
+    units : str, default = r'$\\mathrm{kcal\\,mol^{-1}}$'
         string value of units to label axis
     guidelines : bool, default = True
         toggles plotting of grey 0.5 and 1 kcal/mol error zone
