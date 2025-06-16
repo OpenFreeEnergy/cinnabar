@@ -14,7 +14,7 @@ The full release history can be viewed `at the GitHub cinnabar releases page <ht
 **Added:**
 
 * Added support for python 3.13
-* Vendored ``openff-models`` (PR #131 `https://github.com/OpenFreeEnergy/cinnabar/pull/131>`_)
+* Vendored ``openff-models`` (PR `#131 <https://github.com/OpenFreeEnergy/cinnabar/pull/131>`_)
 * Adding operation now available in ``FEMap``, i.e. you can add ``FEMap`` instances using ``+``.
 
 
