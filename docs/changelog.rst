@@ -14,7 +14,7 @@ The full release history can be viewed `at the GitHub cinnabar releases page <ht
 **Added:**
 
 * Added support for python 3.13
-
+* Vendored ``openff-models`` (PR #131)
 
 0.2.1 - Release
 ---------------
