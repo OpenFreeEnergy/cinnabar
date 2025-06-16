@@ -55,7 +55,7 @@ def _master_plot(
         name of method associated with results, e.g. 'perses'
     target_name : string, optional
         name of system for results, e.g. 'Thrombin'
-    quantity : str, default = '$\Delta \Delta$ G'
+    quantity : str, default = r'$\Delta \Delta$ G'
         metric that is being plotted
     xlabel : str, default = 'Experimental'
         label for xaxis
