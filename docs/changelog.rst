@@ -21,7 +21,7 @@ The full release history can be viewed `at the GitHub cinnabar releases page <ht
 **Changed:**
 
 * ``FEMap`` instances no longer allow ``.graph`` to be accessed directly, and instead use ``to_networkx()`` and ``from_networkx()`` methods.
-* scatter plots markers now have edge outlines for clearer visibility.
+* Scatter plots markers now have edge outlines for clearer visibility.
 
 0.2.1 - Release
 ---------------
