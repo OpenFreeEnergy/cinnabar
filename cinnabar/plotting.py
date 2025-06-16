@@ -15,7 +15,7 @@ def _master_plot(
     yerr: Optional[np.ndarray] = None,
     method_name: str = "",
     target_name: str = "",
-    quantity: str = r"$\Delta \Delta$ G",
+    quantity: str = r"$\Delta$ $\Delta$ G",
     xlabel: str = "Experimental",
     ylabel: str = "Calculated",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
