@@ -169,7 +169,7 @@ def _master_plot(
         elinewidth=2.0,
         zorder=1,
     )
-    plt.scatter(x, y, color=color, zorder=2, edgecolors='dimgrey', linewidths=0.7, **scatter_kwargs)
+    plt.scatter(x, y, color=color, zorder=2, **scatter_kwargs)
 
     # Label points
     texts = []
@@ -353,7 +353,7 @@ def plot_DDGs(
             **kwargs,
         )
     else:
-        _master_plot(
+        return _master_plot(
             x_data,
             y_data,
             xerr=xerr,
@@ -442,7 +442,7 @@ def plot_DGs(
             **kwargs,
         )
     else:
-        _master_plot(
+        return _master_plot(
             x_data,
             y_data,
             xerr=xerr,
