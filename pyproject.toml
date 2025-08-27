@@ -42,7 +42,7 @@ find = { namespaces = false }
 cinnabar = [ "data/*" ]
 
 [tool.setuptools_scm]
-fallback-version = "0.0.0"
+fallback_version = "0.0.0"
 
 [tool.coverage.report]
 exclude_lines = [
