@@ -52,3 +52,8 @@ exclude_lines = [
   "-no-cov",
   "raise NotImplementedError",
 ]
+
+[tool.coverage.run]
+omit = [
+    "cinnabar/_due.py",
+]
