@@ -1,8 +1,9 @@
+from typing import Union
+
 import networkx as nx
 import numpy as np
 import scipy
 import sklearn.metrics
-from typing import Union
 
 
 def bootstrap_statistic(
@@ -17,7 +18,6 @@ def bootstrap_statistic(
     include_true_uncertainty: bool = False,
     include_pred_uncertainty: bool = False,
 ) -> dict:
-
     """Compute mean and confidence intervals of specified statistic.
 
     Parameters
@@ -84,9 +84,7 @@ def bootstrap_statistic(
         elif statistic == "MUE":
             return sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
         elif statistic == "R2":
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
-                y_true_sample, y_pred_sample
-            )
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_true_sample, y_pred_sample)
             return r_value**2
         elif statistic == "rho":
             return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
@@ -111,15 +109,11 @@ def bootstrap_statistic(
     assert len(y_true) == len(dy_true)
     assert len(y_true) == len(dy_pred)
     sample_size = len(y_true)
-    s_n = np.zeros(
-        [nbootstrap], np.float64
-    )  # s_n[n] is the statistic computed for bootstrap sample n
+    s_n = np.zeros([nbootstrap], np.float64)  # s_n[n] is the statistic computed for bootstrap sample n
     for replicate in range(nbootstrap):
         y_true_sample = np.zeros_like(y_true)
         y_pred_sample = np.zeros_like(y_pred)
-        for i, j in enumerate(
-            np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)
-        ):
+        for i, j in enumerate(np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)):
             stddev_true = np.fabs(dy_true[j]) if include_true_uncertainty else 0
             stddev_pred = np.fabs(dy_pred[j]) if include_pred_uncertainty else 0
             y_true_sample[i] = np.random.normal(loc=y_true[j], scale=stddev_true, size=1)
@@ -140,9 +134,7 @@ def bootstrap_statistic(
     return rmse_stats
 
 
-def mle(
-    graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None
-) -> np.ndarray:
+def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None) -> np.ndarray:
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
     The number 'factor' is the node attribute on which the MLE will be calculated,
@@ -198,14 +190,14 @@ def mle(
 
     # Form F matrix (Eq 4)
     F_matrix = np.zeros([N, N])
-    for (a, b) in graph.edges:
+    for a, b in graph.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
         if i == j:
             # The MLE solver will fail if we include self-edges, so we need to omit these
             continue
-        F_matrix[i, j] = -df_ij[i, j] ** (-2)
-        F_matrix[j, i] = -df_ij[i, j] ** (-2)
+        F_matrix[i, j] = -(df_ij[i, j] ** (-2))
+        F_matrix[j, i] = -(df_ij[i, j] ** (-2))
     for n in graph.nodes:
         i = node_name_to_index[n]
         if df_ij[i, i] == 0.0:
@@ -219,7 +211,7 @@ def mle(
         i = node_name_to_index[n]
         if df_ij[i, i] != 0.0:
             z[i] = f_ij[i, i] * df_ij[i, i] ** (-2)
-    for (a, b) in graph.edges:
+    for a, b in graph.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
         if i == j:
@@ -237,9 +229,7 @@ def mle(
     return f_i, C
 
 
-def form_edge_matrix(
-    graph: nx.Graph, label: str, step=None, action=None, node_label=None
-) -> np.ndarray:
+def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_label=None) -> np.ndarray:
     """
     Extract the labeled property from edges into a matrix.
 
