@@ -84,3 +84,9 @@ ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
 verbose = 2
 color = true
 exclude = ["build", "docs"]
+
+
+[tool.coverage.run]
+omit = [
+    "cinnabar/_due.py",
+]

@@ -5,6 +5,14 @@ import numpy as np
 import scipy
 import sklearn.metrics
 
+from cinnabar._due import due, Doi
+
+due.cite(
+    Doi("10.1021/acs.jcim.9b00528"),
+    description="Compute maximum likelihood estimate of free energies and covariance in their estimates",
+    path="cinnabar.stats.mle",
+    cite_module=True
+)
 
 def bootstrap_statistic(
     y_true: np.ndarray,
@@ -143,7 +151,7 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
     We assume the free energy of node 0 is zero.
 
     Reference : https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528
-    Xu, Huafengraph. "Optimal measurement network of pairwise differences."
+    Xu, Huafeng. "Optimal measurement network of pairwise differences."
     Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
 
     NOTE: Self-edges (edges that connect a node to itself) will be ignored.
