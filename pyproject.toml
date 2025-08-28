@@ -1,0 +1,54 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+
+requires = [
+    "setuptools>=64",
+    "setuptools-scm>=8"
+]
+
+[project]
+name = "cinnabar"
+description = ""
+readme = "README.md"
+license = { text = "MIT" }
+authors = [ { name = "The OpenFE developers", email = "openfe@omsf.io"} ]
+requires-python = ">=3.10"
+
+keywords = [ "free energy", "alchemical", "molecular dynamics", "simulation", "analysis" ]
+
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+dynamic = [ "version" ]
+
+urls = { Homepage = "https://github.com/OpenFreeEnergy/cinnabar"}
+scripts.cinnabar = "cinnabar.arsenic:main"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+license-files = [ "LICENSE" ]
+
+[tool.setuptools.packages]
+find = { namespaces = false }
+
+[tool.setuptools.package-data]
+cinnabar = [ "data/*" ]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+
+[tool.coverage.report]
+exclude_lines = [
+  'if __name__ == "__main__"',
+  "pragma: no cover",
+  "pragma: no-cover",
+  "-no-cov",
+  "raise NotImplementedError",
+]
