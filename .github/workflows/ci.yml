@@ -68,9 +68,11 @@ jobs:
           python -Ic "import cinnabar; print(cinnabar.__version__)"
 
       - name: Run tests
+        env:
+          DUECREDIT_ENABLE: "yes"
         shell: bash -l {0}
         run: |
-          pytest -v --cov=cinnabar --cov-report=xml --cov-report=term --color=yes cinnabar/tests/
+          pytest -v --cov=cinnabar/ --cov-report=xml --cov-report=term --color=yes cinnabar/tests/
 
       - name: codecov
         if: ${{ github.repository == 'OpenFreeEnergy/cinnabar' && github.event_name != 'schedule'}}
