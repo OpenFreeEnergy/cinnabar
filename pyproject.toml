@@ -77,3 +77,11 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["cinnabar"]
+
+[tool.interrogate]
+fail-under = 0
+ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
+# possible values for verbose: 0 (minimal output), 1 (-v), 2 (-vv)
+verbose = 2
+color = true
+exclude = ["build", "docs"]
