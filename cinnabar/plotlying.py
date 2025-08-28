@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 
-from . import stats
+from cinnabar import stats
 
 
 def plot_bar(

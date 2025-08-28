@@ -19,7 +19,8 @@ import openff.units
 import pandas as pd
 from openff.units import Quantity, unit
 
-from . import Measurement, ReferenceState, stats
+from cinnabar import stats
+from cinnabar.measurements import Measurement, ReferenceState
 
 _kcalpm = unit.kilocalorie_per_mole
 

@@ -7,7 +7,8 @@ Containing the command line interface usage of cinnabar.
 
 import argparse
 
-from . import FEMap, plotting
+from cinnabar import plotting
+from cinnabar.femap import FEMap
 
 
 def main():

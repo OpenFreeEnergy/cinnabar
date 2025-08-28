@@ -7,7 +7,7 @@ from importlib.metadata import version
 
 __version__ = version("cinnabar")
 
-from . import stats
-from .femap import FEMap, unit
-from .measurements import Measurement, ReferenceState
-# from . import plotting
+from cinnabar import stats
+from cinnabar.femap import FEMap, unit
+from cinnabar.measurements import Measurement, ReferenceState
+# from cinnabar. import plotting

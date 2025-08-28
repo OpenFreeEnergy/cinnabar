@@ -6,7 +6,7 @@ import networkx as nx
 import numpy as np
 from adjustText import adjust_text
 
-from . import plotlying, stats
+from cinnabar import plotlying, stats
 
 
 def _master_plot(
