@@ -1,12 +1,13 @@
 """
-cinnabar.arsenic
+cinnabar.cli
 ================
 
 Containing the command line interface usage of cinnabar.
 """
 import argparse
 
-from . import FEMap, plotting
+from cinnabar.femap import FEMap
+from cinnabar import plotting
 
 
 def main():
