@@ -28,7 +28,7 @@ classifiers = [
 dynamic = [ "version" ]
 
 urls = { Homepage = "https://github.com/OpenFreeEnergy/cinnabar"}
-scripts.cinnabar = "cinnabar.arsenic:main"
+scripts.cinnabar = "cinnabar.cli:main"
 
 [tool.setuptools]
 zip-safe = false

@@ -4,7 +4,7 @@ API Documentation
 .. autosummary::
    :toctree: generated
 
-   cinnabar.arsenic
+   cinnabar.cli
    cinnabar.femap
    cinnabar.measurements
    cinnabar.plotlying

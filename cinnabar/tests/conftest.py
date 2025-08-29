@@ -18,7 +18,7 @@ def fe_map(example_csv):
 
 @pytest.fixture()
 def ref_legacy():
-    # a json dump of the .graph attribute created by arsenic
+    # a json dump of the .graph attribute created by cinnabar
     return """\
 {
  "CAT-13a": {
