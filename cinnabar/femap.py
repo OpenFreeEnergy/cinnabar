@@ -6,20 +6,21 @@ The workhorse of cinnabar, a :class:`FEMap` contains many measurements of free e
 both relative and absolute,
 which form an interconnected "network" of values.
 """
-import pathlib
-from typing import Union
+
 import copy
-import openff.units
-import pandas as pd
-from openff.units import unit, Quantity
+import pathlib
 import warnings
-from typing import Optional, Hashable, Union
+from typing import Hashable, Optional, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import openff.units
+import pandas as pd
+from openff.units import Quantity, unit
 
-from . import stats, ReferenceState, Measurement
+from cinnabar import stats
+from cinnabar.measurements import Measurement, ReferenceState
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -59,20 +60,24 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
                 calc_block = True
             if expt_block and len(line.split(",")) == 3 and line[0] != "#":
                 ligand, DG, dDG = line.split(",")
-                expt = Measurement(labelA=ground,
-                                   labelB=ligand,
-                                   DG=float(DG) * units,
-                                   uncertainty=float(dDG) * units,
-                                   computational=False)
+                expt = Measurement(
+                    labelA=ground,
+                    labelB=ligand,
+                    DG=float(DG) * units,
+                    uncertainty=float(dDG) * units,
+                    computational=False,
+                )
                 raw_results["Experimental"][expt.labelB] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
-                ligA, ligB, calc_DDG, mbar_err, other_err = line.split(',')
+                ligA, ligB, calc_DDG, mbar_err, other_err = line.split(",")
 
-                calc = Measurement(labelA=ligA.strip(),
-                                   labelB=ligB.strip(),
-                                   DG=float(calc_DDG) * units,
-                                   uncertainty=(float(mbar_err) + float(other_err)) * units,
-                                   computational=True)
+                calc = Measurement(
+                    labelA=ligA.strip(),
+                    labelB=ligB.strip(),
+                    DG=float(calc_DDG) * units,
+                    uncertainty=(float(mbar_err) + float(other_err)) * units,
+                    computational=True,
+                )
                 raw_results["Calculated"].append(calc)
     return raw_results
 
@@ -107,6 +112,7 @@ class FEMap:
 
     >>> fe = FEMap.from_csv('../data/example.csv')
     """
+
     # internal representation:
     # graph with measurements as edges
     # absolute Measurements are an edge between 'ReferenceState' and the label
@@ -120,7 +126,7 @@ class FEMap:
     def __iter__(self):
         for a, b, d in self._graph.edges(data=True):
             # skip artificial reverse edges
-            if d['source'] == 'reverse':
+            if d["source"] == "reverse":
                 continue
 
             yield Measurement(labelA=a, labelB=b, **d)
@@ -190,9 +196,9 @@ class FEMap:
 
         # unpack data dictionary
         fe = cls()
-        for r in data['Calculated']:
+        for r in data["Calculated"]:
             fe.add_measurement(r)
-        for r in data['Experimental'].values():
+        for r in data["Experimental"].values():
             fe.add_measurement(r)
 
         return fe
@@ -208,22 +214,23 @@ class FEMap:
         """
         # slurp out tasty data, anything but labels
         d = dict(measurement)
-        d.pop('labelA', None)
-        d.pop('labelB', None)
+        d.pop("labelA", None)
+        d.pop("labelB", None)
 
         # add both directions, but flip sign for the other direction
-        d_backwards = {**d, 'DG': - d['DG'], 'source': 'reverse'}
+        d_backwards = {**d, "DG": -d["DG"], "source": "reverse"}
         self._graph.add_edge(measurement.labelA, measurement.labelB, **d)
         self._graph.add_edge(measurement.labelB, measurement.labelA, **d_backwards)
 
-    def add_experimental_measurement(self,
-                                     label: Union[str, Hashable],
-                                     value: openff.units.Quantity,
-                                     uncertainty: openff.units.Quantity,
-                                     *,
-                                     source: str = "",
-                                     temperature=298.15 * unit.kelvin,
-                                     ):
+    def add_experimental_measurement(
+        self,
+        label: Union[str, Hashable],
+        value: openff.units.Quantity,
+        uncertainty: openff.units.Quantity,
+        *,
+        source: str = "",
+        temperature=298.15 * unit.kelvin,
+    ):
         """Add a single experimental measurement
 
         Parameters
@@ -241,33 +248,33 @@ class FEMap:
           the temperature the measurement was taken at, defaults to 298.15 K
         """
         if not isinstance(value, openff.units.Quantity):
-            raise ValueError("Must include units with values, "
-                             "e.g. openff.units.unit.kilocalorie_per_mole")
+            raise ValueError("Must include units with values, e.g. openff.units.unit.kilocalorie_per_mole")
 
-        if value.is_compatible_with('molar'):
-            m = Measurement.from_experiment(label, value, uncertainty,
-                                            source=source, temperature=temperature)
+        if value.is_compatible_with("molar"):
+            m = Measurement.from_experiment(label, value, uncertainty, source=source, temperature=temperature)
         else:  # value.is_compatible_with('kilocalorie_per_mole'):
             m = Measurement(
                 labelA=ReferenceState(),
                 labelB=label,
                 DG=value,
                 uncertainty=uncertainty,
-                source=source, temperature=temperature,
+                source=source,
+                temperature=temperature,
                 computational=False,
             )
 
         self.add_measurement(m)
 
-    def add_relative_calculation(self,
-                                 labelA: Union[str, Hashable],
-                                 labelB: Union[str, Hashable],
-                                 value: openff.units.Quantity,
-                                 uncertainty: openff.units.Quantity,
-                                 *,
-                                 source: str = "",
-                                 temperature=298.15 * unit.kelvin,
-                                 ):
+    def add_relative_calculation(
+        self,
+        labelA: Union[str, Hashable],
+        labelB: Union[str, Hashable],
+        value: openff.units.Quantity,
+        uncertainty: openff.units.Quantity,
+        *,
+        source: str = "",
+        temperature=298.15 * unit.kelvin,
+    ):
         """Add a single RBFE calculation
 
         Parameters
@@ -297,14 +304,15 @@ class FEMap:
             )
         )
 
-    def add_absolute_calculation(self,
-                                 label,
-                                 value: openff.units.Quantity,
-                                 uncertainty: openff.units.Quantity,
-                                 *,
-                                 source: str = "",
-                                 temperature=298.15 * unit.kelvin,
-                                 ):
+    def add_absolute_calculation(
+        self,
+        label,
+        value: openff.units.Quantity,
+        uncertainty: openff.units.Quantity,
+        *,
+        source: str = "",
+        temperature=298.15 * unit.kelvin,
+    ):
         """Add a single ABFE calculation
 
         Parameters
@@ -323,8 +331,10 @@ class FEMap:
         m = Measurement(
             labelA=ReferenceState(),
             labelB=label,
-            DG=value, uncertainty=uncertainty,
-            source=source, temperature=temperature,
+            DG=value,
+            uncertainty=uncertainty,
+            source=source,
+            temperature=temperature,
             computational=True,
         )
         self.add_measurement(m)
@@ -343,22 +353,14 @@ class FEMap:
         kcpm = unit.kilocalorie_per_mole
         data = []
         for l1, l2, d in self._graph.edges(data=True):
-            if d['source'] == 'reverse':
+            if d["source"] == "reverse":
                 continue
             if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState):
                 continue
 
-            data.append((
-                l1, l2,
-                d['DG'].to(kcpm).m, d['uncertainty'].to(kcpm).m,
-                d['source'], d['computational']
-            ))
+            data.append((l1, l2, d["DG"].to(kcpm).m, d["uncertainty"].to(kcpm).m, d["source"], d["computational"]))
 
-        cols = [
-            'labelA', 'labelB',
-            'DDG (kcal/mol)', 'uncertainty (kcal/mol)',
-            'source', 'computational'
-        ]
+        cols = ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
         return pd.DataFrame(
             data=data,
@@ -378,24 +380,16 @@ class FEMap:
         kcpm = unit.kilocalorie_per_mole
         data = []
         for l1, l2, d in self._graph.edges(data=True):
-            if d['source'] == 'reverse':
+            if d["source"] == "reverse":
                 continue
             if not isinstance(l1, ReferenceState):
                 continue
             if isinstance(l2, ReferenceState):
                 continue
 
-            data.append((
-                l2,
-                d['DG'].to(kcpm).m, d['uncertainty'].to(kcpm).m,
-                d['source'], d['computational']
-            ))
+            data.append((l2, d["DG"].to(kcpm).m, d["uncertainty"].to(kcpm).m, d["source"], d["computational"]))
 
-        cols = [
-            'label',
-            'DG (kcal/mol)', 'uncertainty (kcal/mol)',
-            'source', 'computational'
-        ]
+        cols = ["label", "DG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
         return pd.DataFrame(
             data=data,
@@ -416,8 +410,7 @@ class FEMap:
     def ligands(self) -> list:
         """All ligands in the graph"""
         # must ignore ReferenceState nodes
-        return [n for n in self._graph.nodes
-                if not isinstance(n, ReferenceState)]
+        return [n for n in self._graph.nodes if not isinstance(n, ReferenceState)]
 
     @property
     def degree(self) -> float:
@@ -427,15 +420,14 @@ class FEMap:
     @property
     def n_edges(self) -> int:
         """Number of computational edges"""
-        return sum(1 for _, _, d in self._graph.edges(data=True)
-                   if d['computational']) // 2
+        return sum(1 for _, _, d in self._graph.edges(data=True) if d["computational"]) // 2
 
     def check_weakly_connected(self) -> bool:
         """Checks if all results in the graph are reachable from other results"""
         # todo; cache
         comp_graph = nx.MultiGraph()
         for a, b, d in self._graph.edges(data=True):
-            if not d['computational']:
+            if not d["computational"]:
                 continue
             comp_graph.add_edge(a, b)
 
@@ -448,9 +440,9 @@ class FEMap:
         mes = list(self._graph.edges(data=True))
         # for now, we must all be in the same units for this to work
         # grab unit of first measurement
-        u = mes[0][-1]['DG'].u
+        u = mes[0][-1]["DG"].u
         # check all over values are this unit
-        if not all(d['DG'].u == u for _, _, d in mes):
+        if not all(d["DG"].u == u for _, _, d in mes):
             raise ValueError("All units must be the same")
 
         if self.check_weakly_connected():
@@ -458,7 +450,7 @@ class FEMap:
             f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
             variance = np.diagonal(C_calc) ** 0.5
 
-            g = ReferenceState(label='MLE')
+            g = ReferenceState(label="MLE")
 
             for n, f_i, df_i in zip(graph.nodes, f_i_calc, variance):
                 self.add_measurement(
@@ -468,14 +460,14 @@ class FEMap:
                         DG=f_i * u,
                         uncertainty=df_i * u,
                         computational=True,
-                        source='MLE',
+                        source="MLE",
                     )
                 )
 
             # find all computational result labels
             comp_ligands = set()
             for A, B, d in self._graph.edges(data=True):
-                if not d['computational']:
+                if not d["computational"]:
                     continue
                 comp_ligands.add(A)
                 comp_ligands.add(B)
@@ -489,10 +481,10 @@ class FEMap:
                 Measurement(
                     labelA=ReferenceState(),
                     labelB=g,
-                    DG=0.1*u,
+                    DG=0.1 * u,
                     uncertainty=0.0 * u,
                     computational=True,
-                    source='MLE',
+                    source="MLE",
                 )
             )
         else:
@@ -514,14 +506,14 @@ class FEMap:
         g = nx.DiGraph()
         # add DDG values from computational graph
         for a, b, d in self._graph.edges(data=True):
-            if not d['computational']:
+            if not d["computational"]:
                 continue
             if isinstance(a, ReferenceState):  # skip absolute measurements
                 continue
-            if d['source'] == 'reverse':  # skip mirrors
+            if d["source"] == "reverse":  # skip mirrors
                 continue
 
-            g.add_edge(a, b, calc_DDG=d['DG'].magnitude, calc_dDDG=d['uncertainty'].magnitude)
+            g.add_edge(a, b, calc_DDG=d["DG"].magnitude, calc_dDDG=d["uncertainty"].magnitude)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
             expt = self._graph.get_edge_data(ReferenceState(), node)
@@ -529,8 +521,8 @@ class FEMap:
                 continue
             expt = expt[0]
 
-            d["exp_DG"] = expt['DG'].magnitude
-            d["exp_dDG"] = expt['uncertainty'].magnitude
+            d["exp_DG"] = expt["DG"].magnitude
+            d["exp_dDG"] = expt["uncertainty"].magnitude
         # infer experiment DDG values
         for A, B, d in g.edges(data=True):
             try:
@@ -547,11 +539,11 @@ class FEMap:
         if self.check_weakly_connected():
             f_i_calc, C_calc = stats.mle(g, factor="calc_DDG")
             variance = np.diagonal(C_calc)
-            variance = variance ** 0.5
+            variance = variance**0.5
 
             for (_, d), f_i, df_i in zip(g.nodes(data=True), f_i_calc, variance):
-                d['calc_DG'] = f_i
-                d['calc_dDG'] = df_i
+                d["calc_DG"] = f_i
+                d["calc_dDG"] = df_i
         else:
             warnings.warn("Graph is not connected enough to compute absolute values")
 

@@ -40,7 +40,7 @@ Reference
    :maxdepth: 1
 
    api
-   changelog
+   CHANGELOG
 
 References
 ~~~~~~~~~~~
