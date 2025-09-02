@@ -8,5 +8,8 @@ Notable points that this PR has either accomplished or will accomplish.
 ## Questions
 - [ ] Question1
 
+## Checklist
+- [ ] Added a ``news`` entry for new features, bug fixes, or other user facing changes.
+
 ## Status
 - [ ] Ready to go
