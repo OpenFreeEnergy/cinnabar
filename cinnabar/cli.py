@@ -1,5 +1,5 @@
 """
-cinnabar.arsenic
+cinnabar.cli
 ================
 
 Containing the command line interface usage of cinnabar.

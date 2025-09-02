@@ -26,7 +26,7 @@ _kcalpm = unit.kilocalorie_per_mole
 
 
 def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
-    """Read a legacy arsenic format csv file
+    """Read a legacy format csv file
 
     Parameters
     ----------
