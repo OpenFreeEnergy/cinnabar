@@ -10,3 +10,4 @@ For detailed step-by-step tutorials on using the software, please refer to the t
 
    femap
    estimators
+   plotting
