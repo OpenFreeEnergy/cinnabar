@@ -3,7 +3,7 @@ Absolute Free Energy Estimators
 ===============================
 
 Relative free energy calculations produce :math:`\Delta\Delta G` (differences between two ligands). To compare these with experiment,
-or to rank ligands by affinity, we need absolute :math:`\Delta G` for each ligand.
+or to rank ligands by affinity, we need absolute free energies (:math:`\Delta G`) for each ligand.
 
 This requires an **estimator**: a method that takes the network of relative free energies and produces absolute values.
 
