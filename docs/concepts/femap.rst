@@ -31,7 +31,7 @@ each ligand in order to rank the ligands for prioritization.
 
 The :class:`.FEMap` provides convenience methods to support this transformation via a maximum likelihood estimation (MLE) [1]_
 method by default. These methods take advantage of the entire network of relative free energies to infer absolute values.
-Thus they require a graph which is at least weakly connected, that is there is a path between any two ligands in the graph.
+Thus they require a graph which is at least weakly connected, with at least one path between any two ligands in the graph.
 A graph structure lends itself naturally to this type of analysis and the ``FEMap`` provides utilities to check and
 visualise the connectivity of the network.
 
