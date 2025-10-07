@@ -34,7 +34,7 @@ Best practices:
 - **Both error (RMSE, MUE) and correlation** (:math:`R^{2}`, :math:`\rho`) statistics are shown by default, as absolute data are directional and correlation is meaningful.
 - **Error bars** are shown on to represent uncertainty in both calculated and experimental values.
 - **Statistics uncertainty estimates** are bootstrapped (1000 samples with replacement) to provide 95% confidence intervals.
-- **Mean centering** is applied by default to align the mean of calculated and experimental values, as the absolute scale is arbitrary.
+- **Mean centering** is applied by default to align the mean of calculated and experimental values. This is is needed when analyzing the outcomes of relaltive free energy simulations as the absolute scale is arbitrary.
 
 Pairwise (all-to-all) :math:`\Delta\Delta G` Plots
 --------------------------------------------------
