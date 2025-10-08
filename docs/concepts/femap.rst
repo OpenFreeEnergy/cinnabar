@@ -4,7 +4,7 @@ The ``FEMap`` Data Structure
 
 The :class:`.FEMap` is the **core abstraction in cinnabar**.
 It provides a unified representation of free energy data, connecting the inputs from relative binding free energy
-calculations with the **analyses** and **visualisations** that cinnabar enables.
+calculations with the **analyses** and **visualizations** that cinnabar enables.
 
 Why a Graph?
 ------------
