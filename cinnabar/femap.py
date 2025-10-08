@@ -550,6 +550,16 @@ class FEMap:
         return g
 
     def draw_graph(self, title: str = "", filename: Union[str, None] = None):
+        """
+        Draw the graph using matplotlib.
+
+        Parameters
+        ----------
+        title : str, optional
+            Title for the graph.
+        filename : str or None, optional
+            If provided, the graph will be saved to this file. If None, the graph will be displayed.
+        """
         plt.figure(figsize=(10, 10))
 
         graph = self.to_legacy_graph()

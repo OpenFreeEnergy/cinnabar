@@ -25,9 +25,10 @@ Absolute :math:`\Delta G` Plots
 -------------------------------
 
 Absolute free energy plots compare calculated and experimental :math:`\Delta G` values for each ligand. Absolute
-:math:`\Delta G` predictions can be obtained from a connected network of relative free energies. They therefore accumulate errors from multipule aspects of the calculation, including
-edge accuracy, uncertainty quantification, perturbation network design and estimator, giving a complete picture of protocol performance.
+:math:`\Delta G` predictions can be obtained from a connected network of relative free energies via an :ref:`estimator <estimators>`.
 These plots are then useful for both method developers and users, as they show how well the overall ranking of ligands is predicted.
+As they depend on the entire network they accumulate errors from multipule aspects of the calculation, including
+edge accuracy, uncertainty quantification, perturbation network design and estimator, giving a complete picture of protocol performance.
 
 Best practices:
 

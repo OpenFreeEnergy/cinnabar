@@ -148,8 +148,6 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
     The number 'factor' is the node attribute on which the MLE will be calculated,
     where d'factor' will be used as the standard error of the factor
 
-    We assume the free energy of node 0 is zero.
-
     Reference : https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528
     Xu, Huafeng. "Optimal measurement network of pairwise differences."
     Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
@@ -172,8 +170,7 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
     Returns
     -------
     f_i : np.array with shape (n_ligands,)
-        f_i[i] is the absolute free energy of ligand i in kT
-        f_i[0] = 0
+        f_i[i] is the absolute free energy of ligand i in kcal/mol
 
     C : np.array with shape (n_ligands, n_ligands)
         C[i,j] is the covariance of the free energy estimates of i and j

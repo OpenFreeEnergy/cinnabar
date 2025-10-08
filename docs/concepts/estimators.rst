@@ -1,3 +1,5 @@
+.. _estimators:
+
 ===============================
 Absolute Free Energy Estimators
 ===============================
@@ -52,6 +54,15 @@ The absolute :math:`\Delta G` scale is arbitrary: adding a constant to all :math
 As a result, the MLE solution is typically centred around zero (or another chosen reference). To compare with experimental
 values, an experimental shift must be applied. By default ``cinnabar`` will align the mean of predicted and
 experimental :math:`\Delta G` in the plotting functions.
+
+
+Limitations
+~~~~~~~~~~~
+
+- The MLE method **can not** use multiple independent measurements of the same edge to improve precision automatically.
+  Each edge must be represented by a single :math:`\Delta\Delta G` and uncertainty. If multiple measurements are available,
+  they should be combined externally (e.g. via weighted averaging) before input to the estimator.
+
 
 
 References
