@@ -28,7 +28,7 @@ classifiers = [
 dynamic = [ "version" ]
 
 urls = { Homepage = "https://github.com/OpenFreeEnergy/cinnabar"}
-scripts.cinnabar = "cinnabar.arsenic:main"
+scripts.cinnabar = "cinnabar.cli:main"
 
 [tool.setuptools]
 zip-safe = false
@@ -52,6 +52,39 @@ exclude_lines = [
   "-no-cov",
   "raise NotImplementedError",
 ]
+
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = [
+#    "F",  # Pyflakes
+    "I",  # isort
+    "W",  # pycodestyle warnings
+#    "E",  # pycodestyle errors
+
+]
+ignore = [
+    "E402",  # module-level import not at top (conflicts w/ isort)
+    "E731",  # lambda expressions (TODO: we should fix these)
+    "E722",  # bare excepts (TODO: we should fix these in a follow-up PR)
+    "F401",  # unused imports (TODO: we should fix these)
+    "UP03",  # pyupgrade linting (TODO: we should fix these)
+    ]
+
+[tool.ruff.lint.isort]
+known-first-party = ["cinnabar"]
+
+[tool.interrogate]
+fail-under = 0
+ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
+# possible values for verbose: 0 (minimal output), 1 (-v), 2 (-vv)
+verbose = 2
+color = true
+exclude = ["build", "docs"]
+
 
 [tool.coverage.run]
 omit = [

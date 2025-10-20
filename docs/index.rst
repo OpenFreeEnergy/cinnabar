@@ -30,7 +30,7 @@ Contents
    :maxdepth: 1
 
    installation
-   getting_started
+   concepts/index
    tutorials/index
 
 
@@ -41,7 +41,7 @@ Reference
    :maxdepth: 1
 
    api
-   changelog
+   CHANGELOG
 
 References
 ~~~~~~~~~~~
