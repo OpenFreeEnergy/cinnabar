@@ -1,9 +1,10 @@
 # This code is part of cinnabar and is licensed under the MIT license.
 # For details, see https://github.com/OpenFreeEnergy/cinnabar
 
-from typing import Iterable
-import numpy as np
 import math
+from typing import Iterable
+
+import numpy as np
 from numpy.typing import NDArray
 
 
@@ -123,7 +124,6 @@ def compute_fraction_best_ligands(y_true: Iterable[float], y_pred: Iterable[floa
 
     overlap_coefficients = [_compute_overlap_coefficient(histogram, i + 1) for i in range(num_ligands)]
     best_coefficients = overlap_coefficients[:num_best_ligands]
-
 
     fraction_best_ligands = sum(best_coefficients) / num_best_ligands
 

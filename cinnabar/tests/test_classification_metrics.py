@@ -1,6 +1,12 @@
-from cinnabar.classification_metrics import _compute_overlap_coefficient, _create_2d_histogram,compute_fraction_best_ligands
 import numpy as np
 import pytest
+
+from cinnabar.classification_metrics import (
+    _compute_overlap_coefficient,
+    _create_2d_histogram,
+    compute_fraction_best_ligands,
+)
+
 
 def test_2d_histogram_wrong_shape():
     with pytest.raises(ValueError, match="same length"):
@@ -77,18 +83,19 @@ def test_fraction_best_ligands_simple():
     fraction = compute_fraction_best_ligands([1, 2, 3, 4], [4, 3, 2, 1], fraction=0.5)
     assert fraction == 0.0
 
+
 def test_fraction_best_ligands_regression(fe_map):
     # regression test for a real dataset
     fe_map.generate_absolute_values()
 
     # we need to compare the absolute experimental and calculated values so generate them
     abs_dataframe = fe_map.get_absolute_dataframe()
-    exp_df = abs_dataframe[~abs_dataframe['computational']]
-    calc_df = abs_dataframe[abs_dataframe['computational']]
+    exp_df = abs_dataframe[~abs_dataframe["computational"]]
+    calc_df = abs_dataframe[abs_dataframe["computational"]]
 
     # get the calculated and experimental values in the same order
-    merged = exp_df.merge(calc_df, on='label', suffixes=('_exp', '_calc'))
-    y_true = merged['DG (kcal/mol)_exp'].values
-    y_pred = merged['DG (kcal/mol)_calc'].values
+    merged = exp_df.merge(calc_df, on="label", suffixes=("_exp", "_calc"))
+    y_true = merged["DG (kcal/mol)_exp"].values
+    y_pred = merged["DG (kcal/mol)_calc"].values
     fraction = compute_fraction_best_ligands(y_true, y_pred, fraction=0.5)
     assert fraction == pytest.approx(0.7216416707838275)
