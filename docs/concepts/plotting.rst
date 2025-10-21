@@ -65,4 +65,3 @@ References
 ~~~~~~~~~~~
 
 .. [1] Hahn, D.F., Bayly, C.I., Boby, M.L., Macdonald, H.E.B., Chodera, J.D., Gapsys, V., Mey, A.S., Mobley, D.L., Benito, L.P., Schindler, C.E. and Tresadern, G., 2022. Best practices for constructing, preparing, and evaluating protein-ligand binding affinity benchmarks [article v1. 0]. Living journal of computational molecular science, 4(1), p.1497.
-

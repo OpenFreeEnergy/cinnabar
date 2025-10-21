@@ -1,10 +1,9 @@
 import pytest
 
-
 from cinnabar._due import due
 
-
 pytest.importorskip("duecredit")
+
 
 def test_duecredit_mle():
     """Make sure duecredit is captured when the stats module is used"""
