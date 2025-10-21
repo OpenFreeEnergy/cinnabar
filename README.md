@@ -28,7 +28,7 @@
 
 Issue: we _must_ report statistics consistently and we would _like_ to plot these results consistently too
 
-Solution: The ``cinnabar`` package ensures a fair comparison of computational methods via robust and reproducible metrics implemented in the analysis functions following [standardized best practices](https://livecomsjournal.org/index.php/livecoms/article/view/v4i1e1497). 
+Solution: The ``cinnabar`` package ensures a fair comparison of computational methods via robust and reproducible metrics implemented in the analysis functions following [standardized best practices](https://livecomsjournal.org/index.php/livecoms/article/view/v4i1e1497).
 ``cinnabar`` is designed with generality in mind, and can be used to analyse results from any free energy calculation software package.
 
 
