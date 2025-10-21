@@ -86,7 +86,7 @@ def _compute_overlap_coefficient(histogram: NDArray, ranking: int) -> float:
     return overlap / ranking
 
 
-def compute_fraction_best_ligands(y_true: Iterable[float], y_pred: Iterable[float], fraction=0.5) -> float:
+def compute_fraction_best_ligands(y_true: Iterable[float], y_pred: Iterable[float], fraction: float = 0.5) -> float:
     """
     Compute the fraction of the best ligands metric introduced by Chris Bayly.
 
@@ -99,7 +99,7 @@ def compute_fraction_best_ligands(y_true: Iterable[float], y_pred: Iterable[floa
         The true values.
     y_pred : array-like
         The predicted values.
-    fraction : float, optional
+    fraction : float
         The fraction of ligands to consider as the best (default is 0.5).
 
     Returns
@@ -121,10 +121,8 @@ def compute_fraction_best_ligands(y_true: Iterable[float], y_pred: Iterable[floa
     num_ligands = histogram.shape[0]
     num_best_ligands = math.floor(num_ligands * fraction)
 
-    overlap_coefficients = [_compute_overlap_coefficient(histogram, i + 1) for i in range(num_ligands)]
-    best_coefficients = overlap_coefficients[:num_best_ligands]
+    overlap_coefficients = [_compute_overlap_coefficient(histogram, i + 1) for i in range(num_best_ligands)]
 
-
-    fraction_best_ligands = sum(best_coefficients) / num_best_ligands
+    fraction_best_ligands = sum(overlap_coefficients) / num_best_ligands
 
     return fraction_best_ligands
