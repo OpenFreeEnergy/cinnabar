@@ -5,14 +5,15 @@ import numpy as np
 import scipy
 import sklearn.metrics
 
-from cinnabar._due import due, Doi
+from cinnabar._due import Doi, due
 
 due.cite(
     Doi("10.1021/acs.jcim.9b00528"),
     description="Compute maximum likelihood estimate of free energies and covariance in their estimates",
     path="cinnabar.stats.mle",
-    cite_module=True
+    cite_module=True,
 )
+
 
 def bootstrap_statistic(
     y_true: np.ndarray,

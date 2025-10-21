@@ -69,4 +69,3 @@ References
 ~~~~~~~~~~~
 
 .. [1] Xu, H., 2019. Optimal measurement network of pairwise differences. Journal of Chemical Information and Modeling, 59(11), pp.4720-4728.
-

@@ -1,9 +1,10 @@
 # This code is part of cinnabar and is licensed under the MIT license.
 # For details, see https://github.com/OpenFreeEnergy/cinnabar
 
-from typing import Iterable
-import numpy as np
 import math
+from typing import Iterable
+
+import numpy as np
 from numpy.typing import NDArray
 
 
