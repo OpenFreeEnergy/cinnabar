@@ -50,7 +50,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.extlinks",
-    "nbsphinx"
+    "nbsphinx",
 ]
 
 autosummary_generate = True
