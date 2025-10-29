@@ -13,6 +13,5 @@ API Tutorials
 .. toctree::
     :maxdepth: 1
 
-    plotting-api
-    compute-dg-api
+    cinnabar-api
 
