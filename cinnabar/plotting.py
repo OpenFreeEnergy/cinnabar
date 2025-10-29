@@ -17,7 +17,7 @@ def _master_plot(
     yerr: Optional[np.ndarray] = None,
     method_name: str = "",
     target_name: str = "",
-    quantity: str = r"$\Delta \Delta$ G",
+    quantity: str = r"$\Delta\Delta$G",
     xlabel: str = "Experimental",
     ylabel: str = "Calculated",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
@@ -90,7 +90,7 @@ def _master_plot(
     axis_padding : float, default = 0.5
         padding to add to maximum axis value and subtract from the minimum axis value
     xy_lim : list, default []
-        contains the minimium and maximum values to use for the x and y axes. if specified, axis_padding is ignored
+        contains the minimum and maximum values to use for the x and y axes. if specified, axis_padding is ignored
     font_sizes : dict, default {"title": 12, "labels": 9, "other": 12}
         font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other")
     bootstrap_x_uncertainty : bool, default False
@@ -455,7 +455,7 @@ def plot_DGs(
             yerr=yerr,
             origins=False,
             statistics=["RMSE", "MUE", "R2", "rho"],
-            quantity=r"$\Delta$ G",
+            quantity=r"$\Delta$G",
             title=title,
             method_name=method_name,
             target_name=target_name,

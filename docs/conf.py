@@ -98,9 +98,9 @@ html_theme = "sphinx_rtd_theme"
 # documentation.
 
 html_theme = "ofe_sphinx_theme"
-html_theme_options = {
-    "accent_color": "FeelingSpicy",
-}
+# html_theme_options = {
+#     "accent_color": "FeelingSpicy",
+# }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
