@@ -31,6 +31,7 @@ Contents
 
    installation
    concepts/index
+   tutorials/index
 
 
 Reference
