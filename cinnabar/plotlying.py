@@ -152,6 +152,7 @@ def _master_plot(
     yerr: Optional[np.ndarray] = None,
     method_name: str = "",
     target_name: str = "",
+    data_labels: Optional[list] = [],
     plot_type: str = "",
     guidelines: bool = True,
     origins: bool = True,
@@ -245,6 +246,12 @@ def _master_plot(
     # 2.372 kcal / mol = 4 RT
     clr = np.abs(x - y) / 2.372
 
+    # Set hoverinfo depending on whether data_labels are provided
+    if data_labels:
+        hoverinfo = "text"
+    else:
+        hoverinfo = None
+        
     fig.add_trace(
         go.Scatter(
             x=x,
@@ -262,6 +269,8 @@ def _master_plot(
                 array=yerr,
                 visible=True,
             ),
+            hoverinfo=hoverinfo,   # Either "text" if data_labels are provided or None
+            hovertext=data_labels, # List of strings with data labels - used only if hoverinfo is "text"
             showlegend=False,
         )
     )
