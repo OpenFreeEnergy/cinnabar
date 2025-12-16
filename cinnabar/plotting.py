@@ -1,10 +1,12 @@
 import itertools
-from typing import Union, Optional
+from typing import Optional, Union
+
 import matplotlib.pylab as plt
-import numpy as np
 import networkx as nx
+import numpy as np
 from adjustText import adjust_text
-from . import plotlying, stats
+
+from cinnabar import plotlying, stats
 
 
 def _master_plot(
@@ -15,7 +17,7 @@ def _master_plot(
     yerr: Optional[np.ndarray] = None,
     method_name: str = "",
     target_name: str = "",
-    quantity: str = r"$\Delta \Delta$ G",
+    quantity: str = r"$\Delta\Delta$G",
     xlabel: str = "Experimental",
     ylabel: str = "Calculated",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
@@ -88,7 +90,7 @@ def _master_plot(
     axis_padding : float, default = 0.5
         padding to add to maximum axis value and subtract from the minimum axis value
     xy_lim : list, default []
-        contains the minimium and maximum values to use for the x and y axes. if specified, axis_padding is ignored
+        contains the minimum and maximum values to use for the x and y axes. if specified, axis_padding is ignored
     font_sizes : dict, default {"title": 12, "labels": 9, "other": 12}
         font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other")
     bootstrap_x_uncertainty : bool, default False
@@ -179,16 +181,18 @@ def _master_plot(
 
     # stats and title
     statistics_string = ""
-    if statistic_type not in ['mle', 'mean']:
+    if statistic_type not in ["mle", "mean"]:
         raise ValueError(f"Unknown statistic type {statistic_type}")
     for statistic in statistics:
-        s = stats.bootstrap_statistic(x,
-                                      y,
-                                      xerr,
-                                      yerr,
-                                      statistic=statistic,
-                                      include_true_uncertainty=bootstrap_x_uncertainty,
-                                      include_pred_uncertainty=bootstrap_y_uncertainty)
+        s = stats.bootstrap_statistic(
+            x,
+            y,
+            xerr,
+            yerr,
+            statistic=statistic,
+            include_true_uncertainty=bootstrap_x_uncertainty,
+            include_pred_uncertainty=bootstrap_y_uncertainty,
+        )
         string = f"{statistic}:   {s[statistic_type]:.2f} [95%: {s['low']:.2f}, {s['high']:.2f}] " + "\n"
         statistics_string += string
 
@@ -272,9 +276,7 @@ def plot_DDGs(
     Nothing
     """
 
-    assert (
-        int(symmetrise) + int(map_positive) != 2
-    ), "Symmetrise and map_positive cannot both be True in the same plot"
+    assert int(symmetrise) + int(map_positive) != 2, "Symmetrise and map_positive cannot both be True in the same plot"
 
     if data_label_type:
         assert not plotly, "We currently do not support data labeling for plotly-generated plots"
@@ -419,7 +421,7 @@ def plot_DGs(
 
     # centralising
     # this should be replaced by providing one experimental result
-    if centralizing == True:
+    if centralizing:
         x_data = x_data - np.mean(x_data) + shift
         y_data = y_data - np.mean(y_data) + shift
 
@@ -449,7 +451,7 @@ def plot_DGs(
             yerr=yerr,
             origins=False,
             statistics=["RMSE", "MUE", "R2", "rho"],
-            quantity=rf"$\Delta$ G",
+            quantity=r"$\Delta$G",
             title=title,
             method_name=method_name,
             target_name=target_name,

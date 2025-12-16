@@ -1,10 +1,11 @@
-import pytest
 from importlib import resources
+
+import pytest
 
 from cinnabar import FEMap
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def example_csv():
     with resources.path("cinnabar.data", "example.csv") as fn:
         yield str(fn)
@@ -18,7 +19,7 @@ def fe_map(example_csv):
 
 @pytest.fixture()
 def ref_legacy():
-    # a json dump of the .graph attribute created by arsenic
+    # a json dump of the .graph attribute created by cinnabar
     return """\
 {
  "CAT-13a": {

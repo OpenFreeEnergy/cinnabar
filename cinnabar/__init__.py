@@ -3,16 +3,12 @@ cinnabar
 Report results for free energy simulations
 """
 
+from importlib.metadata import version
 
-# Handle versioneer
-from ._version import get_versions
+__version__ = version("cinnabar")
 
-versions = get_versions()
-__version__ = versions["version"]
-__git_revision__ = versions["full-revisionid"]
-del get_versions, versions
-
-from .measurements import ReferenceState, Measurement
-from .femap import FEMap, unit
-from . import stats
-# from . import plotting
+from cinnabar import stats
+from cinnabar.classification_metrics import compute_fraction_best_ligands
+from cinnabar.femap import FEMap, unit
+from cinnabar.measurements import Measurement, ReferenceState
+# from cinnabar. import plotting

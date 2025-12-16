@@ -1,6 +1,6 @@
 # Experimental block
 # Ligand, expt_DDG, expt_dDDG
-CAT-13a, -8.83 , 0.10 
+CAT-13a, -8.83 , 0.10
 CAT-13b, -9.11 , 0.10
 CAT-13c, -9.31 , 0.10
 CAT-13d, -10.46, 0.10
@@ -35,7 +35,7 @@ CAT-4l,  -9.33 , 0.10
 CAT-4m,  -9.14 , 0.10
 CAT-4n,  -9.08 , 0.10
 CAT-4o,  -9.37 , 0.10
-CAT-4p,  -10.07, 0.10 
+CAT-4p,  -10.07, 0.10
 
 # Calculated block
 # Ligand1,Ligand2, calc_DDG, calc_dDDG(MBAR), calc_dDDG(additional)
