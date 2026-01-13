@@ -52,11 +52,18 @@ def bootstrap_statistic(
     include_pred_uncertainty : bool, default False
         whether to account for the uncertainty in y_pred when bootstrapping
 
+    Note
+    -----
+    If ``include_true_uncertainty`` or ``include_pred_uncertainty`` is True,
+    normal noise will be added to the corresponding values during each bootstrap replicate.
+    The standard deviation of the normal noise is taken from dy_true or dy_pred.
+
     Returns
     -------
-    rmse_stats : dict of float
-        'mean' : mean RMSE
-        'stderr' : standard error
+    stats : dict of float
+        'mle': statistic computed on the original data
+        'mean' : mean value of the statistic over all bootstrap samples
+        'stderr' : standard error of the statistic over all bootstrap samples
         'low' : low end of CI
         'high' : high end of CI
     """
@@ -76,6 +83,7 @@ def bootstrap_statistic(
         """
 
         def calc_RAE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
+            """Calculate the relative absolute error (RAE)"""
             MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
             mean = np.mean(y_true_sample)
             MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(len(y_true_sample))
@@ -102,7 +110,8 @@ def bootstrap_statistic(
         elif statistic == "KTAU":
             return scipy.stats.kendalltau(y_true_sample, y_pred_sample)[0]
         else:
-            raise Exception("unknown statistic '{}'".format(statistic))
+            # TODO dont use Exception
+            raise Exception(f"unknown statistic {statistic}")
 
     # not used?
     def unique_differences(x):
@@ -119,28 +128,36 @@ def bootstrap_statistic(
     assert len(y_true) == len(dy_pred)
     sample_size = len(y_true)
     s_n = np.zeros([nbootstrap], np.float64)  # s_n[n] is the statistic computed for bootstrap sample n
+
     for replicate in range(nbootstrap):
-        y_true_sample = np.zeros_like(y_true)
-        y_pred_sample = np.zeros_like(y_pred)
-        for i, j in enumerate(np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)):
-            stddev_true = np.fabs(dy_true[j]) if include_true_uncertainty else 0
-            stddev_pred = np.fabs(dy_pred[j]) if include_pred_uncertainty else 0
-            y_true_sample[i] = np.random.normal(loc=y_true[j], scale=stddev_true, size=1)
-            y_pred_sample[i] = np.random.normal(loc=y_pred[j], scale=stddev_pred, size=1)
+        # draw bootstrap indices once and select values vectorized
+        indices = np.random.choice(sample_size, size=sample_size, replace=True)
+        y_true_sample = y_true[indices].copy()
+        y_pred_sample = y_pred[indices].copy()
+
+        # only simulate normal noise when requested
+        if include_true_uncertainty:
+            std_true = np.fabs(dy_true[indices])
+            y_true_sample = np.random.normal(loc=y_true_sample, scale=std_true)
+
+        if include_pred_uncertainty:
+            std_pred = np.fabs(dy_pred[indices])
+            y_pred_sample = np.random.normal(loc=y_pred_sample, scale=std_pred)
+
         s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
 
-    rmse_stats = dict()
-    rmse_stats["mle"] = compute_statistic(y_true, y_pred, statistic)
-    rmse_stats["stderr"] = np.std(s_n)
-    rmse_stats["mean"] = np.mean(s_n)
-    # TODO: Is there a canned method to do this?
-    s_n = np.sort(s_n)
-    low_frac = (1.0 - ci) / 2.0
-    high_frac = 1.0 - low_frac
-    rmse_stats["low"] = s_n[int(np.floor(nbootstrap * low_frac))]
-    rmse_stats["high"] = s_n[int(np.ceil(nbootstrap * high_frac))]
 
-    return rmse_stats
+    # calculate the statistics and CI
+    low_percentile = (1.0 - ci) / 2.0 * 100
+    high_percentile = 100 - low_percentile
+    stats = {
+        "mle": compute_statistic(y_true, y_pred, statistic),  # the sample statistic
+        "stderr": np.std(s_n), # standard error of the bootstrap samples
+        "mean": np.mean(s_n), # mean of the bootstrap samples
+        "low": np.percentile(s_n, low_percentile), # low end of confidence interval
+        "high": np.percentile(s_n, high_percentile), # high end of confidence interval
+    }
+    return stats
 
 
 def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None) -> np.ndarray:

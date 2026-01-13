@@ -1,6 +1,7 @@
 from importlib import resources
 
 import pytest
+import numpy as np
 
 from cinnabar import FEMap
 
@@ -15,6 +16,21 @@ def example_csv():
 def fe_map(example_csv):
     """FEMap using test csv data"""
     return FEMap.from_csv(example_csv)
+
+
+@pytest.fixture(scope="session")
+def example_data(fe_map):
+    """
+    Returns data w/ error bars from `cinnabar/data/example.csv`
+    """
+    nodes = fe_map.to_legacy_graph().nodes
+
+    x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
+    y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
+    xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
+    yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
+
+    return x_data, y_data, xerr, yerr
 
 
 @pytest.fixture()
