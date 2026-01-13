@@ -1,12 +1,12 @@
 import json
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import pytest
 from openff.units import unit
 
 import cinnabar
 from cinnabar import femap
-import matplotlib.pyplot as plt
 
 
 def test_read_csv(example_csv):
@@ -42,6 +42,7 @@ def test_eq(example_csv):
 
     assert m1 == m2
     assert m1 != m3
+
 
 def test_eq_wrong_type():
     m1 = cinnabar.FEMap()
@@ -202,8 +203,8 @@ def test_generate_absolute_values(example_map, ref_mle_results):
         assert y.magnitude == pytest.approx(y_ref), e
         assert yerr.magnitude == pytest.approx(yerr_ref), e
 
-def test_generate_absolute_values_not_connected():
 
+def test_generate_absolute_values_not_connected():
     m = cinnabar.FEMap()
 
     m.add_relative_calculation(
@@ -221,16 +222,18 @@ def test_generate_absolute_values_not_connected():
     with pytest.raises(ValueError, match="Computational results are not fully connected"):
         m.generate_absolute_values()
 
-def test_generate_absolute_values_mixed_units():
 
+def test_generate_absolute_values_mixed_units():
     graph = nx.MultiDiGraph()
     graph.add_edge(
-        "ligA", "ligB",
+        "ligA",
+        "ligB",
         DG=-1.0 * unit.kilocalorie_per_mole,
         uncertainty=0.1 * unit.kilocalorie_per_mole,
     )
     graph.add_edge(
-        "ligB", "ligC",
+        "ligB",
+        "ligC",
         DG=-4.0 * unit.kilojoule_per_mole,
         uncertainty=0.2 * unit.kilojoule_per_mole,
     )

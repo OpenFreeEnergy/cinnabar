@@ -213,14 +213,17 @@ def test_confidence_interval_edge_case():
     assert (bss["low"] < bss["mle"]) and (bss["mle"] < bss["high"]), error_message
 
 
-@pytest.mark.parametrize("stat, expected", [
-    ("RMSE", 9.364494046790412),
-    ("MUE", 9.326388888888888),
-    ("R2", 0.6149662203714674),
-    ("rho", 0.7841978196676316),
-    ("KTAU", 0.58148151940828),
-    ("RAE", 15.995712243925674),
-])
+@pytest.mark.parametrize(
+    "stat, expected",
+    [
+        ("RMSE", 9.364494046790412),
+        ("MUE", 9.326388888888888),
+        ("R2", 0.6149662203714674),
+        ("rho", 0.7841978196676316),
+        ("KTAU", 0.58148151940828),
+        ("RAE", 15.995712243925674),
+    ],
+)
 def test_regression_bootstrap_statistics(example_data, stat, expected):
     """
     Regression test for bootstrap statistics on example data
