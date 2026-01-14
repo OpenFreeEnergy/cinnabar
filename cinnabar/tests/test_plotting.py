@@ -147,8 +147,8 @@ def test_master_plot_axis_labels(example_data, show_called):
     )
     # inspect the figure axes to check axis labels
     axes = fig.get_axes()
-    assert axes[0].get_xlabel() == f"{x_label} {quantity} {units}"
-    assert axes[0].get_ylabel() == f"{y_label} {quantity} {units}"
+    assert axes[0].get_xlabel() == f"{x_label} {quantity} ({units})"
+    assert axes[0].get_ylabel() == f"{y_label} {quantity} ({units})"
     assert "show" in show_called
 
 
