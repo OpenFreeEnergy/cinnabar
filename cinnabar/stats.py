@@ -146,16 +146,15 @@ def bootstrap_statistic(
 
         s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
 
-
     # calculate the statistics and CI
     low_percentile = (1.0 - ci) / 2.0 * 100
     high_percentile = 100 - low_percentile
     stats = {
         "mle": compute_statistic(y_true, y_pred, statistic),  # the sample statistic
-        "stderr": np.std(s_n), # standard error of the bootstrap samples
-        "mean": np.mean(s_n), # mean of the bootstrap samples
-        "low": np.percentile(s_n, low_percentile), # low end of confidence interval
-        "high": np.percentile(s_n, high_percentile), # high end of confidence interval
+        "stderr": np.std(s_n),  # standard error of the bootstrap samples
+        "mean": np.mean(s_n),  # mean of the bootstrap samples
+        "low": np.percentile(s_n, low_percentile),  # low end of confidence interval
+        "high": np.percentile(s_n, high_percentile),  # high end of confidence interval
     }
     return stats
 

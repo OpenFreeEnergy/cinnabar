@@ -1,7 +1,7 @@
 from importlib import resources
 
-import pytest
 import numpy as np
+import pytest
 
 from cinnabar import FEMap
 
