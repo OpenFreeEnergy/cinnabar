@@ -523,6 +523,8 @@ class FEMap:
 
             d["exp_DG"] = expt["DG"].magnitude
             d["exp_dDG"] = expt["uncertainty"].magnitude
+            # name of the node used to add data labels to plots
+            d["name"] = node
         # infer experiment DDG values
         for A, B, d in g.edges(data=True):
             try:
