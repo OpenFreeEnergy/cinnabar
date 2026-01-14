@@ -245,3 +245,31 @@ def test_bootstrap_statistic_no_errors(example_data):
 
     bss = bootstrap_statistic(x_data, y_data, statistic="RMSE")
     assert pytest.approx(bss["mle"], rel=1e-6) == 9.364494046790412
+
+
+def test_bad_edge_matrix_action(fe_map):
+    """
+    Test that an error is raised when an unknown action is provided
+    to the edge matrix computation
+    """
+    with pytest.raises(Exception, match='action "bad_action" unknown'):
+        _ = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action="bad_action")
+
+
+def test_edge_matrix_no_action(fe_map):
+    edge_matrix = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action=None)
+    assert edge_matrix.shape == (fe_map.n_ligands, fe_map.n_ligands)
+
+
+def test_edge_matrix_symmetrize(fe_map):
+    edge_matrix = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action="symmetrize")
+    assert edge_matrix.shape == (fe_map.n_ligands, fe_map.n_ligands)
+    # check the matrix is symmetric
+    assert np.allclose(edge_matrix, edge_matrix.T)
+
+
+def test_edge_matrix_antisymmetrize(fe_map):
+    edge_matrix = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action="antisymmetrize")
+    assert edge_matrix.shape == (fe_map.n_ligands, fe_map.n_ligands)
+    # check the matrix is antisymmetric
+    assert np.allclose(edge_matrix, -edge_matrix.T)
