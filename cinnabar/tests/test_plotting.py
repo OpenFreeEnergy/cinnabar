@@ -1,15 +1,20 @@
-from cinnabar import plotting
-import pytest
 import matplotlib.pylab as plt
+import pytest
+
+from cinnabar import plotting
+
 
 @pytest.fixture(scope="function")
 def show_called(monkeypatch):
     """Fixture to mock plt.show() and track if it was called."""
     called = {}
+
     def mock_show():
         called["show"] = True
+
     monkeypatch.setattr(plt, "show", mock_show)
     return called
+
 
 def test_plot_ddgs_to_file(tmp_path, fe_map):
     output_file = tmp_path / "ddg_plot.png"
@@ -20,6 +25,7 @@ def test_plot_ddgs_to_file(tmp_path, fe_map):
 def test_plot_ddgs_show(fe_map, show_called):
     _ = plotting.plot_DDGs(fe_map.to_legacy_graph(), filename=None)
     assert "show" in show_called
+
 
 def test_plot_dgs_to_file(tmp_path, fe_map):
     output_file = tmp_path / "dg_plot.png"
@@ -39,7 +45,6 @@ def test_plot_all_ddgs_to_file(tmp_path, fe_map):
 
 
 def test_plot_all_ddgs_show(fe_map, show_called):
-
     _ = plotting.plot_all_DDGs(fe_map.to_legacy_graph(), filename=None)
     assert "show" in show_called
 
@@ -115,12 +120,7 @@ def test_master_plot_xy_lim(example_data, show_called):
 
     x_data, y_data, xerr, yerr = example_data
     lims = [-10, 10]
-    fig = plotting._master_plot(
-        x_data,
-        y_data,
-        filename=None,
-        xy_lim=lims
-    )
+    fig = plotting._master_plot(x_data, y_data, filename=None, xy_lim=lims)
     # inspect the figure axes to check axis limits
     axes = fig.get_axes()
     assert axes[0].get_xlim() == tuple(lims)

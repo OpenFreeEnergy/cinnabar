@@ -113,19 +113,25 @@ def test_measurement_temp():
     assert m.temperature == 298.15 * unit.kelvin
 
 
-@pytest.mark.parametrize("label, expected", [
-    ("lig_a", False),
-    ("", True),
-])
+@pytest.mark.parametrize(
+    "label, expected",
+    [
+        ("lig_a", False),
+        ("", True),
+    ],
+)
 def test_is_true_groud(label, expected):
     m = cinnabar.ReferenceState(label=label)
     assert m.is_true_ground() is expected
 
 
-@pytest.mark.parametrize("label, expected", [
-    ("MLE", "<ReferenceState (MLE)>"),
-    ("", "<ReferenceState Zero>"),
-])
+@pytest.mark.parametrize(
+    "label, expected",
+    [
+        ("MLE", "<ReferenceState (MLE)>"),
+        ("", "<ReferenceState Zero>"),
+    ],
+)
 def test_ref_state_repr(label, expected):
     rs = cinnabar.ReferenceState(label=label)
     assert repr(rs) == expected
