@@ -1,7 +1,8 @@
-from cinnabar import plotting
-from cinnabar import plotlying
-import pytest
 import plotly.graph_objects as go
+import pytest
+
+from cinnabar import plotlying, plotting
+
 
 def test_plot_ddgs_plotly(tmp_path, fe_map):
     output_file = tmp_path / "ddg_plot.html"
@@ -31,6 +32,7 @@ def test_master_plot_bad_statistic_type(example_data):
             y_data,
             statistic_type="bad_stat",
         )
+
 
 def test_master_plot_show(example_data, monkeypatch):
     """Test that master plot shows when filename is None."""
