@@ -4,11 +4,11 @@ from typing import Optional, Union
 import matplotlib.pylab as plt
 import networkx as nx
 import numpy as np
+import seaborn as sns
 from adjustText import adjust_text
 
-from cinnabar.femap import FEMap
 from cinnabar import plotlying, stats
-import seaborn as sns
+from cinnabar.femap import FEMap
 
 
 def _master_plot(
@@ -590,7 +590,7 @@ def ecdf_plot(
     ecdf_kwargs=None,
     filename: str | None = None,
 ) -> plt.Figure:
-    """
+    r"""
     Plot ECDFs for one or more datasets. Where the dataset is a flat array of absolute errors.
 
     Parameters
@@ -829,7 +829,6 @@ def ecdf_plot_all_DDGs(
             calc_ddg = calc[b] - calc[a]
             exp_ddg = exp[b] - exp[a]
             errors.append(calc_ddg - exp_ddg)
-
 
         datasets[label] = np.abs(errors)
 

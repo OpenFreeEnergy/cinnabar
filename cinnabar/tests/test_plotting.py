@@ -1,8 +1,8 @@
 import networkx as nx
+import numpy as np
 import pytest
 
-from cinnabar import plotting, FEMap
-import numpy as np
+from cinnabar import FEMap, plotting
 
 
 def test_plot_ecdf_ddgs(fe_map, tmp_path):
@@ -13,9 +13,12 @@ def test_plot_ecdf_ddgs(fe_map, tmp_path):
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    assert axes.get_xlabel() == "Edgewise $|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
+    assert (
+        axes.get_xlabel() == r"Edgewise $|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
+    )
     # make sure the file was created
     assert output_file.exists()
+
 
 def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
     """Test ECDF All DDG plotting function."""
@@ -25,7 +28,9 @@ def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    assert axes.get_xlabel() == "Pairwise $|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
+    assert (
+        axes.get_xlabel() == r"Pairwise $|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
+    )
     # make sure the file was created
     assert output_file.exists()
 
@@ -38,7 +43,7 @@ def test_plot_ecdf_dgs(fe_map, tmp_path):
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    assert axes.get_xlabel() == "Nodewise $|\Delta$G$_{calc} - \Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
+    assert axes.get_xlabel() == r"Nodewise $|\Delta$G$_{calc} - \Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
     # make sure the file was created
     assert output_file.exists()
 
@@ -78,12 +83,7 @@ def test_plot_ecdf_no_datasets():
 def test_plot_ecdf_colors(fe_map, tmp_path):
     """Test ECDF plotting function with custom colors."""
     output_file = tmp_path / "test_ecdf_colors.png"
-    fig = plotting.ecdf_plot_DDGs(
-        [fe_map],
-        labels=["Test FE Map"],
-        colors=["#FF5733"],
-        filename=output_file.as_posix()
-    )
+    fig = plotting.ecdf_plot_DDGs([fe_map], labels=["Test FE Map"], colors=["#FF5733"], filename=output_file.as_posix())
     assert fig is not None
     # check the file was created
     assert output_file.exists()
