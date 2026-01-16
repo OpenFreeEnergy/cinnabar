@@ -120,7 +120,7 @@ def test_measurement_temp():
         ("", True),
     ],
 )
-def test_is_true_groud(label, expected):
+def test_is_true_ground(label, expected):
     m = cinnabar.ReferenceState(label=label)
     assert m.is_true_ground() is expected
 
