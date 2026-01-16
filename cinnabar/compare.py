@@ -1,14 +1,13 @@
+import itertools
 import string
+from collections import defaultdict
+from typing import Literal
 
 import numpy as np
+import pandas as pd
 
 from cinnabar import FEMap
-from typing import Literal
-import pandas as pd
-from collections import defaultdict
 from cinnabar.stats import AVAILABLE_STATS
-import itertools
-
 
 
 def compare_and_rank_femaps(
@@ -55,13 +54,12 @@ def compare_and_rank_femaps(
         - The second DataFrame contains the pairwise comparison results between models.
     """
 
-
     # get the predictions and experimental values from the FEMaps and align them into a DataFrame
     predictions_by_key = defaultdict(dict)
     for label, femap in zip(labels, femaps):
         graph = femap.to_legacy_graph()
         if prediction_type == "nodewise":
-            #TODO  should we expose a shift or centering option here?
+            # TODO  should we expose a shift or centering option here?
             for node, data in graph.nodes(data=True):
                 predictions_by_key[node][f"{label}_calc"] = data["calc_DG"]
                 if "exp_DG" not in predictions_by_key[node]:
@@ -99,7 +97,7 @@ def compare_and_rank_femaps(
         if metric not in AVAILABLE_STATS:
             raise ValueError(f"Metric {metric} is not available.")
 
-    metrics_by_label =  dict((label, dict((metric, []) for metric in metrics_to_compute)) for label in labels)
+    metrics_by_label = dict((label, dict((metric, []) for metric in metrics_to_compute)) for label in labels)
     pairwise_metrics = {}
     # compute bootstrap metrics for each model using the same bootstrap samples, joint bootstrap
     for _ in range(num_bootstraps):
@@ -146,20 +144,24 @@ def compare_and_rank_femaps(
         # use a 2-tailed test
         # inspired by https://www.nature.com/articles/s42004-025-01428-y
         p_value = 2 * min(np.mean(diffs < 0), np.mean(diffs > 0))
-        comparison_data.append({
-            "Model 1": label_i,
-            "Model 2": label_j,
-            f"Diff in {rank_metric}": summary_df[summary_df["Model"] == label_i][rank_metric].values[0] - summary_df[summary_df["Model"] == label_j][rank_metric].values[0],
-            "CI Lower": lower,
-            "CI Upper": upper,
-            "p-value": p_value,
-            "significant": p_value < 0.05
-        })
+        comparison_data.append(
+            {
+                "Model 1": label_i,
+                "Model 2": label_j,
+                f"Diff in {rank_metric}": summary_df[summary_df["Model"] == label_i][rank_metric].values[0]
+                - summary_df[summary_df["Model"] == label_j][rank_metric].values[0],
+                "CI Lower": lower,
+                "CI Upper": upper,
+                "p-value": p_value,
+                "significant": p_value < 0.05,
+            }
+        )
     comparison_df = pd.DataFrame(comparison_data)
 
     # if we have more than 2 models, apply multiple testing correction
     if len(labels) > 2:
         from statsmodels.stats.multitest import multipletests
+
         p_values = comparison_df["p-value"].values
         reject, pvals_corrected, _, _ = multipletests(p_values, alpha=0.05, method="holm")
         comparison_df["p-value corrected"] = pvals_corrected
@@ -270,6 +272,3 @@ def _apply_cld(comparison_df: pd.DataFrame, ordered_labels: list[str]) -> dict[s
             result[m] += alphabet[i]
 
     return result
-
-
-

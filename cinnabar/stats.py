@@ -144,6 +144,7 @@ def calculate_kendalls_tau(
     """
     return scipy.stats.kendalltau(y_true, y_pred)[0]
 
+
 AVAILABLE_STATS = {
     "RMSE": calculate_rmse,
     "MUE": calculate_mue,
@@ -152,6 +153,7 @@ AVAILABLE_STATS = {
     "rho": calculate_pearson_r,
     "KTAU": calculate_kendalls_tau,
 }
+
 
 def bootstrap_statistic(
     y_true: np.ndarray,
