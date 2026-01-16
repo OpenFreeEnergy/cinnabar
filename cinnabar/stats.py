@@ -15,6 +15,144 @@ due.cite(
 )
 
 
+def calculate_rmse(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute root mean squared error between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    rmse : float
+        RMSE between true and predicted values
+    """
+    return np.sqrt(sklearn.metrics.mean_squared_error(y_true, y_pred))
+
+
+def calculate_mue(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute mean unsigned error between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    mue : float
+        MUE between true and predicted values
+    """
+    return sklearn.metrics.mean_absolute_error(y_true, y_pred)
+
+
+def calculate_rae(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute relative absolute error between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    rae : float
+        RAE between true and predicted values
+    """
+    MAE = sklearn.metrics.mean_absolute_error(y_true, y_pred)
+    mean = np.mean(y_true)
+    MAD = np.sum([np.abs(mean - i) for i in y_true]) / float(len(y_true))
+    return MAE / MAD
+
+
+def calculate_r2(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute R^2 between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    r2 : float
+        R^2 between true and predicted values
+    """
+    _, _, r_value, _, _ = scipy.stats.linregress(y_true, y_pred)
+    return r_value**2
+
+
+def calculate_pearson_r(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute Pearson's r between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    r : float
+        Pearson's r between true and predicted values
+    """
+    return scipy.stats.pearsonr(y_true, y_pred)[0]
+
+
+def calculate_kendalls_tau(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute Kendall's tau between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    tau : float
+        Kendall's tau between true and predicted values
+    """
+    return scipy.stats.kendalltau(y_true, y_pred)[0]
+
+AVAILABLE_STATS = {
+    "RMSE": calculate_rmse,
+    "MUE": calculate_mue,
+    "RAE": calculate_rae,
+    "R2": calculate_r2,
+    "rho": calculate_pearson_r,
+    "KTAU": calculate_kendalls_tau,
+}
+
 def bootstrap_statistic(
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -75,12 +213,6 @@ def bootstrap_statistic(
 
         """
 
-        def calc_RAE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
-            MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
-            mean = np.mean(y_true_sample)
-            MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(len(y_true_sample))
-            return MAE / MAD
-
         def calc_RRMSE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
             rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
             mean_exp = np.mean(y_true_sample)
@@ -88,21 +220,9 @@ def bootstrap_statistic(
             rrmse = np.sqrt(rmse**2 / mds)
             return rrmse
 
-        if statistic == "RMSE":
-            return np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
-        elif statistic == "MUE":
-            return sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
-        elif statistic == "R2":
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_true_sample, y_pred_sample)
-            return r_value**2
-        elif statistic == "rho":
-            return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
-        elif statistic == "RAE":
-            return calc_RAE(y_true_sample, y_pred_sample)
-        elif statistic == "KTAU":
-            return scipy.stats.kendalltau(y_true_sample, y_pred_sample)[0]
-        else:
+        if statistic not in AVAILABLE_STATS:
             raise Exception("unknown statistic '{}'".format(statistic))
+        return AVAILABLE_STATS[statistic](y_true_sample, y_pred_sample)
 
     # not used?
     def unique_differences(x):
