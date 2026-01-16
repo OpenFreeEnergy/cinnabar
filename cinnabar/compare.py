@@ -74,7 +74,8 @@ def compare_and_rank_femaps(
                 if "exp_DDG" not in predictions_by_key[key]:
                     predictions_by_key[key]["exp"] = data["exp_DDG"]
         elif prediction_type == "pairwise":
-            nodes = list(graph.nodes())
+            # incase the networks nodes are in a different order, sort them first to get consistent pairs
+            nodes = sorted(list(graph.nodes()))
             for a, b in itertools.combinations(nodes, 2):
                 exp = graph.nodes[b]["exp_DG"] - graph.nodes[a]["exp_DG"]
                 calc = graph.nodes[b]["calc_DG"] - graph.nodes[a]["calc_DG"]

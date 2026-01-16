@@ -36,8 +36,7 @@ def test_compare_and_rank_femaps(fe_map):
     fe_map_3 = FEMap.from_networkx(graph2)
 
     t1, t2 = compare_and_rank_femaps([fe_map, fe_map_2, fe_map_3], ["FE Map 1", "FE Map 2", "FE Map 3"], prediction_type="nodewise", rank_metric="rho")
-    print(t1)
-    print(t2)
+
     # check that FE Map 3 is ranked worst
     assert t1[t1["Model"] == "FE Map 3"]["CLD"].values[0] == "b"
     # check that FE Map 1 and FE Map 2 are ranked better
