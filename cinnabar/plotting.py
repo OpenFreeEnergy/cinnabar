@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Optional, Union, Literal
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pylab as plt
 import networkx as nx
