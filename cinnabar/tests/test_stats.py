@@ -124,6 +124,19 @@ def test_mle_relative():
         )
 
 
+def test_mle_zero_uncertainty():
+    """
+    Test that the MLE works when some edges have zero uncertainty
+    """
+    graph = nx.DiGraph()
+    edges = [(0, 1), (0, 2), (2, 1)]
+    for a, b in edges:
+        graph.add_edge(a, b, f_ij=1.0 + np.random.normal(0.0, scale=0.5), f_dij=0.0)
+    _, _ = stats.mle(graph, factor="f_ij", node_factor="f_i")
+
+
+
+
 def test_correlation_positive(example_data):
     """
     Test that the absolute DG plots have the correct signs,
