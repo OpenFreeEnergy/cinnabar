@@ -135,8 +135,6 @@ def test_mle_zero_uncertainty():
     _, _ = stats.mle(graph, factor="f_ij", node_factor="f_i")
 
 
-
-
 def test_correlation_positive(example_data):
     """
     Test that the absolute DG plots have the correct signs,
