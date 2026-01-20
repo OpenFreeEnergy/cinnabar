@@ -1,8 +1,8 @@
 import matplotlib.pylab as plt
 import pytest
-
-from cinnabar import plotting, FEMap
 from openff.units import unit
+
+from cinnabar import FEMap, plotting
 
 
 @pytest.fixture(scope="function")
