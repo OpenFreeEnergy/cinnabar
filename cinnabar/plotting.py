@@ -665,7 +665,7 @@ def ecdf_plot(
 def ecdf_plot_DDGs(
     graphs: list[FEMap | nx.MultiDiGraph],
     labels: list[str],
-    title: str | None = "ECDF of Absolute Errors",
+    title: str | None = "ECDF of Edgewise Absolute Errors",
     filename: str | None = None,
     **kwargs,
 ) -> plt.Figure:
