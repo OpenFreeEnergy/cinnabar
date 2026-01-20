@@ -208,7 +208,10 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
     # if the uncertainty is zero, the MLE solver will fail
     # set all values to a small value if exactly zero
     # see <https://github.com/OpenFreeEnergy/cinnabar/issues/97> for details
-    df_ij[df_ij == 0.0] = 1e-6
+    for i in range(N):
+        for j in range(N):
+            if i != j and df_ij[i, j] == 0.0:
+                df_ij[i, j] = 1e-6
 
     node_name_to_index = {}
     for i, name in enumerate(graph.nodes()):
