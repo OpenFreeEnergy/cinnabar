@@ -1,21 +1,37 @@
 from importlib import resources
 
+import numpy as np
 import pytest
 from openff.units import unit
 
 from cinnabar import FEMap
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def example_csv():
     with resources.path("cinnabar.data", "example.csv") as fn:
         yield str(fn)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def fe_map(example_csv):
     """FEMap using test csv data"""
     return FEMap.from_csv(example_csv)
+
+
+@pytest.fixture()
+def example_data(fe_map):
+    """
+    Returns data w/ error bars from `cinnabar/data/example.csv`
+    """
+    nodes = fe_map.to_legacy_graph().nodes
+
+    x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
+    y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
+    xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
+    yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
+
+    return x_data, y_data, xerr, yerr
 
 
 @pytest.fixture()

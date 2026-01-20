@@ -1,6 +1,6 @@
 import json
-from importlib import resources
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import pytest
 from openff.units import unit
@@ -44,8 +44,19 @@ def test_eq(example_csv):
     assert m1 != m3
 
 
+def test_eq_wrong_type():
+    m1 = cinnabar.FEMap()
+    m2 = "not a FEMap"
+
+    assert (m1 == m2) is False
+
+
 def test_degree(example_map):
     assert example_map.degree == pytest.approx(58 / 36)
+
+
+def test_n_measurements(example_map):
+    assert example_map.n_measurements == 94
 
 
 def test_weakly_connected(example_map):
@@ -193,6 +204,44 @@ def test_generate_absolute_values(example_map, ref_mle_results):
         assert yerr.magnitude == pytest.approx(yerr_ref), e
 
 
+def test_generate_absolute_values_not_connected():
+    m = cinnabar.FEMap()
+
+    m.add_relative_calculation(
+        labelA="ligA",
+        labelB="ligB",
+        value=-1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    m.add_relative_calculation(
+        labelA="ligC",
+        labelB="ligD",
+        value=-2.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    with pytest.raises(ValueError, match="Computational results are not fully connected"):
+        m.generate_absolute_values()
+
+
+def test_generate_absolute_values_mixed_units():
+    graph = nx.MultiDiGraph()
+    graph.add_edge(
+        "ligA",
+        "ligB",
+        DG=-1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    graph.add_edge(
+        "ligB",
+        "ligC",
+        DG=-4.0 * unit.kilojoule_per_mole,
+        uncertainty=0.2 * unit.kilojoule_per_mole,
+    )
+    m = cinnabar.FEMap.from_networkx(graph)
+    with pytest.raises(ValueError, match="All units must be the same"):
+        m.generate_absolute_values()
+
+
 def test_to_dataframe(example_map):
     abs_df = example_map.get_absolute_dataframe()
     rel_df = example_map.get_relative_dataframe()
@@ -291,3 +340,68 @@ def test_add_duplicate():
     ref2 = set(m2)
 
     assert measurements == ref1 | ref2
+
+
+def test_add_wrong_type():
+    m1 = cinnabar.FEMap()
+    m2 = "not a FEMap"
+
+    with pytest.raises(TypeError, match="unsupported operand"):
+        _ = m1 + m2
+
+
+def test_draw_graph_to_file(fe_map, tmp_path):
+    filepath = tmp_path / "femap_graph.png"
+    fe_map.draw_graph(title="test", filename=filepath)
+
+    assert filepath.exists()
+
+
+def test_draw_graph_show(fe_map, monkeypatch):
+    called = {}
+
+    def mock_show():
+        called["show"] = True
+
+    monkeypatch.setattr(plt, "show", mock_show)
+
+    fe_map.draw_graph(title="test", filename=None)
+
+    assert called.get("show", False) is True
+
+
+def test_to_legacy_missing_exp():
+    """Check we can convert to legacy graph when no experimental data is present"""
+    m = cinnabar.FEMap()
+
+    m.add_relative_calculation(
+        labelA="ligA",
+        labelB="ligB",
+        value=-1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    g = m.to_legacy_graph()
+
+    assert isinstance(g, nx.DiGraph)
+
+
+def test_to_legacy_not_connected():
+    """Check we can convert to legacy graph when graph is not connected"""
+    m = cinnabar.FEMap()
+
+    m.add_relative_calculation(
+        labelA="ligA",
+        labelB="ligB",
+        value=-1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    m.add_relative_calculation(
+        labelA="ligC",
+        labelB="ligD",
+        value=-2.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    with pytest.warns(UserWarning, match="Graph is not connected enough to compute absolute values"):
+        g = m.to_legacy_graph()
+
+        assert isinstance(g, nx.DiGraph)

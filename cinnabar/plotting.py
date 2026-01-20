@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Literal
 
 import matplotlib.pylab as plt
 import networkx as nx
@@ -103,7 +103,7 @@ def _master_plot(
         the type of statistic to use, either 'mle' (i.e. sample statistic)
         or 'mean' (i.e. bootstrapped mean statistic)
     scatter_kwargs : dict, default {"s": 20, "marker": "o"}
-        arguments to control plt.scatter()
+        arguments to control plt.scatter(), these will override the default cinnabar settings
 
     Returns
     -------
@@ -173,7 +173,16 @@ def _master_plot(
         elinewidth=2.0,
         zorder=1,
     )
-    plt.scatter(x, y, color=color, zorder=2, edgecolors="dimgrey", linewidths=0.7, **scatter_kwargs)
+    # add our cinnabar preset settings to the scatter_kwargs to make sure they do not clash
+    # scatter kwargs will override the default settings
+    default_kwargs = {
+        "color": color,
+        "zorder": 2,
+        "edgecolors": "dimgrey",
+        "linewidths": 0.7,
+    }
+    default_kwargs.update(scatter_kwargs)
+    plt.scatter(x, y, **default_kwargs)
 
     # Label points
     texts = []
@@ -224,7 +233,7 @@ def plot_DDGs(
     filename: Optional[str] = None,
     symmetrise: bool = False,
     plotly: bool = False,
-    data_label_type: str = None,
+    data_label_type: Literal["small-molecule", "protein-mutation"] | None = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: str = "mle",
@@ -309,6 +318,7 @@ def plot_DDGs(
                 elif data_label_type == "protein-mutation":
                     data_labels.append(f"-({node_A_name[1:]}{node_B_name[1]})")
                 else:
+                    # TODO change to ValueError
                     raise Exception(
                         "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
                     )

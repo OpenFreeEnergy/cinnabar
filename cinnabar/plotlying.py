@@ -289,21 +289,18 @@ def _master_plot(
     fig.update_layout(
         title=dict(
             text=long_title,
-            font_family="monospace",
+            font=dict(family="monospace", size=14),
             x=0.0,
             y=0.95,
-            font_size=14,
         ),
         xaxis=dict(
-            title=f"Experimental {plot_type} [kcal mol<sup>-1</sup>]",
-            titlefont_size=14,
-            tickfont_size=12,
+            title=dict(text=f"Experimental {plot_type} [kcal mol<sup>-1</sup>]", font=dict(size=14)),
+            tickfont=dict(size=12),
             range=(ax_min, ax_max),
         ),
         yaxis=dict(
-            title=f"Calculated {plot_type} {method_name} [kcal mol<sup>-1</sup>]",
-            titlefont_size=14,
-            tickfont_size=12,
+            title=dict(text=f"Calculated {plot_type} {method_name} [kcal mol<sup>-1</sup>]", font=dict(size=14)),
+            tickfont=dict(size=12),
             range=(ax_min, ax_max),
         ),
         width=400,
