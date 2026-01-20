@@ -1,5 +1,5 @@
 import itertools
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 
 import matplotlib.pylab as plt
 import networkx as nx
@@ -231,7 +231,7 @@ def plot_DDGs(
     filename: Optional[str] = None,
     symmetrise: bool = False,
     plotly: bool = False,
-    data_label_type: str = None,
+    data_label_type: Literal["small-molecule", "protein-mutation"] | None = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: str = "mle",

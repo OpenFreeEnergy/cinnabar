@@ -6,19 +6,19 @@ import pytest
 from cinnabar import FEMap
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def example_csv():
     with resources.path("cinnabar.data", "example.csv") as fn:
         yield str(fn)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def fe_map(example_csv):
     """FEMap using test csv data"""
     return FEMap.from_csv(example_csv)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def example_data(fe_map):
     """
     Returns data w/ error bars from `cinnabar/data/example.csv`

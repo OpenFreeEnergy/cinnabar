@@ -382,7 +382,7 @@ def test_to_legacy_missing_exp():
     )
     g = m.to_legacy_graph()
 
-    assert g is not None
+    assert isinstance(g, nx.DiGraph)
 
 
 def test_to_legacy_not_connected():
@@ -404,4 +404,4 @@ def test_to_legacy_not_connected():
     with pytest.warns(UserWarning, match="Graph is not connected enough to compute absolute values"):
         g = m.to_legacy_graph()
 
-        assert g is not None
+        assert isinstance(g, nx.DiGraph)

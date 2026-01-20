@@ -1,7 +1,8 @@
 import matplotlib.pylab as plt
 import pytest
 
-from cinnabar import plotting
+from cinnabar import plotting, FEMap
+from openff.units import unit
 
 
 @pytest.fixture(scope="function")
@@ -70,6 +71,56 @@ def test_plot_ddgs_data_labels(fe_map, data_label_type, show_called):
     graph = fe_map.to_legacy_graph()
     _ = plotting.plot_DDGs(graph, data_label_type=data_label_type)
     assert "show" in show_called
+
+
+@pytest.mark.parametrize("data_label_type", ["small-molecule", "protein-mutation"])
+def test_plot_ddgs_negative_data_labels(show_called, data_label_type):
+    """Test that negative data labels work."""
+
+    fe_map = FEMap()
+    fe_map.add_relative_calculation(
+        labelA="-ligand1",
+        labelB="-ligand2",
+        value=2.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.5 * unit.kilocalorie_per_mole,
+    )
+    fe_map.add_experimental_measurement(
+        label="-ligand1",
+        value=-1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.2 * unit.kilocalorie_per_mole,
+    )
+    fe_map.add_experimental_measurement(
+        label="-ligand2",
+        value=1.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+    )
+    graph = fe_map.to_legacy_graph()
+    _ = plotting.plot_DDGs(graph, data_label_type=data_label_type, map_positive=False)
+    assert "show" in show_called
+
+
+def test_plot_ddgs_negative_bad_labels():
+    """Test that negative data labels with bad label type raise an error."""
+    fe_map = FEMap()
+    fe_map.add_relative_calculation(
+        labelA="-ligand1",
+        labelB="-ligand2",
+        value=2.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.5 * unit.kilocalorie_per_mole,
+    )
+    fe_map.add_experimental_measurement(
+        label="-ligand1",
+        value=-1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.2 * unit.kilocalorie_per_mole,
+    )
+    fe_map.add_experimental_measurement(
+        label="-ligand2",
+        value=1.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+    )
+    graph = fe_map.to_legacy_graph()
+    with pytest.raises(Exception, match="data_label_type unsupported. supported types:"):
+        _ = plotting.plot_DDGs(graph, data_label_type="invalid-label-type")
 
 
 def test_plot_ddgs_bad_labels(fe_map):
