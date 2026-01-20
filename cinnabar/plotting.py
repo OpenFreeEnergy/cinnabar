@@ -652,7 +652,6 @@ def ecdf_plot(
 
     plt.xlabel(f"{xlabel} {quantity} ({units})", fontsize=12)
     plt.ylabel(ylabel, fontsize=12)
-    plt.grid(alpha=0.3)
     plt.xlim(left=0)
     plt.legend()
     # add gridlines to help identify 1, 2 kcal/mol errors
