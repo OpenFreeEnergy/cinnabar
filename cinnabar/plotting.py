@@ -587,7 +587,7 @@ def ecdf_plot(
     ylabel: str = "Cumulative Probability",
     figsize: float | tuple[float, float] = 4,
     colors: list[str] | None = None,
-    ecdf_kwargs=None,
+    ecdf_kwargs: dict[str, Any] | None = None,
     filename: str | None = None,
 ) -> plt.Figure:
     r"""
