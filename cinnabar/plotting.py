@@ -1,5 +1,5 @@
 import itertools
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import matplotlib.pylab as plt
 import networkx as nx
@@ -702,8 +702,13 @@ def ecdf_plot_DDGs(
         if isinstance(graph, FEMap):
             graph = graph.to_legacy_graph()
 
-        x = np.array([x[2]["exp_DDG"] for x in graph.edges(data=True)])
+        # if the experimental value is missing, add a nan so we can filter it out
+        x = np.array([x[2].get("exp_DDG", np.nan) for x in graph.edges(data=True)])
         y = np.array([x[2]["calc_DDG"] for x in graph.edges(data=True)])
+        # filter out edges with missing experimental values
+        mask = ~np.isnan(x)
+        x = x[mask]
+        y = y[mask]
         abs_errors = np.abs(y - x)
         datasets[label] = abs_errors
 
@@ -720,8 +725,9 @@ def ecdf_plot_DDGs(
 def ecdf_plot_DGs(
     graphs: list[FEMap | nx.MultiDiGraph],
     labels: list[str],
-    title: str | None = "ECDF of Absolute Errors",
+    title: str | None = "ECDF of Nodewise Absolute Errors",
     filename: str | None = None,
+    centralizing: bool = True,
     **kwargs,
 ) -> plt.Figure:
     """
@@ -737,6 +743,8 @@ def ecdf_plot_DGs(
         Title for the plot. If None, no title is set.
     filename : str | None, default = None
         If provided, the plot will be saved to this filename.
+    centralizing : bool, default = True
+        whether to center both calculated and experimental values around zero before calculating absolute errors.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -757,12 +765,17 @@ def ecdf_plot_DGs(
         if isinstance(graph, FEMap):
             graph = graph.to_legacy_graph()
 
-        x = np.array([node[1]["exp_DG"] for node in graph.nodes(data=True)])
+        # if the experimental value is missing, add a nan so we can filter it out
+        x = np.array([node[1].get("exp_DG", np.nan) for node in graph.nodes(data=True)])
         y = np.array([node[1]["calc_DG"] for node in graph.nodes(data=True)])
-        # we need to shift the arrays to both be centered around zero
-        x -= np.mean(x)
-        y -= np.mean(y)
-
+        # filter out nodes with missing experimental values
+        mask = ~np.isnan(x)
+        x = x[mask]
+        y = y[mask]
+        # we need to shift the arrays to both be centered around zero if requested
+        if centralizing:
+            x -= np.mean(x)
+            y -= np.mean(y)
         abs_errors = np.abs(y - x)
         datasets[label] = abs_errors
 
@@ -780,7 +793,7 @@ def ecdf_plot_DGs(
 def ecdf_plot_all_DDGs(
     graphs: list[FEMap | nx.MultiDiGraph],
     labels: list[str],
-    title: str | None = "ECDF of Absolute Errors",
+    title: str | None = "ECDF of Pairwise (all-to-all) Absolute Errors",
     filename: str | None = None,
     **kwargs,
 ) -> plt.Figure:
@@ -819,8 +832,13 @@ def ecdf_plot_all_DDGs(
 
         nodes = graph.nodes(data=True)
 
-        exp = np.array([node[1]["exp_DG"] for node in nodes])
+        # if the experimental value is missing, add a nan so we can filter it out
+        exp = np.array([node[1].get("exp_DG", np.nan) for node in nodes])
         calc = np.array([node[1]["calc_DG"] for node in nodes])
+        # filter out nodes with missing experimental values
+        mask = ~np.isnan(exp)
+        exp = exp[mask]
+        calc = calc[mask]
         # do all to plot_all we are taking the abs error so we only need the error once per pair
         errors = []
         for a, b in itertools.combinations(range(len(calc)), 2):
