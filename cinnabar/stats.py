@@ -205,6 +205,13 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
             action="symmetrize",
             node_label=node_factor.replace("_", "_d"),
         )
+    # if the uncertainty is zero, the MLE solver will fail
+    # set all non-diagonal zeros to a small value if exactly zero
+    # see <https://github.com/OpenFreeEnergy/cinnabar/issues/97> for details
+    for i in range(N):
+        for j in range(N):
+            if i != j and df_ij[i, j] == 0.0:
+                df_ij[i, j] = 1e-6
 
     node_name_to_index = {}
     for i, name in enumerate(graph.nodes()):
