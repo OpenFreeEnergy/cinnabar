@@ -124,6 +124,17 @@ def test_mle_relative():
         )
 
 
+def test_mle_bidirectional_edges():
+    """Make sure an error is raised if there are repeated edges in the graph."""
+    graph = nx.DiGraph()
+    graph.add_edge(0, 1, f_ij=1.0, f_dij=0.5)
+    graph.add_edge(1, 0, f_ij=-2.0, f_dij=0.5)  # repeated edge
+
+    with pytest.raises(ValueError, match="Multiple edges detected between nodes 1 and 0."):
+        stats.mle(graph, factor="f_ij", node_factor="f_i")
+
+
+
 def test_correlation_positive(example_data):
     """
     Test that the absolute DG plots have the correct signs,
