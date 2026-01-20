@@ -75,7 +75,9 @@ def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
 def test_plot_ecdf_dgs(fe_map, tmp_path, centralising, xlim):
     """Test ECDF DG plotting function with and without centralizing."""
     output_file = tmp_path / "test_ecdf_dgs.png"
-    fig = plotting.ecdf_plot_DGs([fe_map], labels=["Test FE Map"], filename=output_file.as_posix(), centralizing=centralising)
+    fig = plotting.ecdf_plot_DGs(
+        [fe_map], labels=["Test FE Map"], filename=output_file.as_posix(), centralizing=centralising
+    )
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]

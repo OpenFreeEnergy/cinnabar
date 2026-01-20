@@ -1,9 +1,9 @@
 from importlib import resources
 
 import pytest
+from openff.units import unit
 
 from cinnabar import FEMap
-from openff.units import unit
 
 
 @pytest.fixture(scope="session")
@@ -490,22 +490,18 @@ def ecdf_femap_missing_exp_data():
         labelA="ligand1",
         labelB="ligand2",
         value=2.0 * unit.kilocalories_per_mole,
-        uncertainty=0.1 * unit.kilocalories_per_mole
+        uncertainty=0.1 * unit.kilocalories_per_mole,
     )
     fe_map.add_relative_calculation(
         labelA="ligand2",
         labelB="ligand3",
         value=-1.0 * unit.kilocalories_per_mole,
-        uncertainty=0.2 * unit.kilocalories_per_mole
+        uncertainty=0.2 * unit.kilocalories_per_mole,
     )
     fe_map.add_experimental_measurement(
-        label="ligand1",
-        value=-7.0 * unit.kilocalories_per_mole,
-        uncertainty=0.3 * unit.kilocalories_per_mole
+        label="ligand1", value=-7.0 * unit.kilocalories_per_mole, uncertainty=0.3 * unit.kilocalories_per_mole
     )
     fe_map.add_experimental_measurement(
-        label="ligand2",
-        value=-5.0 * unit.kilocalories_per_mole,
-        uncertainty=0.2 * unit.kilocalories_per_mole
+        label="ligand2", value=-5.0 * unit.kilocalories_per_mole, uncertainty=0.2 * unit.kilocalories_per_mole
     )
     return fe_map
