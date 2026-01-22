@@ -704,6 +704,11 @@ def ecdf_plot_DDGs(
     -----
     We assume that the graphs have edges with 'calc_DDG' and 'exp_DDG' attributes. If any edges are missing an experimental value,
     they will be skipped in the absolute error calculation.
+
+    Raises
+    ------
+    ValueError
+        If any edges are missing a calculated DDG value.
     """
     # extract the edgewise absolute errors for each graph
     datasets = {}
@@ -714,7 +719,10 @@ def ecdf_plot_DDGs(
 
         # if the experimental value is missing, add a nan so we can filter it out
         x = np.array([x[2].get("exp_DDG", np.nan) for x in graph.edges(data=True)])
-        y = np.array([x[2]["calc_DDG"] for x in graph.edges(data=True)])
+        y = np.array([x[2].get("calc_DDG", np.nan) for x in graph.edges(data=True)])
+        # if any calculated values are missing raise an error
+        if np.any(np.isnan(y)) or y.size == 0:
+            raise ValueError(f"Graph with label {label} has edges with missing calculated DDG values, which should be stored as `calc_DDG`.")
         # filter out edges with missing experimental values
         mask = ~np.isnan(x)
         x = x[mask]
@@ -767,6 +775,11 @@ def ecdf_plot_DGs(
     -----
     We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. The absolute errors are calculated after centering both
     calculated and experimental values around zero.
+
+    Raises
+    ------
+    ValueError
+        If any nodes are missing a calculated DG value.
     """
     # extract the nodewise absolute errors for each graph
     datasets = {}
@@ -777,7 +790,10 @@ def ecdf_plot_DGs(
 
         # if the experimental value is missing, add a nan so we can filter it out
         x = np.array([node[1].get("exp_DG", np.nan) for node in graph.nodes(data=True)])
-        y = np.array([node[1]["calc_DG"] for node in graph.nodes(data=True)])
+        y = np.array([node[1].get("calc_DG", np.nan) for node in graph.nodes(data=True)])
+        # if any nodes are missing calculated values raise an error
+        if np.any(np.isnan(y)) or y.size == 0:
+            raise ValueError(f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`.")
         # filter out nodes with missing experimental values
         mask = ~np.isnan(x)
         x = x[mask]
@@ -832,6 +848,11 @@ def ecdf_plot_all_DDGs(
     -----
     We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. If any nodes are missing an experimental value,
     they will be skipped in the absolute error calculation.
+
+    Raises
+    ------
+    ValueError
+        If any nodes are missing a calculated DG value.
     """
     # extract the all-to-all absolute errors for each graph
     datasets = {}
@@ -844,7 +865,10 @@ def ecdf_plot_all_DDGs(
 
         # if the experimental value is missing, add a nan so we can filter it out
         exp = np.array([node[1].get("exp_DG", np.nan) for node in nodes])
-        calc = np.array([node[1]["calc_DG"] for node in nodes])
+        calc = np.array([node[1].get("calc_DG", np.nan) for node in nodes])
+        # if any nodes are missing calculated values raise an error
+        if np.any(np.isnan(calc)) or calc.size == 0:
+            raise ValueError(f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`.")
         # filter out nodes with missing experimental values
         mask = ~np.isnan(exp)
         exp = exp[mask]

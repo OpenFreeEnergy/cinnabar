@@ -277,6 +277,15 @@ def test_plot_ecdf_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     assert output_file.exists()
 
 
+@pytest.mark.parametrize("graph", [
+    nx.MultiDiGraph(),
+    nx.MultiDiGraph([(0, 1, {"calc_deltadeltaG": 1.0})]),
+])
+def test_plot_ecdf_ddgs_no_data(graph):
+    with pytest.raises(ValueError, match="Graph with label test has edges with missing calculated DDG values, which should be stored as `calc_DDG`."):
+        plotting.ecdf_plot_DDGs([graph], labels=["test"], filename=None)
+
+
 def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
     """Test ECDF All DDG plotting function."""
     output_file = tmp_path / "test_ecdf_all_ddgs.png"
@@ -308,6 +317,16 @@ def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     )
     # make sure the file was created
     assert output_file.exists()
+
+
+@pytest.mark.parametrize("graph", [
+    nx.MultiDiGraph(),
+    # graph with nodes but no calculated DDG edges
+    nx.MultiDiGraph([(0, 1, {"some_other_data": 1.0})])
+])
+def test_plot_ecdf_all_ddgs_no_data(graph):
+    with pytest.raises(ValueError, match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`."):
+        plotting.ecdf_plot_all_DDGs([graph], labels=["test"], filename=None)
 
 
 @pytest.mark.parametrize("centralising, xlim", [(True, (2.1, 2.2)), (False, (11.5, 11.6))])
@@ -370,3 +389,13 @@ def test_plot_ecdf_colors(fe_map, tmp_path):
     # check that the line color matches the specified color
     line = fig.get_axes()[0].lines[0]
     assert line.get_color() == "#FF5733"
+
+
+@pytest.mark.parametrize("graph", [
+    nx.MultiDiGraph(),
+    # graph with nodes but no calculated DDG edges
+    nx.MultiDiGraph([(0, 1, {"some_other_data": 1.0})])
+])
+def test_plot_ecdf_dgs_no_data(graph):
+    with pytest.raises(ValueError, match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`."):
+        plotting.ecdf_plot_DGs([graph], labels=["test"], filename=None)
