@@ -722,7 +722,9 @@ def ecdf_plot_DDGs(
         y = np.array([x[2].get("calc_DDG", np.nan) for x in graph.edges(data=True)])
         # if any calculated values are missing raise an error
         if np.any(np.isnan(y)) or y.size == 0:
-            raise ValueError(f"Graph with label {label} has edges with missing calculated DDG values, which should be stored as `calc_DDG`.")
+            raise ValueError(
+                f"Graph with label {label} has edges with missing calculated DDG values, which should be stored as `calc_DDG`."
+            )
         # filter out edges with missing experimental values
         mask = ~np.isnan(x)
         x = x[mask]
@@ -793,7 +795,9 @@ def ecdf_plot_DGs(
         y = np.array([node[1].get("calc_DG", np.nan) for node in graph.nodes(data=True)])
         # if any nodes are missing calculated values raise an error
         if np.any(np.isnan(y)) or y.size == 0:
-            raise ValueError(f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`.")
+            raise ValueError(
+                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
+            )
         # filter out nodes with missing experimental values
         mask = ~np.isnan(x)
         x = x[mask]
@@ -868,7 +872,9 @@ def ecdf_plot_all_DDGs(
         calc = np.array([node[1].get("calc_DG", np.nan) for node in nodes])
         # if any nodes are missing calculated values raise an error
         if np.any(np.isnan(calc)) or calc.size == 0:
-            raise ValueError(f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`.")
+            raise ValueError(
+                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
+            )
         # filter out nodes with missing experimental values
         mask = ~np.isnan(exp)
         exp = exp[mask]
