@@ -193,6 +193,19 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
         C[i,j] is the covariance of the free energy estimates of i and j
 
     """
+    # if we have bidirectional edge results we need to raise an error as they can not be used with MLE
+    # track the edges we have seen
+    edges = []
+    for a, b in graph.edges:
+        edge_name = tuple(sorted([a, b]))
+        if edge_name in edges:
+            raise ValueError(
+                f"Multiple edges detected between nodes {a} and {b}. MLE cannot be performed on graphs with multiple "
+                f"edges between the same nodes. The results should be combined into a single estimate and uncertainty "
+                f"before performing MLE. See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html#limitations for more details."
+            )
+        edges.append(edge_name)
+
     N = graph.number_of_nodes()
     if node_factor is None:
         f_ij = form_edge_matrix(graph, factor, action="antisymmetrize")
