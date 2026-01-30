@@ -504,6 +504,8 @@ class FEMap:
         """
         # reduces to nx.DiGraph
         g = nx.DiGraph()
+        # the MLE method can only use a single result per edge, we need to raise and error if we have repeats or bidirectional results
+        edges_seen = []
         # add DDG values from computational graph
         for a, b, d in self._graph.edges(data=True):
             if not d["computational"]:
@@ -512,8 +514,16 @@ class FEMap:
                 continue
             if d["source"] == "reverse":  # skip mirrors
                 continue
+            edge_name = tuple(sorted([a, b]))
+            if edge_name in edges_seen:
+                raise ValueError(
+                    f"Multiple edges detected between nodes {a} and {b}. MLE cannot be performed on graphs with multiple "
+                    f"edges between the same nodes. The results should be combined into a single estimate and uncertainty "
+                    f"before performing MLE. See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html#limitations for more details."
+                )
 
             g.add_edge(a, b, calc_DDG=d["DG"].magnitude, calc_dDDG=d["uncertainty"].magnitude)
+            edges_seen.append(edge_name)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
             expt = self._graph.get_edge_data(ReferenceState(), node)
@@ -523,6 +533,8 @@ class FEMap:
 
             d["exp_DG"] = expt["DG"].magnitude
             d["exp_dDG"] = expt["uncertainty"].magnitude
+            # name of the node used to add data labels to plots
+            d["name"] = node
         # infer experiment DDG values
         for A, B, d in g.edges(data=True):
             try:

@@ -1,20 +1,37 @@
 from importlib import resources
 
+import numpy as np
 import pytest
+from openff.units import unit
 
 from cinnabar import FEMap
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def example_csv():
     with resources.path("cinnabar.data", "example.csv") as fn:
         yield str(fn)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def fe_map(example_csv):
     """FEMap using test csv data"""
     return FEMap.from_csv(example_csv)
+
+
+@pytest.fixture()
+def example_data(fe_map):
+    """
+    Returns data w/ error bars from `cinnabar/data/example.csv`
+    """
+    nodes = fe_map.to_legacy_graph().nodes
+
+    x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
+    y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
+    xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
+    yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
+
+    return x_data, y_data, xerr, yerr
 
 
 @pytest.fixture()
@@ -477,3 +494,30 @@ def ref_mle_results():
         "CAT-4k": (1.9341200732632289, 0.1050229267217769),
         "CAT-4p": (-0.3889609918160919, 0.09895523959628322),
     }
+
+
+@pytest.fixture()
+def ecdf_femap_missing_exp_data():
+    """
+    FEMap with some missing experimental data for testing ECDF plotting with missing data
+    """
+    fe_map = FEMap()
+    fe_map.add_relative_calculation(
+        labelA="ligand1",
+        labelB="ligand2",
+        value=2.0 * unit.kilocalories_per_mole,
+        uncertainty=0.1 * unit.kilocalories_per_mole,
+    )
+    fe_map.add_relative_calculation(
+        labelA="ligand2",
+        labelB="ligand3",
+        value=-1.0 * unit.kilocalories_per_mole,
+        uncertainty=0.2 * unit.kilocalories_per_mole,
+    )
+    fe_map.add_experimental_measurement(
+        label="ligand1", value=-7.0 * unit.kilocalories_per_mole, uncertainty=0.3 * unit.kilocalories_per_mole
+    )
+    fe_map.add_experimental_measurement(
+        label="ligand2", value=-5.0 * unit.kilocalories_per_mole, uncertainty=0.2 * unit.kilocalories_per_mole
+    )
+    return fe_map
