@@ -1,12 +1,14 @@
 import itertools
-from typing import Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pylab as plt
 import networkx as nx
 import numpy as np
+import seaborn as sns
 from adjustText import adjust_text
 
 from cinnabar import plotlying, stats
+from cinnabar.femap import FEMap
 
 
 def _master_plot(
@@ -584,3 +586,314 @@ def plot_all_DDGs(
             statistic_type=statistic_type,
             **kwargs,
         )
+
+
+def ecdf_plot(
+    datasets: dict[str, np.ndarray],
+    title: str | None = "ECDF of Absolute Errors",
+    xlabel: str = "Pairwise",
+    quantity: str = r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
+    units: str = r"$\mathrm{kcal\,mol^{-1}}$",
+    ylabel: str = "Cumulative Probability",
+    figsize: float | tuple[float, float] = 4,
+    colors: list[str] | None = None,
+    ecdf_kwargs: dict[str, Any] | None = None,
+    filename: str | None = None,
+) -> plt.Figure:
+    r"""
+    Plot ECDFs for one or more datasets. Where the dataset is a flat array of absolute errors.
+
+    Parameters
+    ----------
+    datasets : dict[str, np.ndarray]
+        A dictionary where keys are dataset labels and values are the data arrays.
+    title: str | None, default = "ECDF of Absolute Errors"
+        Title for the plot. If None, no title is set.
+    xlabel : str, default = "Absolute Error"
+        Label for the x-axis.
+    quantity : str, default = r"$\Delta\Delta$G"
+        Metric that is being plotted.
+    units : str, default = r"$\mathrm{kcal\,mol^{-1}}$"
+        Units of the metric being plotted.
+    ylabel : str, default = "Cumulative Probability"
+        Label for the y-axis.
+    figsize : float | tuple[float, float], default = 4
+        Size of the figure.
+    colors : list[str] | None, default = None
+        List of colors for each dataset. If None, default colors are used.
+    ecdf_kwargs : dict, optional
+        Additional keyword arguments to pass to seaborn.ecdfplot.
+    filename : str | None, default = None
+        If provided, the plot will be saved to this filename.
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the ECDF plot which can be edited further.
+    """
+    if ecdf_kwargs is None:
+        ecdf_kwargs = {}
+
+    if not datasets:
+        raise ValueError("At least one dataset is required to plot an ECDF.")
+
+    if not isinstance(figsize, tuple):
+        figsize = (figsize, figsize)
+    fig, axs = plt.subplots(figsize=figsize)
+
+    # make the default ecdf_kwargs for the plot
+    default_kwargs = {
+        "ax": axs,
+        "linewidth": 2,
+    }
+    default_kwargs.update(ecdf_kwargs)
+
+    # Iterate over the dictionary to plot ECDFs
+    for i, (label, data) in enumerate(datasets.items()):
+        # Pick a color for the dataset if specified
+        color = colors[i] if colors and i < len(colors) else None
+        if color:
+            default_kwargs["color"] = color
+
+        sns.ecdfplot(data, label=label, **default_kwargs)
+
+    if title is not None:
+        plt.title(title, fontsize=14)
+
+    plt.xlabel(f"{xlabel} {quantity} ({units})", fontsize=12)
+    plt.ylabel(ylabel, fontsize=12)
+    plt.xlim(left=0)
+    plt.legend()
+    # add gridlines to help identify 1, 2 kcal/mol errors
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    if filename is not None:
+        plt.savefig(filename, bbox_inches="tight", dpi=300)
+    return fig
+
+
+def ecdf_plot_DDGs(
+    graphs: list[FEMap | nx.MultiDiGraph],
+    labels: list[str],
+    title: str | None = "ECDF of Edgewise Absolute Errors",
+    filename: str | None = None,
+    **kwargs,
+) -> plt.Figure:
+    """
+    Plot ECDF of absolute errors for edgewise relative free energies in a graph.
+
+    Parameters
+    ----------
+    graphs: list[FEMap | nx.MultiDiGraph]
+        A list of graph objects with relative free energy edges.
+    labels: list[str]
+        A list of labels corresponding to each graph, these will be used in the legend.
+    title : str | None, default = "ECDF of Absolute Errors"
+        Title for the plot. If None, no title is set.
+    filename : str | None, default = None
+        If provided, the plot will be saved to this filename.
+    **kwargs
+        Additional keyword arguments to pass to `ecdf_plot`.
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the ECDF plot which can be edited further.
+
+    Notes
+    -----
+    We assume that the graphs have edges with 'calc_DDG' and 'exp_DDG' attributes. If any edges are missing an experimental value,
+    they will be skipped in the absolute error calculation.
+
+    Raises
+    ------
+    ValueError
+        If any edges are missing a calculated DDG value.
+    """
+    # extract the edgewise absolute errors for each graph
+    datasets = {}
+    for graph, label in zip(graphs, labels):
+        # handle the case where a FEMap is provided
+        if isinstance(graph, FEMap):
+            graph = graph.to_legacy_graph()
+
+        # if the experimental value is missing, add a nan so we can filter it out
+        x = np.array([x[2].get("exp_DDG", np.nan) for x in graph.edges(data=True)])
+        y = np.array([x[2].get("calc_DDG", np.nan) for x in graph.edges(data=True)])
+        # if any calculated values are missing raise an error
+        if np.any(np.isnan(y)) or y.size == 0:
+            raise ValueError(
+                f"Graph with label {label} has edges with missing calculated DDG values, which should be stored as `calc_DDG`."
+            )
+        # filter out edges with missing experimental values
+        mask = ~np.isnan(x)
+        x = x[mask]
+        y = y[mask]
+        abs_errors = np.abs(y - x)
+        datasets[label] = abs_errors
+
+    fig = ecdf_plot(
+        datasets,
+        title=title,
+        filename=filename,
+        xlabel="Edgewise",
+        **kwargs,
+    )
+    return fig
+
+
+def ecdf_plot_DGs(
+    graphs: list[FEMap | nx.MultiDiGraph],
+    labels: list[str],
+    title: str | None = "ECDF of Nodewise Absolute Errors",
+    filename: str | None = None,
+    centralizing: bool = True,
+    **kwargs,
+) -> plt.Figure:
+    """
+    Plot ECDF of absolute errors for nodewise absolute free energies in a graph.
+
+    Parameters
+    ----------
+    graphs: list[FEMap | nx.MultiDiGraph]
+        A list of graph objects with relative free energy edges.
+    labels: list[str]
+        A list of labels corresponding to each graph, these will be used in the legend.
+    title : str | None, default = "ECDF of Absolute Errors"
+        Title for the plot. If None, no title is set.
+    filename : str | None, default = None
+        If provided, the plot will be saved to this filename.
+    centralizing : bool, default = True
+        whether to center both calculated and experimental values around zero before calculating absolute errors.
+    **kwargs
+        Additional keyword arguments to pass to `ecdf_plot`.
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the ECDF plot which can be edited further.
+
+    Notes
+    -----
+    We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. The absolute errors are calculated after centering both
+    calculated and experimental values around zero.
+
+    Raises
+    ------
+    ValueError
+        If any nodes are missing a calculated DG value.
+    """
+    # extract the nodewise absolute errors for each graph
+    datasets = {}
+    for graph, label in zip(graphs, labels):
+        # handle the case where a FEMap is provided
+        if isinstance(graph, FEMap):
+            graph = graph.to_legacy_graph()
+
+        # if the experimental value is missing, add a nan so we can filter it out
+        x = np.array([node[1].get("exp_DG", np.nan) for node in graph.nodes(data=True)])
+        y = np.array([node[1].get("calc_DG", np.nan) for node in graph.nodes(data=True)])
+        # if any nodes are missing calculated values raise an error
+        if np.any(np.isnan(y)) or y.size == 0:
+            raise ValueError(
+                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
+            )
+        # filter out nodes with missing experimental values
+        mask = ~np.isnan(x)
+        x = x[mask]
+        y = y[mask]
+        # we need to shift the arrays to both be centered around zero if requested
+        if centralizing:
+            x -= np.mean(x)
+            y -= np.mean(y)
+        abs_errors = np.abs(y - x)
+        datasets[label] = abs_errors
+
+    fig = ecdf_plot(
+        datasets,
+        title=title,
+        xlabel="Nodewise",
+        quantity=r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
+        filename=filename,
+        **kwargs,
+    )
+    return fig
+
+
+def ecdf_plot_all_DDGs(
+    graphs: list[FEMap | nx.MultiDiGraph],
+    labels: list[str],
+    title: str | None = "ECDF of Pairwise (all-to-all) Absolute Errors",
+    filename: str | None = None,
+    **kwargs,
+) -> plt.Figure:
+    """
+    Plot ECDF of absolute errors for all-to-all relative free energies calculated from absolute free energies in a graph.
+
+    Parameters
+    ----------
+    graphs: list[FEMap | nx.MultiDiGraph]
+        A list of graph objects with relative free energy edges.
+    labels: list[str]
+        A list of labels corresponding to each graph, these will be used in the legend.
+    title : str | None, default = "ECDF of Absolute Errors"
+        Title for the plot. If None, no title is set.
+    filename : str | None, default = None
+        If provided, the plot will be saved to this filename.
+    **kwargs
+        Additional keyword arguments to pass to `ecdf_plot`.
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the ECDF plot which can be edited further.
+
+    Notes
+    -----
+    We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. If any nodes are missing an experimental value,
+    they will be skipped in the absolute error calculation.
+
+    Raises
+    ------
+    ValueError
+        If any nodes are missing a calculated DG value.
+    """
+    # extract the all-to-all absolute errors for each graph
+    datasets = {}
+    for graph, label in zip(graphs, labels):
+        # handle the case where a FEMap is provided
+        if isinstance(graph, FEMap):
+            graph = graph.to_legacy_graph()
+
+        nodes = graph.nodes(data=True)
+
+        # if the experimental value is missing, add a nan so we can filter it out
+        exp = np.array([node[1].get("exp_DG", np.nan) for node in nodes])
+        calc = np.array([node[1].get("calc_DG", np.nan) for node in nodes])
+        # if any nodes are missing calculated values raise an error
+        if np.any(np.isnan(calc)) or calc.size == 0:
+            raise ValueError(
+                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
+            )
+        # filter out nodes with missing experimental values
+        mask = ~np.isnan(exp)
+        exp = exp[mask]
+        calc = calc[mask]
+        # do all to plot_all we are taking the abs error so we only need the error once per pair
+        errors = []
+        for a, b in itertools.combinations(range(len(calc)), 2):
+            # transform a -> b has a DDG of calc[b] - calc[a]
+            calc_ddg = calc[b] - calc[a]
+            exp_ddg = exp[b] - exp[a]
+            errors.append(calc_ddg - exp_ddg)
+
+        datasets[label] = np.abs(errors)
+
+    fig = ecdf_plot(
+        datasets,
+        title=title,
+        xlabel="Pairwise",
+        filename=filename,
+        **kwargs,
+    )
+    return fig
