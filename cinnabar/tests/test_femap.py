@@ -242,6 +242,32 @@ def test_generate_absolute_values_mixed_units():
         m.generate_absolute_values()
 
 
+def test_generate_absolute_values_repeats():
+    """Make sure an error is raised if there are multiple edges between same nodes and we try and use the MLE solver."""
+    fe_map = femap.FEMap()
+    fe_map.add_relative_calculation(
+        "ligA",
+        "ligB",
+        value=-1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    # add a repeated edge
+    fe_map.add_relative_calculation(
+        "ligA",
+        "ligB",
+        value=-1.2 * unit.kilocalorie_per_mole,
+        uncertainty=0.2 * unit.kilocalorie_per_mole,
+    )
+    fe_map.add_relative_calculation(
+        "ligB",
+        "ligC",
+        value=-4.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.2 * unit.kilocalorie_per_mole,
+    )
+    with pytest.raises(ValueError, match="Multiple edges detected between nodes ligA and ligB."):
+        fe_map.generate_absolute_values()
+
+
 def test_to_dataframe(example_map):
     abs_df = example_map.get_absolute_dataframe()
     rel_df = example_map.get_relative_dataframe()
