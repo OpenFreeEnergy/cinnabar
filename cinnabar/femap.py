@@ -585,3 +585,70 @@ class FEMap:
             plt.show()
         else:
             plt.savefig(filename, bbox_inches="tight")
+
+    def get_cycle_closure(self):
+        """Calculate the sum of DDG along all ligand cycles as a measure of convergence."""
+        network = self.to_legacy_graph()
+        y = [x[2]["calc_DDG"] for x in network.edges(data=True)]
+
+        # Find all ligand cycles
+        cycles = sorted(nx.simple_cycles(network.to_undirected()))
+        edges = network.edges
+
+        # Loop over cycles, calculate sum of DG along cycle
+        dict = {}
+        for cycle in cycles:
+
+            # Store DDG values along the cycle
+            sum_ddgs = 0
+            for inx, ligand in enumerate(cycle):
+                if inx < len(cycle) - 1:
+                    ligA = ligand
+                    ligB = cycle[inx + 1]
+                # Last ligand is connected to first ligand
+                else:
+                    ligA = ligand
+                    ligB = cycle[0]
+                # depending on the direction the edge was calculated,
+                # the sign of the DDG has to change
+                if (ligA, ligB) in list(edges):
+                    ddg = y[list(edges).index((ligA, ligB))]
+                elif (ligB, ligA) in edges:
+                    ddg = -y[list(edges).index((ligB, ligA))]
+                # sum up DDGs along cycle
+                sum_ddgs += ddg
+
+            # divide by sqrt of number of ligands in the cycle
+            # to get cycle closure error PER EDGE
+            cc = abs(sum_ddgs / math.sqrt(len(cycle)))
+            # Store cycle and cycle closure in dict
+            dict[','.join(cycle)] = round(cc, 2)
+
+        # Sort cycle closure from high to low
+        sorted_list = sorted(dict.items(), key=lambda x: x[1], reverse=True)
+
+        return sorted_list
+
+    def store_cycle_closure_to_csv(self, file='cycle_closure.csv'):
+        """Save cycle closure, sorted from highest cycle closure to lowest
+        in a csv file."""
+        sorted_list = get_cycle_closure(self)
+
+        # CSV file to store results
+        f = open(file, 'w')
+        writer = csv.writer(f, lineterminator='\n')
+        header = '# ligands in cycle, sum(DDGs) / ' \
+                 'sqrt(number of ligands in cycle)\n'
+        f.write(header)
+        writer.writerows(sorted_list)
+        f.close()
+
+        return
+
+    def plot_hist_cycle_closure(self, file='cycle_closure_hist.png'):
+
+        sorted_list = get_cycle_closure(self)
+
+        plt.hist([s[1] for s in sorted_list])
+        plt.xlabel('Cycle closure in kcal/mol')
+        plt.savefig(file, bbox_inches="tight")
