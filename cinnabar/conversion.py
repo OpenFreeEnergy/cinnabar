@@ -2,20 +2,22 @@
 Conversion functions taken from
 <https://raw.githubusercontent.com/openforcefield/protein-ligand-benchmark/refs/tags/0.2.1/plbenchmark/utils.py>
 """
-from openff.units import unit
+
 from typing import Literal, get_args
+
 import numpy as np
+from openff.units import unit
 
 # Single source of truth for the observable types we support
 OBSERVABLE_TYPES = Literal["dg", "ki", "ic50", "pic50"]
 
 
 def convert_observable(
-        value: unit.Quantity,
-        original_type: OBSERVABLE_TYPES,
-        final_type: OBSERVABLE_TYPES,
-        uncertainty: None | unit.Quantity = None,
-        temperature: unit.Quantity = 300.0 * unit.kelvin
+    value: unit.Quantity,
+    original_type: OBSERVABLE_TYPES,
+    final_type: OBSERVABLE_TYPES,
+    uncertainty: None | unit.Quantity = None,
+    temperature: unit.Quantity = 300.0 * unit.kelvin,
 ) -> tuple[unit.Quantity, unit.Quantity | None]:
     """
     Converts an affinity value into another derived quantity,
@@ -76,15 +78,9 @@ def convert_observable(
     # Validate input types
     valid_types = get_args(OBSERVABLE_TYPES)
     if original_type not in valid_types:
-        raise ValueError(
-            f"Unknown original_type: {original_type}. "
-            f"Must be one of: {', '.join(valid_types)}"
-        )
+        raise ValueError(f"Unknown original_type: {original_type}. Must be one of: {', '.join(valid_types)}")
     if final_type not in valid_types:
-        raise ValueError(
-            f"Unknown final_type: {final_type}. "
-            f"Must be one of: {', '.join(valid_types)}"
-        )
+        raise ValueError(f"Unknown final_type: {final_type}. Must be one of: {', '.join(valid_types)}")
 
     # store the conversion functions by (original_type, final_type) in a dictionary for easy lookup
     converters = {
@@ -93,19 +89,16 @@ def convert_observable(
         ("dg", "ki"): lambda v, e: _convert_dg_to_ki(v, e, k_bt),
         ("dg", "ic50"): lambda v, e: _convert_dg_to_ic50(v, e, k_bt),
         ("dg", "pic50"): lambda v, e: _convert_dg_to_pic50(v, e, k_bt),
-
         # Ki conversions
         ("ki", "dg"): lambda v, e: _convert_ki_to_dg(v, e, k_bt),
         ("ki", "ki"): lambda v, e: (v, e),
         ("ki", "ic50"): lambda v, e: (v, e),
         ("ki", "pic50"): lambda v, e: _convert_ki_to_pic50(v, e),
-
         # IC50 conversions
         ("ic50", "dg"): lambda v, e: _convert_ic50_to_dg(v, e, k_bt),
-        ("ic50" ,"ki"): lambda v, e: (v, e),
+        ("ic50", "ki"): lambda v, e: (v, e),
         ("ic50", "ic50"): lambda v, e: (v, e),
         ("ic50", "pic50"): lambda v, e: _convert_ic50_to_pic50(v, e),
-
         # pIC50 conversions
         ("pic50", "dg"): lambda v, e: _convert_pic50_to_dg(v, e, k_bt),
         ("pic50", "ki"): lambda v, e: _convert_pic50_to_ki(v, e),
@@ -134,7 +127,7 @@ def convert_observable(
         "dg": unit("kilocalories / mole"),
         "ki": unit("nanomolar"),
         "ic50": unit("nanomolar"),
-        "pic50": unit("")
+        "pic50": unit(""),
     }
     out_unit = default_units[final_type]
     converted_value = converted_value.to(out_unit)
@@ -145,7 +138,7 @@ def convert_observable(
     if original_type != final_type:
         converted_value = converted_value.round(2)
         if converted_uncertainty is not None:
-             converted_uncertainty = converted_uncertainty.round(2)
+            converted_uncertainty = converted_uncertainty.round(2)
 
     return converted_value, converted_uncertainty
 
@@ -211,7 +204,7 @@ def _convert_ki_to_pic50(value, error):
         result = -np.log(value / unit.molar) / np.log(10)
     # Error propagation: e_pic50 = 1/(Ki*ln(10)) * e_Ki
     if (value * np.log(10)) < 1e-15 * unit("molar") and error is not None:
-        error_result =  1e15
+        error_result = 1e15
     elif error is not None:
         error_result = 1 / (value * np.log(10)) * error
     return result, error_result
