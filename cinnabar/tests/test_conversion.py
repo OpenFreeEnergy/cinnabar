@@ -161,3 +161,19 @@ def test_convert_observable_invalid_types():
             uncertainty=None,
             temperature=298.15 * unit.kelvin,
         )
+
+
+def test_convert_ki_to_pic50_small_value():
+    value = 1e-16 * unit("molar")
+    error = 3 * unit("nanomolar")
+    converted_value, converted_error = conversion._convert_ki_to_pic50(value, error)
+    assert pytest.approx(converted_value, abs=0.1) == -1e15
+    assert pytest.approx(converted_error, abs=0.1) == 1e15
+
+
+def test_convert_ic50_to_pic50_small_value():
+    value = 1e-16 * unit("molar")
+    error = 3 * unit("nanomolar")
+    converted_value, converted_error = conversion._convert_ic50_to_pic50(value, error)
+    assert pytest.approx(converted_value, abs=0.1) == -1e15
+    assert pytest.approx(converted_error, abs=0.1) == 1e15
