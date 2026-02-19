@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Literal, get_args
 
 import networkx as nx
 import numpy as np
@@ -178,7 +178,7 @@ def calculate_kendalls_tau(
 def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     r"""
     Compute the normalized root mean squared error between true and predicted values, using the true mean to normalize
-    the RMSE1 [1]_.
+    the RMSE. [1]_
 
     Note
     ----
@@ -209,7 +209,8 @@ def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return rmse / np.abs(mean_true)
 
 
-AVAILABLE_STATS = {
+# map from statistic name to function that calculates the statistic
+_AVAILABLE_STATS = {
     "RMSE": calculate_rmse,
     "NRMSE": calculate_nrmse,
     "MUE": calculate_mue,
@@ -218,6 +219,11 @@ AVAILABLE_STATS = {
     "rho": calculate_pearson_r,
     "KTAU": calculate_kendalls_tau,
 }
+# make a type hint for the statistic names
+Statistics = Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU"]
+# make sure the type hint and the list stay in sync
+assert set(get_args(Statistics)) == set(_AVAILABLE_STATS.keys())
+
 
 def bootstrap_statistic(
     y_true: np.ndarray,
@@ -225,7 +231,7 @@ def bootstrap_statistic(
     dy_true: Union[np.ndarray, None] = None,
     dy_pred: Union[np.ndarray, None] = None,
     ci: float = 0.95,
-    statistic: str = "RMSE",
+    statistic: Statistics = "RMSE",
     nbootstrap: int = 1000,
     include_true_uncertainty: bool = False,
     include_pred_uncertainty: bool = False,
@@ -269,9 +275,9 @@ def bootstrap_statistic(
         'high' : high end of CI
     """
     # check the statistic is valid
-    if statistic not in AVAILABLE_STATS:
+    if statistic not in _AVAILABLE_STATS:
         raise ValueError(f'unknown statistic {statistic}')
-    stat_func = AVAILABLE_STATS[statistic]
+    stat_func = _AVAILABLE_STATS[statistic]
 
     # # not used?
     # def unique_differences(x):
