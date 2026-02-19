@@ -178,7 +178,7 @@ def calculate_kendalls_tau(
 def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     r"""
     Compute the normalized root mean squared error between true and predicted values, using the true mean to normalize
-    the RMSE.
+    the RMSE1 [1]_.
 
     Note
     ----
@@ -199,6 +199,10 @@ def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     -------
     nrmse : float
         NRMSE between true and predicted values
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Root_mean_square_deviation
     """
     rmse = calculate_rmse(y_true, y_pred)
     mean_true = np.mean(y_true)
