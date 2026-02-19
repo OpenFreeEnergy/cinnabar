@@ -1,4 +1,4 @@
-from typing import Union, Literal, get_args
+from typing import Literal, Union, get_args
 
 import networkx as nx
 import numpy as np
