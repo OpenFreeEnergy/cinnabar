@@ -157,7 +157,7 @@ def test_missing_statistic(example_data):
     """
     x_data, y_data, xerr, yerr = example_data
 
-    with pytest.raises(Exception, match="unknown statistic UNKNOWN_STAT"):
+    with pytest.raises(ValueError, match="unknown statistic UNKNOWN_STAT"):
         bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="UNKNOWN_STAT")
 
 
@@ -262,7 +262,7 @@ def test_bad_edge_matrix_action(fe_map):
     Test that an error is raised when an unknown action is provided
     to the edge matrix computation
     """
-    with pytest.raises(Exception, match='action "bad_action" unknown'):
+    with pytest.raises(ValueError, match='action "bad_action" unknown'):
         _ = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action="bad_action")
 
 
