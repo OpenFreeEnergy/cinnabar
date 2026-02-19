@@ -14,6 +14,7 @@ due.cite(
     cite_module=True,
 )
 
+
 def calculate_rmse(
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -219,6 +220,7 @@ AVAILABLE_STATS = {
     "KTAU": calculate_kendalls_tau,
 }
 
+
 def bootstrap_statistic(
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -270,7 +272,7 @@ def bootstrap_statistic(
     """
     # check the statistic is valid
     if statistic not in AVAILABLE_STATS:
-        raise ValueError(f'unknown statistic {statistic}')
+        raise ValueError(f"unknown statistic {statistic}")
     stat_func = AVAILABLE_STATS[statistic]
 
     # # not used?
