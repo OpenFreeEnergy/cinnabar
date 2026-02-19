@@ -62,6 +62,10 @@ def test_n_measurements(example_map):
 def test_weakly_connected(example_map):
     assert example_map.check_weakly_connected() is True
 
+def test_weakly_connected_no_results():
+    m = cinnabar.FEMap()
+    with pytest.raises(ValueError, match="Graph contains no computational edges, cannot check connectivity"):
+        m.check_weakly_connected()
 
 def test_femap_add_measurement():
     m = cinnabar.FEMap()
