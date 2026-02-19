@@ -232,6 +232,7 @@ def test_confidence_interval_edge_case():
         ("rho", 0.7841978196676316),
         ("KTAU", 0.58148151940828),
         ("RAE", 15.995712243925674),
+        ("NRMSE", 1.0040857354711985),
     ],
 )
 def test_regression_bootstrap_statistics(example_data, stat, expected):

@@ -99,10 +99,12 @@ def calculate_rae(
     rae : float
         RAE between true and predicted values
     """
-    MAE = sklearn.metrics.mean_absolute_error(y_true, y_pred)
-    mean = np.mean(y_true)
-    MAD = np.mean([np.abs(mean - i) for i in y_true])
-    return MAE / MAD
+    # mean unsigned error of the predictions
+    mue = calculate_mue(y_true, y_pred)
+    true_mean = np.mean(y_true)
+    # mean absolute deviation of the true values from their mean
+    mad = np.mean([np.abs(true_mean - i) for i in y_true])
+    return mue / mad
 
 
 def calculate_r2(
@@ -175,7 +177,8 @@ def calculate_kendalls_tau(
 
 def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     r"""
-    Compute the normalized root mean squared error between true and predicted values.
+    Compute the normalized root mean squared error between true and predicted values, using the true mean to normalize
+    the RMSE.
 
     Note
     ----
@@ -198,8 +201,8 @@ def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
         NRMSE between true and predicted values
     """
     rmse = calculate_rmse(y_true, y_pred)
-    mean_exp = np.mean(y_true)
-    return rmse / mean_exp
+    mean_true = np.mean(y_true)
+    return rmse / np.abs(mean_true)
 
 
 AVAILABLE_STATS = {
