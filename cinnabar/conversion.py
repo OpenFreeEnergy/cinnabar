@@ -16,8 +16,8 @@ def convert_observable(
     value: unit.Quantity,
     original_type: OBSERVABLE_TYPES,
     final_type: OBSERVABLE_TYPES,
-    uncertainty: None | unit.Quantity = None,
-    temperature: unit.Quantity = 300.0 * unit.kelvin,
+    uncertainty: unit.Quantity | None  = None,
+    temperature: unit.Quantity = 298.15 * unit.kelvin,
 ) -> tuple[unit.Quantity, unit.Quantity | None]:
     """
     Converts an affinity value into another derived quantity,
@@ -34,7 +34,7 @@ def convert_observable(
     uncertainty : unit.Quantity, optional
         The uncertainty/error in the original observable with units, should always be positive.
     temperature : unit.Quantity, optional
-        Temperature in kelvin for conversions involving dG. Default is 300 K.
+        Temperature in kelvin for conversions involving dG. Default is 298.15 K.
 
 
     Notes

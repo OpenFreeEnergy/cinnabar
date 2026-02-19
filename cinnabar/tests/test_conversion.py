@@ -3,6 +3,17 @@ from openff.units import unit
 
 from cinnabar import conversion
 
+def _check_output_units(output_type, converted_value):
+    """Helper function to check the units of the converted value based on the output type."""
+    if output_type == "dg":
+        assert converted_value.units == unit("kcal / mole")
+    elif output_type in ["ki", "ic50"]:
+        assert converted_value.units == unit("nanomolar")
+    elif output_type == "pic50":
+        assert converted_value.units == unit.dimensionless
+    else:
+        raise ValueError(f"Unknown output_type: {output_type}")
+
 
 @pytest.mark.parametrize(
     "value, uncertainty, temp, output_type, expected_value, expected_uncertainty",
@@ -36,10 +47,12 @@ def test_convert_value_from_dg(value, uncertainty, temp, output_type, expected_v
         temperature=temp * unit.kelvin,
     )
     assert pytest.approx(converted_value.m) == expected_value
+    _check_output_units(output_type, converted_value)
     if expected_uncertainty is None:
         assert converted_error is None
     else:
         assert pytest.approx(converted_error.m) == expected_uncertainty
+        _check_output_units(output_type, converted_error)
 
 
 @pytest.mark.parametrize(
@@ -74,10 +87,12 @@ def test_convert_value_from_ki(value, uncertainty, temp, output_type, expected_v
         temperature=temp * unit.kelvin,
     )
     assert pytest.approx(converted_value.m) == expected_value
+    _check_output_units(output_type, converted_value)
     if expected_uncertainty is None:
         assert converted_error is None
     else:
         assert pytest.approx(converted_error.m) == expected_uncertainty
+        _check_output_units(output_type, converted_error)
 
 
 @pytest.mark.parametrize(
@@ -112,10 +127,12 @@ def test_convert_value_from_ic50(value, uncertainty, temp, output_type, expected
         temperature=temp * unit.kelvin,
     )
     assert pytest.approx(converted_value.m) == expected_value
+    _check_output_units(output_type, converted_value)
     if expected_uncertainty is None:
         assert converted_error is None
     else:
         assert pytest.approx(converted_error.m) == expected_uncertainty
+        _check_output_units(output_type, converted_error)
 
 
 @pytest.mark.parametrize(
@@ -127,7 +144,8 @@ def test_convert_value_from_ic50(value, uncertainty, temp, output_type, expected
         (7.33, None, 298.15, "pic50", 7.33, None),
         # to dg with changing temp this is the reverse transformation of the first test
         (7.33, 0.07, 298.15, "dg", -10.0, 0.1),
-        (7.28, None, 300, "dg", -10.0, None),
+        # reverse transformation from the first test, requires more precision to get the same value back due to rounding
+        (7.284, None, 300, "dg", -10.0, None),
         # to ki with changing temp
         (7.33, 0.07, 298.15, "ki", 46.77, 7.54),
         (7.33, None, 300, "ki", 46.77, None),
@@ -144,11 +162,13 @@ def test_convert_value_from_pic50(value, uncertainty, temp, output_type, expecte
         uncertainty=uncertainty,
         temperature=temp * unit.kelvin,
     )
-    assert pytest.approx(converted_value.m, abs=0.1) == expected_value
+    assert pytest.approx(converted_value.m) == expected_value
+    _check_output_units(output_type, converted_value)
     if expected_uncertainty is None:
         assert converted_error is None
     else:
         assert pytest.approx(converted_error.m) == expected_uncertainty
+        _check_output_units(output_type, converted_error)
 
 
 def test_convert_observable_invalid_types():
