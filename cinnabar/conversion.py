@@ -82,7 +82,7 @@ def convert_observable(
     if final_type not in valid_types:
         raise ValueError(f"Unknown final_type: {final_type}. Must be one of: {', '.join(valid_types)}")
     # validate that uncertainty is non-negative if provided
-    if uncertainty is not None and uncertainty.m < 0:
+    if uncertainty is not None and uncertainty < 0:
         raise ValueError("Uncertainty must be positive")
 
     # store the conversion functions by (original_type, final_type) in a dictionary for easy lookup
