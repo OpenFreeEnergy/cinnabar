@@ -6,14 +6,11 @@ Contains the :class:`Measurement` class which is used to define a single free en
 as well as the :class:`ReferenceState` class which denotes the end point for absolute measurements.
 
 """
-
+from dataclasses import dataclass
 import math
 from typing import Hashable, Union
 
 from openff.units import unit
-
-from cinnabar.vendor.openff.models.models import DefaultModel
-from cinnabar.vendor.openff.models.types import FloatQuantity
 
 
 class ReferenceState:
@@ -54,7 +51,8 @@ class ReferenceState:
         return hash(self.label)
 
 
-class Measurement(DefaultModel):
+@dataclass(frozen=True)
+class Measurement:
     """The free energy difference of moving from A to B
 
     All quantities are accompanied by units, to prevent mix-ups associated with
@@ -85,23 +83,33 @@ class Measurement(DefaultModel):
       ...                 computational=False)
     """
 
-    class Config:
-        frozen = True
-
     labelA: Hashable
     """Label of state A, e.g. a ligand name or any hashable Python object"""
     labelB: Hashable
     """Label of state B"""
-    DG: FloatQuantity["kilocalorie_per_mole"]
-    """The free energy difference of moving from A to B"""
-    uncertainty: FloatQuantity["kilocalorie_per_mole"]
-    """The uncertainty of the DG measurement"""
-    temperature: FloatQuantity["kelvin"] = 298.15 * unit.kelvin
-    """Temperature that the measurement was taken as"""
+    DG: unit.Quantity
+    """The free energy difference of moving from A to B in kcal/mol"""
+    uncertainty: unit.Quantity
+    """The uncertainty of the DG measurement in kcal/mol"""
     computational: bool
     """If this measurement is computationally based (or experimental)"""
     source: str = ""
     """An arbitrary label to group measurements from a common source"""
+    temperature: unit.Quantity = 298.15 * unit.kelvin
+    """Temperature that the measurement was taken at in K. By default: 298 K (298.15 * unit.kelvin)"""
+
+    def __init__(self, labelA: Hashable, labelB: Hashable, DG: unit.Quantity, uncertainty: unit.Quantity, computational: bool, source: str = "", temperature: unit.Quantity = 298.15 * unit.kelvin):
+        """
+        Initialize a Measurement object converting all quantities to the correct default units.
+        """
+        object.__setattr__(self, "labelA", labelA)
+        object.__setattr__(self, "labelB", labelB)
+        object.__setattr__(self, "DG", DG.to(unit.kilocalorie_per_mole))
+        object.__setattr__(self, "uncertainty", uncertainty.to(unit.kilocalorie_per_mole))
+        object.__setattr__(self, "computational", computational)
+        object.__setattr__(self, "source", source)
+        object.__setattr__(self, "temperature", temperature.to(unit.kelvin))
+
 
     @classmethod
     def from_experiment(

@@ -135,3 +135,16 @@ def test_is_true_ground(label, expected):
 def test_ref_state_repr(label, expected):
     rs = cinnabar.ReferenceState(label=label)
     assert repr(rs) == expected
+
+
+def test_convert_default_units():
+    m = cinnabar.Measurement(
+        labelA="foo",
+        labelB="bar",
+        DG=4.0 * unit.kilojoule_per_mole,
+        uncertainty=1.0 * unit.kilojoule_per_mole,
+        computational=True,
+    )
+
+    assert m.DG.units == unit.kilocalorie_per_mole
+    assert m.uncertainty.units == unit.kilocalorie_per_mole

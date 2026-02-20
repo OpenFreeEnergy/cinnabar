@@ -8,6 +8,7 @@ which form an interconnected "network" of values.
 """
 
 import copy
+from dataclasses import asdict
 import pathlib
 import warnings
 from typing import Hashable, Optional, Union
@@ -213,7 +214,7 @@ class FEMap:
         ValueError : if bad type given
         """
         # slurp out tasty data, anything but labels
-        d = dict(measurement)
+        d = asdict(measurement)
         d.pop("labelA", None)
         d.pop("labelB", None)
 
