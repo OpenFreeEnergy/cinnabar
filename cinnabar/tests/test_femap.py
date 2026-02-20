@@ -440,7 +440,7 @@ def test_measurement_ordering(example_map):
     # generate a new map with edges added in a random order
     rng = np.random.default_rng()
     measurements = list(example_map)
-    rng.shuffle(measurements) # generate a random order of the edges
+    rng.shuffle(measurements)  # generate a random order of the edges
     femap2 = cinnabar.FEMap()
     for m in measurements:
         femap2.add_measurement(m)
@@ -458,5 +458,3 @@ def test_measurement_ordering(example_map):
     abs_df2 = abs_df2.sort_values("label").reset_index(drop=True)
 
     assert np.allclose(abs_df["DG (kcal/mol)"].values, abs_df2["DG (kcal/mol)"].values)
-
-
