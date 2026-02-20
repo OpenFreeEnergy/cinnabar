@@ -340,7 +340,6 @@ class FEMap:
         )
         self.add_measurement(m)
 
-
     def get_relative_dataframe(self) -> pd.DataFrame:
         """Gets a dataframe of all relative results
 
@@ -398,7 +397,6 @@ class FEMap:
             columns=cols,
         )
 
-
     def get_all_to_all_relative_dataframe(self, symmetrical: bool = True) -> pd.DataFrame:
         """Get a dataframe of the all-to-all pairwise relative results using the absolute DG values.
 
@@ -450,8 +448,11 @@ class FEMap:
                 columns=["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"],
             )
             pairwise_dfs.append(pairwise_df)
-        return pd.concat(pairwise_dfs).sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
-
+        return (
+            pd.concat(pairwise_dfs)
+            .sort_values(by=["source", "computational", "labelA", "labelB"])
+            .reset_index(drop=True)
+        )
 
     @property
     def n_measurements(self) -> int:
