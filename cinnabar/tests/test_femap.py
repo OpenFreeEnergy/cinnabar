@@ -283,6 +283,49 @@ def test_to_dataframe(example_map):
     assert abs_df2.loc[~abs_df2.computational].shape == (36, 5)
 
 
+def test_to_all_pairwise_df_symmetry(example_map):
+    """Test generating the all-to-all pairwise dataframe with the symmetry option."""
+    # Generate using only the experimental data
+    all_symmetry_df = example_map.get_all_to_all_relative_dataframe(symmetrical=True)
+    all_no_sym_df = example_map.get_all_to_all_relative_dataframe(symmetrical=False)
+
+    assert all_symmetry_df.shape == (36 * 35, 6)  # n(n-1) for symmetrical
+    assert all_no_sym_df.shape == (36 * 35 // 2, 6)  # n(n-1) / 2 for non-symmetrical
+
+    # generate again using the calculated absolute values as well
+    example_map.generate_absolute_values()
+    all_symmetry_df2 = example_map.get_all_to_all_relative_dataframe(symmetrical=True)
+    all_no_sym_df2 = example_map.get_all_to_all_relative_dataframe(symmetrical=False)
+
+    assert all_symmetry_df2.shape == (36 * 35 * 2, 6)  # n(n-1) for symmetrical * 2 for both sources
+    assert all_no_sym_df2.shape == (36 * 35, 6)  # n(n-1) / 2 for non-symmetrical * 2 for both sources
+
+    # make sure the pair ordering is the same for each source
+    for df in [all_symmetry_df2, all_no_sym_df2]:
+        # get a 2D array of the label pairs for each source and check they are the same
+        comp_labels = df.loc[df.computational, ["labelA", "labelB"]].values
+        exp_labels = df.loc[~df.computational, ["labelA", "labelB"]].values
+        assert (comp_labels == exp_labels).all()
+
+    # make sure all values are correct
+    abs_df = example_map.get_absolute_dataframe()
+    for df in [all_symmetry_df2, all_no_sym_df2]:
+        for _, row in df.iterrows():
+            label_a = row["labelA"]
+            label_b = row["labelB"]
+            computational = row["computational"]
+
+            if computational:
+                source_df = abs_df.loc[abs_df.computational]
+            else:
+                source_df = abs_df.loc[~abs_df.computational]
+
+            dg_a = source_df.loc[source_df.label == label_a, "DG (kcal/mol)"].values[0]
+            dg_b = source_df.loc[source_df.label == label_b, "DG (kcal/mol)"].values[0]
+            expected_ddg = dg_b - dg_a
+            assert row["DDG (kcal/mol)"] == expected_ddg
+
+
 def test_to_networkx(example_map):
     g = example_map.to_networkx()
 

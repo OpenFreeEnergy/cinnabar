@@ -8,6 +8,7 @@ which form an interconnected "network" of values.
 """
 
 import copy
+import itertools
 import pathlib
 import warnings
 from typing import Hashable, Optional, Union
@@ -339,14 +340,15 @@ class FEMap:
         )
         self.add_measurement(m)
 
+
     def get_relative_dataframe(self) -> pd.DataFrame:
         """Gets a dataframe of all relative results
 
         The pandas DataFrame will have the following columns:
         - labelA
         - labelB
-        - DDG
-        - uncertainty
+        - DDG (kcal/mol)
+        - uncertainty (kcal/mol)
         - source
         - computational
         """
@@ -372,8 +374,8 @@ class FEMap:
 
         The dataframe will have the following columns:
         - label
-        - DG
-        - uncertainty
+        - DG (kcal/mol)
+        - uncertainty (kcal/mol)
         - source
         - computational
         """
@@ -395,6 +397,61 @@ class FEMap:
             data=data,
             columns=cols,
         )
+
+
+    def get_all_to_all_relative_dataframe(self, symmetrical: bool = True) -> pd.DataFrame:
+        """Get a dataframe of the all-to-all pairwise relative results using the absolute DG values.
+
+        Parameters
+        ----------
+        symmetrical : bool, optional
+            If True, include both directions of each pairwise comparison. If False, include only one direction (default is True).
+
+        Returns
+        -------
+        df : pd.DataFrame
+             A dataframe containing all pairwise relative results.
+
+        Note
+        ----
+        The dataframe will have the following columns:
+        - labelA
+        - labelB
+        - DDG (kcal/mol)
+        - uncertainty (kcal/mol)
+        - source
+        - computational
+        The dataframe will be sorted by source, computational, labelA, and labelB to ensure that paring order is consistent.
+        If `symmetrical` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
+        """
+        # we need to group by the source and computational labels and then compute the pairwise differences within each group, then concatenate the results together
+        df = self.get_absolute_dataframe()
+        grouped = df.groupby(["source", "computational"])
+        pairwise_dfs = []
+        for (source, computational), group in grouped:
+            # sort the group by label to ensure that paring order is consistent
+            group = group.sort_values(by="label")
+            labels = group["label"].values
+            dgs = group["DG (kcal/mol)"].values
+            uncertainties = group["uncertainty (kcal/mol)"].values
+
+            data = []
+            for i, j in itertools.combinations(range(len(labels)), 2):
+                label_a, label_b = labels[i], labels[j]
+                # transformation i -> j has a DDG of j - i
+                ddg = dgs[j] - dgs[i]
+                uncertainty = (uncertainties[i] ** 2 + uncertainties[j] ** 2) ** 0.5
+                data.append((label_a, label_b, ddg, uncertainty, source, computational))
+                if symmetrical:
+                    data.append((label_b, label_a, -ddg, uncertainty, source, computational))
+
+            pairwise_df = pd.DataFrame(
+                data=data,
+                columns=["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"],
+            )
+            pairwise_dfs.append(pairwise_df)
+        return pd.concat(pairwise_dfs).sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
+
 
     @property
     def n_measurements(self) -> int:
