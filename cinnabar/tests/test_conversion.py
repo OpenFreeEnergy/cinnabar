@@ -205,3 +205,14 @@ def test_convert_ic50_to_pic50_small_value():
     converted_value, converted_error = conversion._convert_ic50_to_pic50(value, error)
     assert pytest.approx(converted_value, abs=0.1) == -1e15
     assert pytest.approx(converted_error, abs=0.1) == 1e15
+
+
+def test_negative_uncertainty():
+    with pytest.raises(ValueError, match="Uncertainty must be positive"):
+        conversion.convert_observable(
+            value=-10.0 * unit("kcal / mole"),
+            original_type="dg",
+            final_type="ki",
+            uncertainty=-0.1 * unit("kcal / mole"),
+            temperature=298.15 * unit.kelvin,
+        )

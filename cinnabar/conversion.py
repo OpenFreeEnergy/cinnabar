@@ -70,7 +70,7 @@ def convert_observable(
     Raises
     ------
     ValueError
-        If the original_type or final_type is not recognized.
+        If the original_type or final_type is not recognized or if the uncertainty is negative.
     """
     # calculate kT for the given temperature, this will be used in the conversions involving dG
     k_bt = unit.molar_gas_constant * temperature
@@ -81,6 +81,9 @@ def convert_observable(
         raise ValueError(f"Unknown original_type: {original_type}. Must be one of: {', '.join(valid_types)}")
     if final_type not in valid_types:
         raise ValueError(f"Unknown final_type: {final_type}. Must be one of: {', '.join(valid_types)}")
+    # validate that uncertainty is non-negative if provided
+    if uncertainty is not None and uncertainty.m < 0:
+        raise ValueError("Uncertainty must be positive")
 
     # store the conversion functions by (original_type, final_type) in a dictionary for easy lookup
     converters = {
@@ -108,10 +111,6 @@ def convert_observable(
 
     # get the converter function based on the original and final types
     converter = converters[(original_type, final_type)]
-
-    # the uncertainty should always be positive, so we take the absolute value if it is provided
-    if uncertainty is not None:
-        uncertainty = abs(uncertainty)
 
     # if the input is in pic50, add dimensionless units for consistent conversions
     if original_type == "pic50":
