@@ -6,8 +6,9 @@ Contains the :class:`Measurement` class which is used to define a single free en
 as well as the :class:`ReferenceState` class which denotes the end point for absolute measurements.
 
 """
-from dataclasses import dataclass
+
 import math
+from dataclasses import dataclass
 from typing import Hashable, Union
 
 from openff.units import unit
@@ -98,7 +99,16 @@ class Measurement:
     temperature: unit.Quantity = 298.15 * unit.kelvin
     """Temperature that the measurement was taken at in K. By default: 298 K (298.15 * unit.kelvin)"""
 
-    def __init__(self, labelA: Hashable, labelB: Hashable, DG: unit.Quantity, uncertainty: unit.Quantity, computational: bool, source: str = "", temperature: unit.Quantity = 298.15 * unit.kelvin):
+    def __init__(
+        self,
+        labelA: Hashable,
+        labelB: Hashable,
+        DG: unit.Quantity,
+        uncertainty: unit.Quantity,
+        computational: bool,
+        source: str = "",
+        temperature: unit.Quantity = 298.15 * unit.kelvin,
+    ):
         """
         Initialize a Measurement object converting all quantities to the correct default units.
         """
@@ -109,7 +119,6 @@ class Measurement:
         object.__setattr__(self, "computational", computational)
         object.__setattr__(self, "source", source)
         object.__setattr__(self, "temperature", temperature.to(unit.kelvin))
-
 
     @classmethod
     def from_experiment(

@@ -8,9 +8,9 @@ which form an interconnected "network" of values.
 """
 
 import copy
-from dataclasses import asdict
 import pathlib
 import warnings
+from dataclasses import asdict
 from typing import Hashable, Optional, Union
 
 import matplotlib.pyplot as plt
