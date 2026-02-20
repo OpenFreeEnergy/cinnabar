@@ -3,6 +3,7 @@ from openff.units import unit
 
 from cinnabar import conversion
 
+
 def _check_output_units(output_type, converted_value):
     """Helper function to check the units of the converted value based on the output type."""
     if output_type == "dg":

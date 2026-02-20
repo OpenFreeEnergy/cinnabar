@@ -16,7 +16,7 @@ def convert_observable(
     value: unit.Quantity,
     original_type: OBSERVABLE_TYPES,
     final_type: OBSERVABLE_TYPES,
-    uncertainty: unit.Quantity | None  = None,
+    uncertainty: unit.Quantity | None = None,
     temperature: unit.Quantity = 298.15 * unit.kelvin,
 ) -> tuple[unit.Quantity, unit.Quantity | None]:
     """
