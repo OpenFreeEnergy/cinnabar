@@ -112,6 +112,15 @@ class Measurement:
         """
         Initialize a Measurement object converting all quantities to the correct default units.
         """
+        # This dataclass used to be based on pydantic and could automatically convert units from strings
+        # we now do this manually to avoid the dependency and not break old behavior.
+        unit_values = [DG, uncertainty, temperature]
+        for i in range(len(unit_values)):
+            if isinstance(unit_values[i], str):
+                # convert inplace to a quantity with units
+                unit_values[i] = unit.Quantity(unit_values[i])
+        # unpack the converted values
+        DG, uncertainty, temperature = unit_values
         object.__setattr__(self, "labelA", labelA)
         object.__setattr__(self, "labelB", labelB)
         object.__setattr__(self, "DG", DG.to(unit.kilocalorie_per_mole))
