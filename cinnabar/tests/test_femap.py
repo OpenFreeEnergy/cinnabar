@@ -1,7 +1,9 @@
 import json
+from random import shuffle
 
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 import pytest
 from openff.units import unit
 
@@ -431,3 +433,28 @@ def test_to_legacy_not_connected():
         g = m.to_legacy_graph()
 
         assert isinstance(g, nx.DiGraph)
+
+
+def test_measurement_ordering(example_map):
+    """Check that the ordering of the measurements does not change the result of the MLE solver."""
+    # generate a new map with edges added in a random order
+    rng = np.random.default_rng()
+    measurements = list(example_map)
+    rng.shuffle(measurements)  # generate a random order of the edges
+    femap2 = cinnabar.FEMap()
+    for m in measurements:
+        femap2.add_measurement(m)
+
+    # generate the reference values
+    example_map.generate_absolute_values()
+    abs_df = example_map.get_absolute_dataframe()
+    abs_df = abs_df.loc[abs_df.computational].copy().reset_index(drop=True)  # just grab the computational values
+    # generate the new values using the random ordering
+    femap2.generate_absolute_values()
+    abs_df2 = femap2.get_absolute_dataframe()
+    abs_df2 = abs_df2.loc[abs_df2.computational].copy().reset_index(drop=True)
+    # check the results are the same after aligning on the ligand name
+    abs_df = abs_df.sort_values("label").reset_index(drop=True)
+    abs_df2 = abs_df2.sort_values("label").reset_index(drop=True)
+
+    assert np.allclose(abs_df["DG (kcal/mol)"].values, abs_df2["DG (kcal/mol)"].values)

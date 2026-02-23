@@ -6,6 +6,7 @@ API Documentation
 
    cinnabar.classification_metrics
    cinnabar.cli
+   cinnabar.conversion
    cinnabar.femap
    cinnabar.measurements
    cinnabar.plotlying
