@@ -1,9 +1,8 @@
 import pytest
 from openff.units import unit
+from pint.errors import DimensionalityError
 
 import cinnabar
-
-from pint.errors import DimensionalityError
 
 
 def test_ground():
