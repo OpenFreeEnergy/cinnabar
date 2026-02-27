@@ -1,5 +1,6 @@
 import pytest
 from openff.units import unit
+from pint.errors import DimensionalityError
 
 import cinnabar
 
@@ -135,3 +136,42 @@ def test_is_true_ground(label, expected):
 def test_ref_state_repr(label, expected):
     rs = cinnabar.ReferenceState(label=label)
     assert repr(rs) == expected
+
+
+def test_convert_default_units():
+    m = cinnabar.Measurement(
+        labelA="foo",
+        labelB="bar",
+        DG=4.0 * unit.kilojoule_per_mole,
+        uncertainty=1.0 * unit.kilojoule_per_mole,
+        computational=True,
+    )
+    # regression test to make sure that default units are converted to kcal/mol
+    assert pytest.approx(0.9560, 0.0001) == m.DG.m
+    assert m.DG.units == unit.kilocalorie_per_mole
+    assert m.uncertainty.units == unit.kilocalorie_per_mole
+
+
+def test_convert_units_from_string():
+    m = cinnabar.Measurement(
+        labelA="foo",
+        labelB="bar",
+        DG="4.0 kJ/mol",
+        uncertainty="1.0 kJ/mol",
+        computational=True,
+    )
+    # regression test to make sure that default units are converted to kcal/mol
+    assert pytest.approx(0.9560, 0.0001) == m.DG.m
+    assert m.DG.units == unit.kilocalorie_per_mole
+    assert m.uncertainty.units == unit.kilocalorie_per_mole
+
+
+def test_unit_conversion_failure():
+    with pytest.raises(DimensionalityError, match="Cannot convert from 'hartree'"):
+        cinnabar.Measurement(
+            labelA="foo",
+            labelB="bar",
+            DG=4.0 * unit.hartree,
+            uncertainty=1.0 * unit.kilojoule_per_mole,
+            computational=True,
+        )
