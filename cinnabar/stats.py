@@ -110,8 +110,7 @@ def bootstrap_statistic(
         elif statistic == "KTAU":
             return scipy.stats.kendalltau(y_true_sample, y_pred_sample)[0]
         else:
-            # TODO dont use Exception
-            raise Exception(f"unknown statistic {statistic}")
+            raise ValueError(f"unknown statistic {statistic}")
 
     # not used?
     def unique_differences(x):
@@ -302,8 +301,7 @@ def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_l
         elif action is None:
             pass
         else:
-            # TODO use a more specific exception
-            raise Exception(f'action "{action}" unknown.')
+            raise ValueError(f'action "{action}" unknown.')
 
     if node_label is not None:
         for n in graph.nodes(data=True):

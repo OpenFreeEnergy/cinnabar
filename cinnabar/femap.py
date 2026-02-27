@@ -423,7 +423,19 @@ class FEMap:
         return sum(1 for _, _, d in self._graph.edges(data=True) if d["computational"]) // 2
 
     def check_weakly_connected(self) -> bool:
-        """Checks if all results in the graph are reachable from other results"""
+        """
+        Checks if all computational results in the graph are reachable from other results.
+
+        Returns
+        -------
+        bool
+             True if the graph is weakly connected, False otherwise.
+
+        Raises
+        ------
+        ValueError
+            If the graph contains no computational edges.
+        """
         # todo; cache
         comp_graph = nx.MultiGraph()
         for a, b, d in self._graph.edges(data=True):
@@ -431,7 +443,11 @@ class FEMap:
                 continue
             comp_graph.add_edge(a, b)
 
-        return nx.is_connected(comp_graph)
+        try:
+            is_connected = nx.is_connected(comp_graph)
+            return is_connected
+        except nx.NetworkXPointlessConcept:
+            raise ValueError("Graph contains no computational edges, cannot check connectivity")
 
     def generate_absolute_values(self):
         """Populate the FEMap with absolute computational values based on MLE"""
