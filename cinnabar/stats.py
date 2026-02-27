@@ -130,7 +130,7 @@ def calculate_r2(
     r2 : float
         R^2 between true and predicted values
     """
-    _, _, r_value, _, _ = scipy.stats.linregress(y_true, y_pred)
+    r_value = calculate_pearson_r(y_true, y_pred)
     return r_value**2
 
 
@@ -280,27 +280,23 @@ def bootstrap_statistic(
         raise ValueError(f"unknown statistic {statistic}")
     stat_func = _AVAILABLE_STATS[statistic]
 
-    # # not used?
-    # def unique_differences(x):
-    #     """Compute all unique differences"""
-    #     N = len(x)
-    #     return np.array([(x[i] - x[j]) for i in range(N) for j in range(N) if (i != j)])
-
     if dy_true is None:
         dy_true = np.zeros_like(y_true)
     if dy_pred is None:
         dy_pred = np.zeros_like(y_pred)
-    assert len(y_true) == len(y_pred)
-    assert len(y_true) == len(dy_true)
-    assert len(y_true) == len(dy_pred)
     sample_size = len(y_true)
+    # check the lengths of the inputs are the same and raise an error if not
+    for arr in [y_pred, dy_true, dy_pred]:
+        if len(arr) != sample_size:
+            raise ValueError("All input arrays must have the same length")
+
     s_n = np.zeros([nbootstrap], np.float64)  # s_n[n] is the statistic computed for bootstrap sample n
 
     for replicate in range(nbootstrap):
         # draw bootstrap indices once and select values vectorized
         indices = np.random.choice(sample_size, size=sample_size, replace=True)
-        y_true_sample = y_true[indices].copy()
-        y_pred_sample = y_pred[indices].copy()
+        y_true_sample = y_true[indices]
+        y_pred_sample = y_pred[indices]
 
         # only simulate normal noise when requested
         if include_true_uncertainty:
