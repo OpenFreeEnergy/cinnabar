@@ -156,10 +156,10 @@ def test_plot_dgs_centralising(fe_map, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_bad_statistic_type(example_data):
+def test_master_plot_bad_statistic_type(example_data_mle):
     """Test that bad statistic in master plot raises an error."""
 
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     with pytest.raises(ValueError, match="Unknown statistic type bad_stat"):
         _ = plotting._master_plot(
             x_data,
@@ -168,10 +168,10 @@ def test_master_plot_bad_statistic_type(example_data):
         )
 
 
-def test_master_plot_xy_lim(example_data, show_called):
+def test_master_plot_xy_lim(example_data_mle, show_called):
     """Test that x and y limits are set correctly in master plot."""
 
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     lims = [-10, 10]
     fig = plotting._master_plot(x_data, y_data, filename=None, xy_lim=lims)
     # inspect the figure axes to check axis limits
@@ -181,10 +181,10 @@ def test_master_plot_xy_lim(example_data, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_axis_labels(example_data, show_called):
+def test_master_plot_axis_labels(example_data_mle, show_called):
     """Test that axis labels are set correctly in master plot."""
 
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     x_label = "True Values"
     y_label = "Predicted Values"
     quantity = "DG"
@@ -205,10 +205,10 @@ def test_master_plot_axis_labels(example_data, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_stats(example_data, show_called):
+def test_master_plot_stats(example_data_mle, show_called):
     """Test that statistics are included in the master plot title."""
 
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     title = "Test Plot"
     target_name = "Test Target"
     # add some non-default statistics
@@ -228,10 +228,10 @@ def test_master_plot_stats(example_data, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_clashing_scatter_kwargs(example_data, show_called):
+def test_master_plot_clashing_scatter_kwargs(example_data_mle, show_called):
     """Test that clashing scatter_kwargs will work with the scatter kwargs taking precedence."""
 
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     fig = plotting._master_plot(
         x_data,
         y_data,

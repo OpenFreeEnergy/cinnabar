@@ -10,7 +10,7 @@ which form an interconnected "network" of values.
 import copy
 import pathlib
 import warnings
-from typing import Hashable, Optional, Union
+from typing import TYPE_CHECKING, Hashable, Optional, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -21,6 +21,9 @@ from openff.units import Quantity, unit
 
 from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
+
+if TYPE_CHECKING:
+    from cinnabar.estimators import Estimator, EstimatorResult
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -119,9 +122,11 @@ class FEMap:
     # all edges are directed
     # all edges can be multiply defined
     _graph: nx.MultiDiGraph
+    _estimator_metadata: dict[str, "EstimatorResult"]
 
     def __init__(self):
         self._graph = nx.MultiDiGraph()
+        self._estimator_metadata = {}
 
     def __iter__(self):
         for a, b, d in self._graph.edges(data=True):
@@ -449,63 +454,86 @@ class FEMap:
         except nx.NetworkXPointlessConcept:
             raise ValueError("Graph contains no computational edges, cannot check connectivity")
 
-    def generate_absolute_values(self):
-        """Populate the FEMap with absolute computational values based on MLE"""
-        # TODO: Make this return a new Graph with computational nodes annotated with DG values
-        # TODO this could work if either relative or absolute expt values are provided
+    def generate_absolute_values(self, estimator: Optional["Estimator"] = None):
+        """Populate the FEMap with absolute computational values.
+
+        Runs the estimator on this femap for each unique computational
+        source, adds the returned ``Measurement`` objects, and stores the
+        ``EstimatorResult`` metadata per source for later retrieval via
+        ``get_estimator_metadata``.
+
+        Parameters
+        ----------
+        estimator : Estimator, optional
+            The estimator to use.  Defaults to
+            the MLEEstimator.
+
+        Raises
+        ------
+        ValueError
+            If measurements have mixed units or the computational graph for
+            any source is not weakly connected.
+
+        See Also
+        --------
+        get_estimator_metadata : retrieve stored metadata after estimation.
+
+        Notes
+        -----
+        * This method modifies the FEMap in-place, adding new measurements and metadata.
+        * The estimator is run separately for each unique computational source, predictions will have a new source tag of
+        the form ``{estimator_name}({original_source})``, e.g. ``MLE(openff-2.0.0)``.
+        """
         mes = list(self._graph.edges(data=True))
-        # for now, we must all be in the same units for this to work
-        # grab unit of first measurement
+        if not mes:
+            raise ValueError("FEMap contains no measurements")
         u = mes[0][-1]["DG"].u
-        # check all over values are this unit
         if not all(d["DG"].u == u for _, _, d in mes):
             raise ValueError("All units must be the same")
 
-        if self.check_weakly_connected():
-            graph = self.to_legacy_graph()
-            f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
-            variance = np.diagonal(C_calc) ** 0.5
+        if estimator is None:
+            from cinnabar.estimators import MLEEstimator
 
-            g = ReferenceState(label="MLE")
+            estimator = MLEEstimator()
 
-            for n, f_i, df_i in zip(graph.nodes, f_i_calc, variance):
-                self.add_measurement(
-                    Measurement(
-                        labelA=g,
-                        labelB=n,
-                        DG=f_i * u,
-                        uncertainty=df_i * u,
-                        computational=True,
-                        source="MLE",
-                    )
-                )
+        # estimate() returns {composed_source: (measurements, result)},
+        # where composed_source is e.g. "MLE" or "MLE(openff-2.0.0)" depending on the number of input sources.
+        # the same keys are used in _estimator_metadata so that
+        # get_estimator_metadata can retrieve the result for a given source.
+        results_by_source = estimator.estimate(self)
+        for composed_source, (measurements, result) in results_by_source.items():
+            for m in measurements:
+                self.add_measurement(m)
+            self._estimator_metadata[composed_source] = result
 
-            # find all computational result labels
-            comp_ligands = set()
-            for A, B, d in self._graph.edges(data=True):
-                if not d["computational"]:
-                    continue
-                comp_ligands.add(A)
-                comp_ligands.add(B)
+    def get_estimator_metadata(self, source: str) -> "EstimatorResult":
+        """Retrieve stored metadata from a previous :meth:`generate_absolute_values` call.
 
-            # find corresponding experimental results
+        Parameters
+        ----------
+        source : str
+            The composed source identifier for the estimator results to retrieve, e.g. ``MLE(openff-2.0.0)``.
 
-            # use mean of experimental results to offset MLE reference point
+        Returns
+        -------
+        EstimatorResult
+            The concrete type depends on the estimator used, e.g.
+            :class:`~cinnabar.estimators.MLEEstimatorResult` for
+            :class:`~cinnabar.estimators.MLEEstimator`.
 
-            # add connection to MLE reference state and true reference state
-            self.add_measurement(
-                Measurement(
-                    labelA=ReferenceState(),
-                    labelB=g,
-                    DG=0.1 * u,
-                    uncertainty=0.0 * u,
-                    computational=True,
-                    source="MLE",
-                )
+        Raises
+        ------
+        KeyError
+            If no metadata is stored for the provided source.
+        """
+        if source not in self._estimator_metadata:
+            available = list(self._estimator_metadata.keys())
+            raise KeyError(
+                f"No estimator metadata stored for source {source}. "
+                f"Available sources: {available}. "
+                "Call generate_absolute_values() first."
             )
-        else:
-            # TODO: This can eventually be worked around surely?
-            raise ValueError("Computational results are not fully connected")
+        return self._estimator_metadata[source]
 
     def to_legacy_graph(self) -> nx.DiGraph:
         """Produce single graph version of this FEMap
