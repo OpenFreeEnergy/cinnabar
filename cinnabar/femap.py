@@ -424,7 +424,7 @@ class FEMap:
 
     def check_weakly_connected(self) -> bool:
         """
-        Checks if all results in the graph are reachable from other results.
+        Checks if all computational results in the graph are reachable from other results.
 
         Returns
         -------
