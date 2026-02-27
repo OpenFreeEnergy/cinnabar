@@ -340,42 +340,65 @@ class FEMap:
         self.add_measurement(m)
 
     def get_relative_dataframe(self) -> pd.DataFrame:
-        """Gets a dataframe of all relative results
+        """Get a dataframe of all relative results for all sources including experimental and computational.
 
+        Note
+        ----
         The pandas DataFrame will have the following columns:
         - labelA
         - labelB
-        - DDG
-        - uncertainty
+        - DDG (kcal/mol)
+        - uncertainty (kcal/mol)
         - source
         - computational
+        Only simulated relative results are included for the computational results
+        The dataframe will be sorted by source, computational, labelA, and labelB to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
         data = []
+        # store the non-computational results so we can include them in the dataframe for the same edges
+        non_comp_results = {}
         for l1, l2, d in self._graph.edges(data=True):
             if d["source"] == "reverse":
                 continue
-            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState):
+            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState) and not d["computational"]:
+                label = l2 if isinstance(l1, ReferenceState) else l1
+                non_comp_results[label] = d
                 continue
 
             data.append((l1, l2, d["DG"].to(kcpm).m, d["uncertainty"].to(kcpm).m, d["source"], d["computational"]))
 
+        # for each computational result add the experimental result for the same edge if it exists
+        comp_data = []
+        for l1, l2, *_ in data:
+            exp_1 = non_comp_results.get(l1, None)
+            exp_2 = non_comp_results.get(l2, None)
+            if exp_1 is not None and exp_2 is not None:
+                # if we have both, we can add the experimental DDG and uncertainty to the dataframe
+                exp_ddg = exp_2["DG"].to(kcpm).m - exp_1["DG"].to(kcpm).m
+                exp_uncertainty = (exp_1["uncertainty"].to(kcpm).m ** 2 + exp_2["uncertainty"].to(kcpm).m ** 2) ** 0.5
+                comp_data.append((l1, l2, exp_ddg, exp_uncertainty, "experimental", False))
+
         cols = ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
-        return pd.DataFrame(
-            data=data,
+        df = pd.DataFrame(
+            data=data + comp_data,
             columns=cols,
         )
+        return df.sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
 
     def get_absolute_dataframe(self) -> pd.DataFrame:
-        """Get a dataframe of all absolute results
+        """Get a dataframe of all absolute results from all sources.
 
+        Note
+        ----
         The dataframe will have the following columns:
         - label
-        - DG
-        - uncertainty
+        - DG (kcal/mol)
+        - uncertainty (kcal/mol)
         - source
         - computational
+        The dataframe will be sorted by source, computational, and label to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
         data = []
@@ -391,10 +414,11 @@ class FEMap:
 
         cols = ["label", "DG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
-        return pd.DataFrame(
+        df = pd.DataFrame(
             data=data,
             columns=cols,
         )
+        return df.sort_values(by=["source", "computational", "label"]).reset_index(drop=True)
 
     @property
     def n_measurements(self) -> int:
