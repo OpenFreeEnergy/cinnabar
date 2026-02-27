@@ -6,9 +6,10 @@ Estimators compute absolute free energy values from a set of relative
 measurements stored in an FEMap.
 
 """
+
 import abc
-from dataclasses import dataclass, field
 from collections import defaultdict
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List
 
 import networkx as nx
@@ -129,15 +130,11 @@ class Estimator(abc.ABC):
         results = {}
         for input_source, comp_measurements in measurements_by_source.items():
             if not self._check_weakly_connected(comp_measurements):
-                raise ValueError(
-                    f"Computational results for source '{input_source}' are not fully connected"
-                )
+                raise ValueError(f"Computational results for source '{input_source}' are not fully connected")
             # Only compose the label when it is actually needed to disambiguate.
             # Single-source users can then call get_estimator_metadata("MLE")
             # without having to know or construct the input source name.
-            composed_source = (
-                f"{self.source}({input_source})" if multiple_sources else self.source
-            )
+            composed_source = f"{self.source}({input_source})" if multiple_sources else self.source
 
             measurements, result = self._estimate(
                 comp_measurements + experimental_measurements,
@@ -273,7 +270,6 @@ class MLEEstimator(Estimator):
         )
 
 
-
 def _build_graph_from_measurements(
     measurements: List[Measurement],
 ) -> tuple[nx.DiGraph, object]:
@@ -303,10 +299,7 @@ def _build_graph_from_measurements(
 
     units = {m.DG.u for m in measurements}
     if len(units) > 1:
-        raise ValueError(
-            f"All measurements must share the same units before running an estimator. "
-            f"Found: {units}"
-        )
+        raise ValueError(f"All measurements must share the same units before running an estimator. Found: {units}")
     u = next(iter(units))
 
     g = nx.DiGraph()
@@ -328,7 +321,8 @@ def _build_graph_from_measurements(
                 "#limitations for more details."
             )
         g.add_edge(
-            m.labelA, m.labelB,
+            m.labelA,
+            m.labelB,
             calc_DDG=m.DG.magnitude,
             calc_dDDG=m.uncertainty.magnitude,
         )

@@ -10,7 +10,7 @@ which form an interconnected "network" of values.
 import copy
 import pathlib
 import warnings
-from typing import Hashable, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Hashable, Optional, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx

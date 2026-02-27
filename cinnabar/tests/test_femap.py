@@ -7,7 +7,7 @@ import pytest
 from openff.units import unit
 
 import cinnabar
-from cinnabar import femap, estimators
+from cinnabar import estimators, femap
 
 
 def test_read_csv(example_csv):
@@ -278,7 +278,7 @@ def test_generate_absolute_values_not_connected():
         labelB="ligD",
         value=-2.0 * unit.kilocalorie_per_mole,
         uncertainty=0.1 * unit.kilocalorie_per_mole,
-        source="test"
+        source="test",
     )
     with pytest.raises(ValueError, match="Computational results for source 'test' are not fully connected"):
         m.generate_absolute_values()
