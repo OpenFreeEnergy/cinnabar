@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Literal, Union, get_args
 
 import networkx as nx
 import numpy as np
@@ -15,15 +15,225 @@ due.cite(
 )
 
 
+def calculate_rmse(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    r"""Compute root mean squared error between true and predicted values.
+
+    Note
+    ----
+    The RMSE is calculated as:
+
+    .. math:: RMSE = \sqrt{\frac{1}{N} \sum_{i=1}^N (y_i - \hat{y}_i)^2}
+
+    where :math:`y_i` is the predicted value and :math:`\hat{y}_i` is the true value.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    rmse : float
+        RMSE between true and predicted values
+    """
+    return np.sqrt(sklearn.metrics.mean_squared_error(y_true, y_pred))
+
+
+def calculate_mue(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    r"""Compute mean unsigned error between true and predicted values.
+
+    Note
+    ----
+    The MUE is calculated as:
+
+    .. math:: MUE = \frac{1}{N} \sum_{i=1}^N |y_i - \hat{y}_i|
+
+    where :math:`y_i` is the predicted value and :math:`\hat{y}_i` is the true value.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    mue : float
+        MUE between true and predicted values
+    """
+    return sklearn.metrics.mean_absolute_error(y_true, y_pred)
+
+
+def calculate_rae(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    r"""Compute relative absolute error between true and predicted values.
+
+    Note
+    ----
+    The RAE compares the mean absolute error of the predictions with a baseline model that always predicts the mean of the true values.
+    It is calculated as:
+
+    .. math:: RAE = \frac{\frac{1}{N} \sum_{i=1}^N |y_i - \hat{y}_i|}{\frac{1}{N} \sum_{i=1}^N |\bar{y} - \hat{y}_i|}
+
+    where :math:`y_i` is the predicted value, :math:`\hat{y}_i` is the true value, and :math:`\bar{y}` is the mean of the true values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    rae : float
+        RAE between true and predicted values
+    """
+    # mean unsigned error of the predictions
+    mue = calculate_mue(y_true, y_pred)
+    true_mean = np.mean(y_true)
+    # mean absolute deviation of the true values from their mean
+    mad = np.mean([np.abs(true_mean - i) for i in y_true])
+    return mue / mad
+
+
+def calculate_r2(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute R^2 between true and predicted values.
+
+    Note
+    ----
+    R^2 is calculated as the square of the Pearson correlation coefficient between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    r2 : float
+        R^2 between true and predicted values
+    """
+    r_value = calculate_pearson_r(y_true, y_pred)
+    return r_value**2
+
+
+def calculate_pearson_r(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute Pearson's r between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    r : float
+        Pearson's r between true and predicted values
+    """
+    return scipy.stats.pearsonr(y_true, y_pred)[0]
+
+
+def calculate_kendalls_tau(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute Kendall's tau between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    tau : float
+        Kendall's tau between true and predicted values
+    """
+    return scipy.stats.kendalltau(y_true, y_pred)[0]
+
+
+def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    r"""
+    Compute the normalized root mean squared error between true and predicted values, using the true mean to normalize
+    the RMSE. [1]_
+
+    Note
+    ----
+    The NRMSE is calculated as:
+
+    .. math:: NRMSE = \frac{RMSE}{\bar{y}}
+
+    where :math:`RMSE` is the root mean squared error between true and predicted values, and :math:`\bar{y}` is the mean of the true values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    nrmse : float
+        NRMSE between true and predicted values
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Root_mean_square_deviation
+    """
+    rmse = calculate_rmse(y_true, y_pred)
+    mean_true = np.mean(y_true)
+    return rmse / np.abs(mean_true)
+
+
+# map from statistic name to function that calculates the statistic
+_AVAILABLE_STATS = {
+    "RMSE": calculate_rmse,
+    "NRMSE": calculate_nrmse,
+    "MUE": calculate_mue,
+    "RAE": calculate_rae,
+    "R2": calculate_r2,
+    "rho": calculate_pearson_r,
+    "KTAU": calculate_kendalls_tau,
+}
+# make a type hint for the statistic names
+Statistics = Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU"]
+# make sure the type hint and the list stay in sync
+assert set(get_args(Statistics)) == set(_AVAILABLE_STATS.keys())
+
+
 def bootstrap_statistic(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     dy_true: Union[np.ndarray, None] = None,
     dy_pred: Union[np.ndarray, None] = None,
     ci: float = 0.95,
-    statistic: str = "RMSE",
+    statistic: Statistics = "RMSE",
     nbootstrap: int = 1000,
-    plot_type: str = "dG",
     include_true_uncertainty: bool = False,
     include_pred_uncertainty: bool = False,
 ) -> dict:
@@ -42,11 +252,9 @@ def bootstrap_statistic(
     ci : float, optional, default=0.95
         Interval for confidence interval (CI)
     statistic : str
-        Statistic, one of ['RMSE', 'MUE', 'R2', 'rho','KTAU','RAE']
+        Statistic, one of ['RMSE', 'MUE', 'R2', 'rho', 'KTAU', 'RAE', 'NRMSE']
     nbootstrap : int, optional, default=1000
         Number of bootstrap samples
-    plot_type : str, optional, default='dG'
-        'dG' or 'ddG'
     include_true_uncertainty : bool, default False
         whether to account for the uncertainty in y_true when bootstrapping
     include_pred_uncertainty : bool, default False
@@ -67,73 +275,28 @@ def bootstrap_statistic(
         'low' : low end of CI
         'high' : high end of CI
     """
-
-    def compute_statistic(y_true_sample: np.ndarray, y_pred_sample: np.ndarray, statistic: str):
-        """Compute requested statistic.
-
-        Parameters
-        ----------
-        y_true : ndarray with shape (N,)
-            True values
-        y_pred : ndarray with shape (N,)
-            Predicted values
-        statistic : str
-            Statistic, one of ['RMSE', 'MUE', 'R2', 'rho','RAE','KTAU']
-
-        """
-
-        def calc_RAE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
-            """Calculate the relative absolute error (RAE)"""
-            MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
-            mean = np.mean(y_true_sample)
-            MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(len(y_true_sample))
-            return MAE / MAD
-
-        def calc_RRMSE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
-            rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
-            mean_exp = np.mean(y_true_sample)
-            mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(len(y_true_sample))
-            rrmse = np.sqrt(rmse**2 / mds)
-            return rrmse
-
-        if statistic == "RMSE":
-            return np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
-        elif statistic == "MUE":
-            return sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
-        elif statistic == "R2":
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_true_sample, y_pred_sample)
-            return r_value**2
-        elif statistic == "rho":
-            return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
-        elif statistic == "RAE":
-            return calc_RAE(y_true_sample, y_pred_sample)
-        elif statistic == "KTAU":
-            return scipy.stats.kendalltau(y_true_sample, y_pred_sample)[0]
-        else:
-            # TODO dont use Exception
-            raise Exception(f"unknown statistic {statistic}")
-
-    # not used?
-    def unique_differences(x):
-        """Compute all unique differences"""
-        N = len(x)
-        return np.array([(x[i] - x[j]) for i in range(N) for j in range(N) if (i != j)])
+    # check the statistic is valid
+    if statistic not in _AVAILABLE_STATS:
+        raise ValueError(f"unknown statistic {statistic}")
+    stat_func = _AVAILABLE_STATS[statistic]
 
     if dy_true is None:
         dy_true = np.zeros_like(y_true)
     if dy_pred is None:
         dy_pred = np.zeros_like(y_pred)
-    assert len(y_true) == len(y_pred)
-    assert len(y_true) == len(dy_true)
-    assert len(y_true) == len(dy_pred)
     sample_size = len(y_true)
+    # check the lengths of the inputs are the same and raise an error if not
+    for arr in [y_pred, dy_true, dy_pred]:
+        if len(arr) != sample_size:
+            raise ValueError("All input arrays must have the same length")
+
     s_n = np.zeros([nbootstrap], np.float64)  # s_n[n] is the statistic computed for bootstrap sample n
 
     for replicate in range(nbootstrap):
         # draw bootstrap indices once and select values vectorized
         indices = np.random.choice(sample_size, size=sample_size, replace=True)
-        y_true_sample = y_true[indices].copy()
-        y_pred_sample = y_pred[indices].copy()
+        y_true_sample = y_true[indices]
+        y_pred_sample = y_pred[indices]
 
         # only simulate normal noise when requested
         if include_true_uncertainty:
@@ -144,13 +307,13 @@ def bootstrap_statistic(
             std_pred = np.fabs(dy_pred[indices])
             y_pred_sample = np.random.normal(loc=y_pred_sample, scale=std_pred)
 
-        s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
+        s_n[replicate] = stat_func(y_true_sample, y_pred_sample)
 
     # calculate the statistics and CI
     low_percentile = (1.0 - ci) / 2.0 * 100
     high_percentile = 100 - low_percentile
     stats = {
-        "mle": compute_statistic(y_true, y_pred, statistic),  # the sample statistic
+        "mle": stat_func(y_true, y_pred),  # the sample statistic
         "stderr": np.std(s_n),  # standard error of the bootstrap samples
         "mean": np.mean(s_n),  # mean of the bootstrap samples
         "low": np.percentile(s_n, low_percentile),  # low end of confidence interval
