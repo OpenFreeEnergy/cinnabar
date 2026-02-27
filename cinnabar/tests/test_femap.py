@@ -275,7 +275,11 @@ def test_to_dataframe(example_map):
     rel_df = example_map.get_relative_dataframe()
 
     assert abs_df.shape == (36, 5)
-    assert rel_df.shape == (58, 6)
+    # the dataframe should have the simulated and experimental values
+    assert rel_df.shape == (116, 6)
+    # check the split between the results is correct
+    assert rel_df.loc[rel_df.computational].shape == (58, 6)
+    assert rel_df.loc[~rel_df.computational].shape == (58, 6)
 
     example_map.generate_absolute_values()
 
