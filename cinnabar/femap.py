@@ -376,7 +376,7 @@ class FEMap:
             if exp_1 is not None and exp_2 is not None:
                 # if we have both, we can add the experimental DDG and uncertainty to the dataframe
                 exp_ddg = exp_2["DG"].to(kcpm).m - exp_1["DG"].to(kcpm).m
-                exp_uncertainty = (exp_1["uncertainty"].to(kcpm).m**2 + exp_2["uncertainty"].to(kcpm).m**2) ** 0.5
+                exp_uncertainty = (exp_1["uncertainty"].to(kcpm).m ** 2 + exp_2["uncertainty"].to(kcpm).m ** 2) ** 0.5
                 comp_data.append((l1, l2, exp_ddg, exp_uncertainty, "experimental", False))
 
         cols = ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
