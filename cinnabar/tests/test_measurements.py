@@ -53,7 +53,7 @@ def test_measurement_hash():
             100 * unit.nanomolar,
             10 * unit.nanomolar,
             -9.55 * unit.kilocalorie_per_mole,
-            0.059 * unit.kilocalorie_per_mole,
+            0.06 * unit.kilocalorie_per_mole,
             "lig",
             298.15 * unit.kelvin,
         ],
@@ -61,7 +61,7 @@ def test_measurement_hash():
             0.1 * unit.micromolar,
             0.01 * unit.micromolar,
             -9.55 * unit.kilocalorie_per_mole,
-            0.059 * unit.kilocalorie_per_mole,
+            0.06 * unit.kilocalorie_per_mole,
             "lig",
             298.15 * unit.kelvin,
         ],
@@ -69,10 +69,20 @@ def test_measurement_hash():
             100 * unit.nanomolar,
             10 * unit.nanomolar,
             -10.57 * unit.kilocalorie_per_mole,
-            0.066 * unit.kilocalorie_per_mole,
+            0.07 * unit.kilocalorie_per_mole,
             "lig",
             330 * unit.kelvin,
         ],
+        # make sure that string inputs are properly converted to quantities with units
+        [
+            "100 nM",
+            "10 nM",
+            -9.55 * unit.kilocalorie_per_mole,
+            0.06 * unit.kilocalorie_per_mole,
+            "lig",
+            "298.15 K",
+
+        ]
     ],
 )
 def test_Ki_to_DG(Ki, uncertainty, dG, dG_uncertainty, label, temp):
@@ -100,6 +110,14 @@ def test_negative_uncertainty():
         r"Check input.",
     ):
         cinnabar.Measurement.from_experiment("Test Label", 100 * unit.nanomolar, -10 * unit.nanomolar)
+
+
+def test_from_experiment_no_units():
+    with pytest.raises(ValueError, match="Ki, uncertainty, and temperature values must have units. Check input."):
+        _ = cinnabar.Measurement.from_experiment(
+            "Test Label",
+            100
+        )
 
 
 def test_measurement_temp():
@@ -173,5 +191,15 @@ def test_unit_conversion_failure():
             labelB="bar",
             DG=4.0 * unit.hartree,
             uncertainty=1.0 * unit.kilojoule_per_mole,
+            computational=True,
+        )
+
+def test_missing_units():
+    with pytest.raises(ValueError, match="DG, uncertainty, and temperature values must have units. Check input."):
+        cinnabar.Measurement(
+            labelA="foo",
+            labelB="bar",
+            DG=4.0,
+            uncertainty=1.0,
             computational=True,
         )

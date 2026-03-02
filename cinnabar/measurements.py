@@ -7,11 +7,12 @@ as well as the :class:`ReferenceState` class which denotes the end point for abs
 
 """
 
-import math
 from dataclasses import dataclass
 from typing import Hashable, Union
 
 from openff.units import unit
+
+from cinnabar.conversion import convert_observable
 
 
 class ReferenceState:
@@ -119,6 +120,11 @@ class Measurement:
             if isinstance(unit_values[i], str):
                 # convert inplace to a quantity with units
                 unit_values[i] = unit.Quantity(unit_values[i])
+
+            elif isinstance(unit_values[i], (float, int)):
+                raise ValueError(
+                    "DG, uncertainty, and temperature values must have units. Check input."
+                )
         # unpack the converted values
         DG, uncertainty, temperature = unit_values
         object.__setattr__(self, "labelA", labelA)
@@ -159,20 +165,33 @@ class Measurement:
             temperature in K at which the experimental measurement was carried out.
             By default: 298 K (298.15 * unit.kelvin)
         """
+        # check for units
+        unit_values = [Ki, uncertainty, temperature]
+        for i in range(len(unit_values)):
+            if isinstance(unit_values[i], str):
+                # try to convert inplace to a quantity with units where possible
+                unit_values[i] = unit.Quantity(unit_values[i])
+
+            elif isinstance(unit_values[i], (float, int)):
+                raise ValueError(
+                    "Ki, uncertainty, and temperature values must have units. Check input."
+                )
+        # unpack with units again
+        Ki, uncertainty, temperature = unit_values
         if Ki > 0 * unit.molar:
-            DG = (unit.molar_gas_constant * temperature.to(unit.kelvin) * math.log(Ki / unit.molar)).to(
-                unit.kilocalorie_per_mole
-            )
+            if uncertainty >= 0 * unit.molar:
+                DG, uncertainty_DG = convert_observable(
+                    value=Ki,
+                    uncertainty=uncertainty,
+                    original_type="ki",
+                    final_type="dg",
+                    temperature=temperature
+                )
+            else:
+                raise ValueError("Uncertainty cannot be negative. Check input.")
         else:
             raise ValueError("Ki value cannot be zero or negative. Check if dG value was provided instead of Ki.")
-        # Convert Ki uncertainty into dG uncertainty: RT * uncertainty/Ki
-        # https://physics.stackexchange.com/questions/95254/the-error-of-the-natural-logarithm
-        if uncertainty >= 0 * unit.molar:
-            uncertainty_DG = (unit.molar_gas_constant * temperature.to(unit.kelvin) * uncertainty / Ki).to(
-                unit.kilocalorie_per_mole
-            )
-        else:
-            raise ValueError("Uncertainty cannot be negative. Check input.")
+
         return cls(
             labelA=ReferenceState(),
             labelB=label,
