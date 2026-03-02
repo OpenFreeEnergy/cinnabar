@@ -121,14 +121,14 @@ def test_plot_ddgs_negative_bad_labels():
         uncertainty=0.3 * unit.kilocalorie_per_mole,
     )
     graph = fe_map.to_legacy_graph()
-    with pytest.raises(Exception, match="data_label_type unsupported. supported types:"):
+    with pytest.raises(ValueError, match="data_label_type unsupported. supported types:"):
         _ = plotting.plot_DDGs(graph, data_label_type="invalid-label-type")
 
 
 def test_plot_ddgs_bad_labels(fe_map):
     """Test that bad data labels raise an error."""
     graph = fe_map.to_legacy_graph()
-    with pytest.raises(Exception, match="data_label_type unsupported. supported types:"):
+    with pytest.raises(ValueError, match="data_label_type unsupported. supported types:"):
         _ = plotting.plot_DDGs(graph, data_label_type="invalid-label-type")
 
 

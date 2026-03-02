@@ -157,8 +157,21 @@ def test_missing_statistic(example_data):
     """
     x_data, y_data, xerr, yerr = example_data
 
-    with pytest.raises(Exception, match="unknown statistic UNKNOWN_STAT"):
+    with pytest.raises(ValueError, match="unknown statistic UNKNOWN_STAT"):
         bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="UNKNOWN_STAT")
+
+
+def test_inconsistent_array_shape():
+    """
+    Test that an error is raised when input arrays have inconsistent shapes
+    """
+    x_data = np.array([1.0, 2.0, 3.0])
+    y_data = np.array([1.0, 2.0])  # inconsistent shape
+    xerr = np.array([0.1, 0.1, 0.1])
+    yerr = np.array([0.1, 0.1])
+
+    with pytest.raises(ValueError, match="All input arrays must have the same length"):
+        bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
 
 
 def test_confidence_intervals_defaults(example_data):
@@ -232,6 +245,7 @@ def test_confidence_interval_edge_case():
         ("rho", 0.7841978196676316),
         ("KTAU", 0.58148151940828),
         ("RAE", 15.995712243925674),
+        ("NRMSE", 1.0040857354711985),
     ],
 )
 def test_regression_bootstrap_statistics(example_data, stat, expected):
@@ -262,7 +276,7 @@ def test_bad_edge_matrix_action(fe_map):
     Test that an error is raised when an unknown action is provided
     to the edge matrix computation
     """
-    with pytest.raises(Exception, match='action "bad_action" unknown'):
+    with pytest.raises(ValueError, match='action "bad_action" unknown'):
         _ = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action="bad_action")
 
 
