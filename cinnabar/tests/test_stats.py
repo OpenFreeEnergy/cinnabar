@@ -143,7 +143,9 @@ def test_mle_zero_uncertainty():
     for a, b in edges:
         graph.add_edge(a, b, f_ij=1.0 + np.random.normal(0.0, scale=0.5), f_dij=0.0)
 
-    with pytest.raises(ValueError, match="MLE solver will fail with zero reported uncertainty for calculated differences."):
+    with pytest.raises(
+        ValueError, match="MLE solver will fail with zero reported uncertainty for calculated differences."
+    ):
         _, _ = stats.mle(graph, factor="f_ij", node_factor="f_i")
 
 
