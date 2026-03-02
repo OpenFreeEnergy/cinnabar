@@ -19,7 +19,7 @@ from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
-    from cinnabar.femap import FEMap
+    from cinnabar.femap import FEMap  # pragma: no cover
 
 
 @dataclass
@@ -114,7 +114,7 @@ class Estimator(abc.ABC):
         * Experimental measurements are forwarded to every source so the
           estimator can use them to centre predictions.
         * The estimates are stamped with a composed source label of the form ``"{estimator.source}({input_source})"``
-        when multiple computational sources are present, or just ``"{estimator.source}"`` when there is only one.
+            when multiple computational sources are present, or just ``"{estimator.source}"`` when there is only one.
         """
         measurements_by_source: dict[str, list[Measurement]] = defaultdict(list)
         experimental_measurements: list[Measurement] = []
@@ -181,7 +181,7 @@ class Estimator(abc.ABC):
             If the estimator cannot be applied (e.g. the graph is not
             connected, or there are duplicate edges).
         """
-        ...
+        ...  # pragma: no cover
 
 
 class MLEEstimator(Estimator):

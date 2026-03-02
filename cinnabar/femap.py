@@ -23,7 +23,7 @@ from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
-    from cinnabar.estimators import Estimator, EstimatorResult
+    from cinnabar.estimators import Estimator, EstimatorResult  # pragma: no cover
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -482,7 +482,8 @@ class FEMap:
         -----
         * This method modifies the FEMap in-place, adding new measurements and metadata.
         * The estimator is run separately for each unique computational source, predictions will have a new source tag of
-        the form ``{estimator_name}({original_source})``, e.g. ``MLE(openff-2.0.0)``.
+            the form ``{estimator_name}({original_source})``, e.g. ``MLE(openff-2.0.0)``.
+
         """
         mes = list(self._graph.edges(data=True))
         if not mes:
