@@ -1,5 +1,4 @@
 import json
-from random import shuffle
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -8,7 +7,7 @@ import pytest
 from openff.units import unit
 
 import cinnabar
-from cinnabar import femap
+from cinnabar import estimators, femap
 
 
 def test_read_csv(example_csv):
@@ -206,10 +205,62 @@ def test_generate_absolute_values(example_map, ref_mle_results):
         y = d["DG"]
         yerr = d["uncertainty"]
 
-        y_ref, yerr_ref = ref_mle_results[e]
-
         assert y.magnitude == pytest.approx(y_ref), e
         assert yerr.magnitude == pytest.approx(yerr_ref), e
+    # check the metadata is correct
+    metadata = example_map.get_estimator_metadata("MLE")
+    # check general metadata is correct
+    assert metadata.source == "MLE"
+    assert metadata.estimator == "MLEEstimator"
+    # check mle specific metadata is correct
+    assert len(metadata.ligand_order) == len(ref_mle_results)
+    assert metadata.covariance_matrix.shape == (len(ref_mle_results), len(ref_mle_results))
+
+
+def test_generate_absolute_values_multiple_sources(example_map, ref_mle_results):
+    # add a second set of measurements with a different source
+    # these are the same values as the original with 0.25 kcal/mol added to each, but with a different source
+    to_add = []
+    for m in example_map:
+        if m.computational:
+            to_add.append(
+                cinnabar.Measurement(
+                    labelA=m.labelA,
+                    labelB=m.labelB,
+                    DG=m.DG + 0.25 * unit.kilocalorie_per_mole,
+                    uncertainty=m.uncertainty,
+                    computational=True,
+                    source="other_source",
+                )
+            )
+    for m in to_add:
+        example_map.add_measurement(m)
+    # generate the values with the MLE estimator
+    example_map.generate_absolute_values(estimator=estimators.MLEEstimator())
+    # we should have two sets of absolute values, one for each source
+    abs_df = example_map.get_absolute_dataframe()
+    assert abs_df.shape == (108, 5)
+    # we should have two sets of metadata, one for each source
+    for source in ("MLE()", "MLE(other_source)"):
+        meta = example_map.get_estimator_metadata(source)
+        assert meta.source == source
+        assert meta.estimator == "MLEEstimator"
+        assert meta.covariance_matrix.shape == (36, 36)
+        assert len(meta.ligand_order) == 36
+
+    # make sure the reference values for the original source are the same as before
+    for e, (y_ref, yerr_ref) in ref_mle_results.items():
+        # get the calculated DG from the dataframe
+        calculated_dg = abs_df.loc[(abs_df.label == e) & (abs_df.computational) & (abs_df.source == "MLE()")]
+        assert calculated_dg["DG (kcal/mol)"].values[0] == pytest.approx(y_ref)
+        assert calculated_dg["uncertainty (kcal/mol)"].values[0] == pytest.approx(yerr_ref)
+
+
+def test_generate_absolute_values_no_results():
+    m = cinnabar.FEMap()
+
+    with pytest.raises(ValueError, match="FEMap contains no measurements"):
+        m.generate_absolute_values()
 
 
 def test_generate_absolute_values_not_connected():
@@ -220,14 +271,16 @@ def test_generate_absolute_values_not_connected():
         labelB="ligB",
         value=-1.0 * unit.kilocalorie_per_mole,
         uncertainty=0.1 * unit.kilocalorie_per_mole,
+        source="test",
     )
     m.add_relative_calculation(
         labelA="ligC",
         labelB="ligD",
         value=-2.0 * unit.kilocalorie_per_mole,
         uncertainty=0.1 * unit.kilocalorie_per_mole,
+        source="test",
     )
-    with pytest.raises(ValueError, match="Computational results are not fully connected"):
+    with pytest.raises(ValueError, match="Computational results for source 'test' are not fully connected"):
         m.generate_absolute_values()
 
 

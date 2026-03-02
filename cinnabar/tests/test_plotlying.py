@@ -22,10 +22,10 @@ def test_plot_all_ddgs_plotly(tmp_path, fe_map):
     assert output_file.exists()
 
 
-def test_master_plot_bad_statistic_type(example_data):
+def test_master_plot_bad_statistic_type(example_data_mle):
     """Test that bad statistic in master plot raises an error."""
 
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     with pytest.raises(ValueError, match="Unknown statistic type bad_stat"):
         _ = plotlying._master_plot(
             x_data,
@@ -34,10 +34,10 @@ def test_master_plot_bad_statistic_type(example_data):
         )
 
 
-def test_master_plot_show(example_data, monkeypatch):
+def test_master_plot_show(example_data_mle, monkeypatch):
     """Test that master plot shows when filename is None."""
 
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     called = {}
 
     def mock_show(self):

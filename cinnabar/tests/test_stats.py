@@ -134,13 +134,13 @@ def test_mle_bidirectional_edges():
         stats.mle(graph, factor="f_ij", node_factor="f_i")
 
 
-def test_correlation_positive(example_data):
+def test_correlation_positive(example_data_mle):
     """
     Test that the absolute DG plots have the correct signs,
     and statistics within reasonable agreement to the example data
     in `cinnabar/data/example.csv`
     """
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
 
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="rho")
     assert 0 < bss["mle"] < 1, "Correlation must be positive for this data"
@@ -151,23 +151,23 @@ def test_correlation_positive(example_data):
         assert 0.5 < bss["mle"] < 0.9, f"Correlation must be positive for this data. {stat} is {bss['mle']}"
 
 
-def test_missing_statistic(example_data):
+def test_missing_statistic(example_data_mle):
     """
     Test that an error is raised when an unknown statistic is requested
     """
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
 
     with pytest.raises(ValueError, match="unknown statistic UNKNOWN_STAT"):
         bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="UNKNOWN_STAT")
 
 
-def test_confidence_intervals_defaults(example_data):
+def test_confidence_intervals_defaults(example_data_mle):
     """
     Test that boostrap confidence intervals contains
     the 'mle' value when using defaults.
     """
     error_message = "The stat must lie within the bootstrapped 95% CI"
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
     assert bss["low"] < bss["mle"] < bss["high"], error_message
 
@@ -182,14 +182,14 @@ def test_confidence_intervals_defaults(example_data):
         ["RMSE", True, True, "mean"],
     ],
 )
-def test_confidence_intervals(example_data, stat, true_uncert, pred_uncert, estimate):
+def test_confidence_intervals(example_data_mle, stat, true_uncert, pred_uncert, estimate):
     """
     Test that the bootstrapped confidence intervals contain the
     corresponding statistics.
     Uses the example data in `cinnabar/data/example.csv`
     """
     error_message = "The stat must lie within the bootstrapped 95% CI"
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     bss = bootstrap_statistic(
         x_data,
         y_data,
@@ -234,12 +234,12 @@ def test_confidence_interval_edge_case():
         ("RAE", 15.995712243925674),
     ],
 )
-def test_regression_bootstrap_statistics(example_data, stat, expected):
+def test_regression_bootstrap_statistics(example_data_mle, stat, expected):
     """
     Regression test for bootstrap statistics on example data
     in `cinnabar/data/example.csv`
     """
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
 
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic=stat)
     assert pytest.approx(bss["mle"], rel=1e-6) == expected, f"Regression test failed for statistic {stat}"
@@ -247,11 +247,11 @@ def test_regression_bootstrap_statistics(example_data, stat, expected):
     assert (bss["low"] < bss["mle"]) and (bss["mle"] < bss["high"]), error_message
 
 
-def test_bootstrap_statistic_no_errors(example_data):
+def test_bootstrap_statistic_no_errors(example_data_mle):
     """
     Test that compute_statistic works when no errors are provided
     """
-    x_data, y_data, _, _ = example_data
+    x_data, y_data, _, _ = example_data_mle
 
     bss = bootstrap_statistic(x_data, y_data, statistic="RMSE")
     assert pytest.approx(bss["mle"], rel=1e-6) == 9.364494046790412
