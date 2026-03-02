@@ -124,6 +124,16 @@ def test_mle_relative():
         )
 
 
+def test_mle_bidirectional_edges():
+    """Make sure an error is raised if there are repeated edges in the graph."""
+    graph = nx.DiGraph()
+    graph.add_edge(0, 1, f_ij=1.0, f_dij=0.5)
+    graph.add_edge(1, 0, f_ij=-2.0, f_dij=0.5)  # repeated edge
+
+    with pytest.raises(ValueError, match="Multiple edges detected between nodes 1 and 0."):
+        stats.mle(graph, factor="f_ij", node_factor="f_i")
+
+
 def test_mle_zero_uncertainty():
     """
     Test that the MLE raises an error on an edge with zero uncertainty
@@ -160,8 +170,21 @@ def test_missing_statistic(example_data):
     """
     x_data, y_data, xerr, yerr = example_data
 
-    with pytest.raises(Exception, match="unknown statistic UNKNOWN_STAT"):
+    with pytest.raises(ValueError, match="unknown statistic UNKNOWN_STAT"):
         bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="UNKNOWN_STAT")
+
+
+def test_inconsistent_array_shape():
+    """
+    Test that an error is raised when input arrays have inconsistent shapes
+    """
+    x_data = np.array([1.0, 2.0, 3.0])
+    y_data = np.array([1.0, 2.0])  # inconsistent shape
+    xerr = np.array([0.1, 0.1, 0.1])
+    yerr = np.array([0.1, 0.1])
+
+    with pytest.raises(ValueError, match="All input arrays must have the same length"):
+        bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
 
 
 def test_confidence_intervals_defaults(example_data):
@@ -235,6 +258,7 @@ def test_confidence_interval_edge_case():
         ("rho", 0.7841978196676316),
         ("KTAU", 0.58148151940828),
         ("RAE", 15.995712243925674),
+        ("NRMSE", 1.0040857354711985),
     ],
 )
 def test_regression_bootstrap_statistics(example_data, stat, expected):
@@ -265,7 +289,7 @@ def test_bad_edge_matrix_action(fe_map):
     Test that an error is raised when an unknown action is provided
     to the edge matrix computation
     """
-    with pytest.raises(Exception, match='action "bad_action" unknown'):
+    with pytest.raises(ValueError, match='action "bad_action" unknown'):
         _ = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action="bad_action")
 
 
