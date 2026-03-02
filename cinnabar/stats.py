@@ -205,13 +205,6 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
             action="symmetrize",
             node_label=node_factor.replace("_", "_d"),
         )
-    # if the uncertainty is zero, the MLE solver will fail
-    # set all values to a small value if exactly zero
-    # see <https://github.com/OpenFreeEnergy/cinnabar/issues/97> for details
-    for i in range(N):
-        for j in range(N):
-            if i != j and df_ij[i, j] == 0.0:
-                df_ij[i, j] = 1e-6
 
     node_name_to_index = {}
     for i, name in enumerate(graph.nodes()):
@@ -225,6 +218,9 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] =
         if i == j:
             # The MLE solver will fail if we include self-edges, so we need to omit these
             continue
+        # check if the uncertainty is zero and raise an error if it is, since this will cause the MLE solver to fail
+        if df_ij[i, j] == 0.0:
+            raise ValueError(f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs.")
         F_matrix[i, j] = -(df_ij[i, j] ** (-2))
         F_matrix[j, i] = -(df_ij[i, j] ** (-2))
     for n in graph.nodes:
