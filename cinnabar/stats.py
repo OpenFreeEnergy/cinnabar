@@ -465,8 +465,7 @@ def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_l
         elif action is None:
             pass
         else:
-            # TODO use a more specific exception
-            raise Exception(f'action "{action}" unknown.')
+            raise ValueError(f'action "{action}" unknown.')
 
     if node_label is not None:
         for n in graph.nodes(data=True):
