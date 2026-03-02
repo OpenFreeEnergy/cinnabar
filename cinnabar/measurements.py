@@ -122,9 +122,7 @@ class Measurement:
                 unit_values[i] = unit.Quantity(unit_values[i])
 
             elif isinstance(unit_values[i], (float, int)):
-                raise ValueError(
-                    "DG, uncertainty, and temperature values must have units. Check input."
-                )
+                raise ValueError("DG, uncertainty, and temperature values must have units. Check input.")
         # unpack the converted values
         DG, uncertainty, temperature = unit_values
         object.__setattr__(self, "labelA", labelA)
@@ -173,19 +171,13 @@ class Measurement:
                 unit_values[i] = unit.Quantity(unit_values[i])
 
             elif isinstance(unit_values[i], (float, int)):
-                raise ValueError(
-                    "Ki, uncertainty, and temperature values must have units. Check input."
-                )
+                raise ValueError("Ki, uncertainty, and temperature values must have units. Check input.")
         # unpack with units again
         Ki, uncertainty, temperature = unit_values
         if Ki > 0 * unit.molar:
             if uncertainty >= 0 * unit.molar:
                 DG, uncertainty_DG = convert_observable(
-                    value=Ki,
-                    uncertainty=uncertainty,
-                    original_type="ki",
-                    final_type="dg",
-                    temperature=temperature
+                    value=Ki, uncertainty=uncertainty, original_type="ki", final_type="dg", temperature=temperature
                 )
             else:
                 raise ValueError("Uncertainty cannot be negative. Check input.")

@@ -81,8 +81,7 @@ def test_measurement_hash():
             0.06 * unit.kilocalorie_per_mole,
             "lig",
             "298.15 K",
-
-        ]
+        ],
     ],
 )
 def test_Ki_to_DG(Ki, uncertainty, dG, dG_uncertainty, label, temp):
@@ -114,10 +113,7 @@ def test_negative_uncertainty():
 
 def test_from_experiment_no_units():
     with pytest.raises(ValueError, match="Ki, uncertainty, and temperature values must have units. Check input."):
-        _ = cinnabar.Measurement.from_experiment(
-            "Test Label",
-            100
-        )
+        _ = cinnabar.Measurement.from_experiment("Test Label", 100)
 
 
 def test_measurement_temp():
@@ -193,6 +189,7 @@ def test_unit_conversion_failure():
             uncertainty=1.0 * unit.kilojoule_per_mole,
             computational=True,
         )
+
 
 def test_missing_units():
     with pytest.raises(ValueError, match="DG, uncertainty, and temperature values must have units. Check input."):
