@@ -235,7 +235,7 @@ def calculate_predictive_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
         C_{ij} = \begin{cases}
             1 & \text{if } (E_{j} - E_{i})/(P_{j} - P_{i}) > 0 \\
-            0 & \text{if } (E_{j} - E_{i})/(P_{j} - P_{i}) = 0 \\
+            0 & \text{if } (P_{j} - P_{i}) = 0 \\
             -1 & \text{if } (E_{j} - E_{i})/(P_{j} - P_{i}) < 0
         \end{cases}
 
@@ -246,7 +246,7 @@ def calculate_predictive_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
     References
     ----------
-    .. [1] 10.1021/jm0100279
+    .. [1] Pearlman, D.A. and Charifson, P.S., 2001. Are free energy calculations useful in practice? A comparison with rapid scoring functions for the p38 MAP kinase protein system. Journal of Medicinal Chemistry, 44(21), pp.3417-3423.
     """
     numerator, denominator = 0.0, 0.0
     n = len(y_true)
