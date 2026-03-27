@@ -7,13 +7,12 @@ as well as the :class:`ReferenceState` class which denotes the end point for abs
 
 """
 
-import math
+from dataclasses import dataclass
 from typing import Hashable, Union
 
 from openff.units import unit
 
-from cinnabar.vendor.openff.models.models import DefaultModel
-from cinnabar.vendor.openff.models.types import FloatQuantity
+from cinnabar.conversion import convert_observable
 
 
 class ReferenceState:
@@ -54,7 +53,8 @@ class ReferenceState:
         return hash(self.label)
 
 
-class Measurement(DefaultModel):
+@dataclass(frozen=True)
+class Measurement:
     """The free energy difference of moving from A to B
 
     All quantities are accompanied by units, to prevent mix-ups associated with
@@ -85,23 +85,53 @@ class Measurement(DefaultModel):
       ...                 computational=False)
     """
 
-    class Config:
-        frozen = True
-
     labelA: Hashable
     """Label of state A, e.g. a ligand name or any hashable Python object"""
     labelB: Hashable
     """Label of state B"""
-    DG: FloatQuantity["kilocalorie_per_mole"]
-    """The free energy difference of moving from A to B"""
-    uncertainty: FloatQuantity["kilocalorie_per_mole"]
-    """The uncertainty of the DG measurement"""
-    temperature: FloatQuantity["kelvin"] = 298.15 * unit.kelvin
-    """Temperature that the measurement was taken as"""
+    DG: unit.Quantity
+    """The free energy difference of moving from A to B in kcal/mol"""
+    uncertainty: unit.Quantity
+    """The uncertainty of the DG measurement in kcal/mol"""
     computational: bool
     """If this measurement is computationally based (or experimental)"""
     source: str = ""
     """An arbitrary label to group measurements from a common source"""
+    temperature: unit.Quantity = 298.15 * unit.kelvin
+    """Temperature that the measurement was taken at in K. By default: 298 K (298.15 * unit.kelvin)"""
+
+    def __init__(
+        self,
+        labelA: Hashable,
+        labelB: Hashable,
+        DG: unit.Quantity,
+        uncertainty: unit.Quantity,
+        computational: bool,
+        source: str = "",
+        temperature: unit.Quantity = 298.15 * unit.kelvin,
+    ):
+        """
+        Initialize a Measurement object converting all quantities to the correct default units.
+        """
+        # This dataclass used to be based on pydantic and could automatically convert units from strings
+        # we now do this manually to avoid the dependency and not break old behavior.
+        unit_values = [DG, uncertainty, temperature]
+        for i in range(len(unit_values)):
+            if isinstance(unit_values[i], str):
+                # convert inplace to a quantity with units
+                unit_values[i] = unit.Quantity(unit_values[i])
+
+            elif isinstance(unit_values[i], (float, int)):
+                raise ValueError("DG, uncertainty, and temperature values must have units. Check input.")
+        # unpack the converted values
+        DG, uncertainty, temperature = unit_values
+        object.__setattr__(self, "labelA", labelA)
+        object.__setattr__(self, "labelB", labelB)
+        object.__setattr__(self, "DG", DG.to(unit.kilocalorie_per_mole))
+        object.__setattr__(self, "uncertainty", uncertainty.to(unit.kilocalorie_per_mole))
+        object.__setattr__(self, "computational", computational)
+        object.__setattr__(self, "source", source)
+        object.__setattr__(self, "temperature", temperature.to(unit.kelvin))
 
     @classmethod
     def from_experiment(
@@ -133,20 +163,27 @@ class Measurement(DefaultModel):
             temperature in K at which the experimental measurement was carried out.
             By default: 298 K (298.15 * unit.kelvin)
         """
+        # check for units
+        unit_values = [Ki, uncertainty, temperature]
+        for i in range(len(unit_values)):
+            if isinstance(unit_values[i], str):
+                # try to convert inplace to a quantity with units where possible
+                unit_values[i] = unit.Quantity(unit_values[i])
+
+            elif isinstance(unit_values[i], (float, int)):
+                raise ValueError("Ki, uncertainty, and temperature values must have units. Check input.")
+        # unpack with units again
+        Ki, uncertainty, temperature = unit_values
         if Ki > 0 * unit.molar:
-            DG = (unit.molar_gas_constant * temperature.to(unit.kelvin) * math.log(Ki / unit.molar)).to(
-                unit.kilocalorie_per_mole
-            )
+            if uncertainty >= 0 * unit.molar:
+                DG, uncertainty_DG = convert_observable(
+                    value=Ki, uncertainty=uncertainty, original_type="ki", final_type="dg", temperature=temperature
+                )
+            else:
+                raise ValueError("Uncertainty cannot be negative. Check input.")
         else:
             raise ValueError("Ki value cannot be zero or negative. Check if dG value was provided instead of Ki.")
-        # Convert Ki uncertainty into dG uncertainty: RT * uncertainty/Ki
-        # https://physics.stackexchange.com/questions/95254/the-error-of-the-natural-logarithm
-        if uncertainty >= 0 * unit.molar:
-            uncertainty_DG = (unit.molar_gas_constant * temperature.to(unit.kelvin) * uncertainty / Ki).to(
-                unit.kilocalorie_per_mole
-            )
-        else:
-            raise ValueError("Uncertainty cannot be negative. Check input.")
+
         return cls(
             labelA=ReferenceState(),
             labelB=label,
