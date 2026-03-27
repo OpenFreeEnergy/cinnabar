@@ -210,6 +210,59 @@ def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return rmse / np.abs(mean_true)
 
 
+def calculate_predictive_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    r"""Compute the predictive index as introduced by Pearlman et al. between true and predicted values. [1]_
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Note
+    ----
+    The predictive index measures the correlation between the true and predicted values with a higher weight given to
+    ligand pairs with larger true differences. The final value is between -1 and 1, where 1 indicates perfect ranking
+    and -1 indicates perfectly anti-correlated ranking. It is calculated as:
+
+    .. math:: PI = \frac{\sum^n_{j>i}\sum^n_{i}{W_{ij}C_{ij}}}{\sum^n_{j>i}\sum^n_{i}{W_{ij}}}
+
+    where :math:`W_{ij} = abs(E_{j} - E_{i})` is a weight based on the true difference between the ligand pairs and :math:`C_{ij}`
+    indicates if the rank ordering of the true differences agree with the predicted differences:
+
+    .. math::
+
+        C_{ij} = \begin{cases}
+            1 & \text{if } (E_{j} - E_{i})/(P_{j} - P_{i}) > 0 \\
+            0 & \text{if } (P_{j} - P_{i}) = 0 \\
+            -1 & \text{if } (E_{j} - E_{i})/(P_{j} - P_{i}) < 0
+        \end{cases}
+
+    Returns
+    -------
+    pi : float
+        Predictive index between true and predicted values between -1 and 1.
+
+    References
+    ----------
+    .. [1] Pearlman, D.A. and Charifson, P.S., 2001. Are free energy calculations useful in practice? A comparison with rapid scoring functions for the p38 MAP kinase protein system. Journal of Medicinal Chemistry, 44(21), pp.3417-3423.
+    """
+    numerator, denominator = 0.0, 0.0
+    n = len(y_true)
+    for i in range(n):
+        for j in range(i + 1, n):
+            w_ij = np.abs(y_true[j] - y_true[i])
+            # avoid division by zero when the predicted values are the same
+            if y_pred[j] == y_pred[i]:
+                c_ij = 0.0
+            else:
+                c_ij = np.sign((y_true[j] - y_true[i]) / (y_pred[j] - y_pred[i]))
+            numerator += w_ij * c_ij
+            denominator += w_ij
+    return numerator / denominator
+
+
 # map from statistic name to function that calculates the statistic
 _AVAILABLE_STATS = {
     "RMSE": calculate_rmse,
@@ -219,9 +272,10 @@ _AVAILABLE_STATS = {
     "R2": calculate_r2,
     "rho": calculate_pearson_r,
     "KTAU": calculate_kendalls_tau,
+    "PI": calculate_predictive_index,
 }
 # make a type hint for the statistic names
-Statistics = Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU"]
+Statistics = Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU", "PI"]
 # make sure the type hint and the list stay in sync
 assert set(get_args(Statistics)) == set(_AVAILABLE_STATS.keys())
 
