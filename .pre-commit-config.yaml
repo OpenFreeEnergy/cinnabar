@@ -21,7 +21,7 @@ repos:
     exclude: '\.(pdb|gro|top|sdf|xml|cif|graphml)$'
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.10
+  rev: v0.15.9
   hooks:
     # Run the linter.
     - id: ruff
