@@ -680,7 +680,6 @@ def ecdf_plot(
         # now plot a shaded region between the confidence intervals
         plt.fill_between(data, lower, upper, alpha=0.2, color=color)
 
-
     if title is not None:
         plt.title(title, fontsize=14)
 
