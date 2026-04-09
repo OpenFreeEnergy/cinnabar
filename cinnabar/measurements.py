@@ -104,11 +104,11 @@ class Measurement:
         self,
         labelA: Hashable,
         labelB: Hashable,
-        DG: unit.Quantity,
-        uncertainty: unit.Quantity,
+        DG: unit.Quantity | str,
+        uncertainty: unit.Quantity | str,
         computational: bool,
         source: str = "",
-        temperature: unit.Quantity = 298.15 * unit.kelvin,
+        temperature: unit.Quantity | str = 298.15 * unit.kelvin,
     ):
         """
         Initialize a Measurement object converting all quantities to the correct default units.
@@ -137,11 +137,11 @@ class Measurement:
     def from_experiment(
         cls,
         label: Union[str, Hashable],
-        Ki: unit.Quantity,
-        uncertainty: unit.Quantity = 0 * unit.nanomolar,
+        Ki: unit.Quantity | str,
+        uncertainty: unit.Quantity | str = 0 * unit.nanomolar,
         *,
         source: str = "",
-        temperature: unit.Quantity = 298.15 * unit.kelvin,
+        temperature: unit.Quantity | str = 298.15 * unit.kelvin,
     ):
         """Shortcut to create a Measurement from experimental data
 
@@ -151,15 +151,15 @@ class Measurement:
         ----------
         label: str | Hashable
             label for this data point.
-        Ki: unit.Quantity
+        Ki: unit.Quantity | str
             experimental Ki value
-            ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar
-        uncertainty: unit.Quantity
+            ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar or "0.5 * unit.nanomolar"
+        uncertainty: unit.Quantity | str
             uncertainty of the experimental value
             default is zero if no uncertainty is provided (0 * unit.nanomolar)
         source: str, optional
             source of experimental measurement
-        temperature: unit.Quantity, optional
+        temperature: unit.Quantity | str, optional
             temperature in K at which the experimental measurement was carried out.
             By default: 298 K (298.15 * unit.kelvin)
         """
