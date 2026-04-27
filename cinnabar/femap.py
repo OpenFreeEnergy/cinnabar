@@ -10,6 +10,7 @@ which form an interconnected "network" of values.
 import copy
 import pathlib
 import warnings
+from dataclasses import asdict
 from typing import Hashable, Optional, Union
 
 import matplotlib.pyplot as plt
@@ -213,7 +214,7 @@ class FEMap:
         ValueError : if bad type given
         """
         # slurp out tasty data, anything but labels
-        d = dict(measurement)
+        d = asdict(measurement)
         d.pop("labelA", None)
         d.pop("labelB", None)
 
