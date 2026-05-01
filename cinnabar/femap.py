@@ -597,6 +597,10 @@ class FEMap:
             for (_, d), f_i, df_i in zip(g.nodes(data=True), f_i_calc, variance):
                 d["calc_DG"] = f_i
                 d["calc_dDG"] = df_i
+
+            # Make sure MLE covariance matrix is available in case one wants to propagate mle_ddG_errors: Var(dG_b - dG_a) = C[b,b] + C[a,a] - 2 C[a,b].
+            g.graph["mle_C"] = C_calc
+            g.graph["mle_node_index"] = {n: i for i, n in enumerate(g.nodes)}
         else:
             warnings.warn("Graph is not connected enough to compute absolute values")
 

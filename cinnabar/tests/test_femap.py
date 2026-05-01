@@ -249,6 +249,31 @@ def test_generate_absolute_values_mixed_units():
         m.generate_absolute_values()
 
 
+def test_to_legacy_graph_mle_covariance_recovers_open_cycle_errors():
+    """In open cycle graph topologies, MLE derived ddGs and their uncertainties should match the input values"""
+    edges = [
+        ("0", "1", 1.0, 2.5),
+        ("0", "2", 2.0, 2.8),
+        ("2", "3", 3.0, 3.1),
+    ]
+    fe_map = femap.FEMap()
+    for a, b, ddg, dddg in edges:
+        fe_map.add_relative_calculation(
+            a, b, ddg * unit.kilocalorie_per_mole, dddg * unit.kilocalorie_per_mole
+        )
+
+    g = fe_map.to_legacy_graph()
+    C = g.graph["mle_C"]
+    node_index = g.graph["mle_node_index"]
+
+    for a, b, ddg, dddg in edges:
+        i, j = node_index[a], node_index[b]
+        mle_ddG = g.nodes[b]["calc_DG"] - g.nodes[a]["calc_DG"]
+        mle_dDDG = (C[i, i] + C[j, j] - 2 * C[i, j]) ** 0.5
+        assert mle_ddG == pytest.approx(ddg)
+        assert mle_dDDG == pytest.approx(dddg)
+
+
 def test_generate_absolute_values_repeats():
     """Make sure an error is raised if there are multiple edges between same nodes and we try and use the MLE solver."""
     fe_map = femap.FEMap()

@@ -526,6 +526,16 @@ def plot_all_DDGs(
     y_abs = np.asarray([node[1]["calc_DG"] for node in nodes])
     xabserr = np.asarray([node[1]["exp_dDG"] for node in nodes])
     yabserr = np.asarray([node[1]["calc_dDG"] for node in nodes])
+
+    # If the graph is a legacy MLE graph, we use the covariance matrix to propagate uncertainty of
+    # the differences of absolute MLE dGs.
+    mle_C = graph.graph.get("mle_C")
+    mle_node_index = graph.graph.get("mle_node_index")
+    if mle_C is not None and mle_node_index is not None:
+        idx_arr = np.asarray([mle_node_index[n] for n, _ in nodes])
+    else:
+        idx_arr = None
+
     # do all to plot_all
     x_data = []
     y_data = []
@@ -541,7 +551,11 @@ def plot_all_DDGs(
         y = y_abs[a] - y_abs[b]
         y_data.append(y)
         y_data.append(-y)
-        err = (yabserr[a] ** 2 + yabserr[b] ** 2) ** 0.5
+        if mle_C is not None and idx_arr is not None:
+            i, j = idx_arr[a], idx_arr[b]
+            err = (mle_C[i, i] + mle_C[j, j] - 2 * mle_C[i, j]) ** 0.5
+        else:
+            err = (yabserr[a] ** 2 + yabserr[b] ** 2) ** 0.5
         yerr.append(err)
         yerr.append(err)
     x_data_ = np.array(x_data)
