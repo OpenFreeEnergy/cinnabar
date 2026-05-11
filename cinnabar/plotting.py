@@ -666,23 +666,24 @@ def ecdf_plot(
 
         sns.ecdfplot(data, label=label, **default_kwargs)
 
-        # estimate an error bounds via bootsrapping over the data
-        boot_ecdfs = []
-        # we first need to sort the data so its in the same order used in the ecdf plot
-        data = np.sort(data)
-        for _ in range(nbootstraps):
-            sample = np.random.choice(data, size=len(data), replace=True)
-            # calculate the ECDF for this sample at each point in the true sample data
-            boot_ecdf = [np.mean(sample <= x) for x in data]
-            boot_ecdfs.append(boot_ecdf)
+        # estimate an error bounds via bootsrapping over the data if the number of bootstraps is > 0
+        if nbootstraps > 0:
+            boot_ecdfs = []
+            # we first need to sort the data so its in the same order used in the ecdf plot
+            data = np.sort(data)
+            for _ in range(nbootstraps):
+                sample = np.random.choice(data, size=len(data), replace=True)
+                # calculate the ECDF for this sample at each point in the true sample data
+                boot_ecdf = [np.mean(sample <= x) for x in data]
+                boot_ecdfs.append(boot_ecdf)
 
-        # calculate the 95% confidence interval
-        low_percentile = (1.0 - ci) / 2.0 * 100
-        high_percentile = 100 - low_percentile
-        lower = np.percentile(boot_ecdfs, low_percentile, axis=0)
-        upper = np.percentile(boot_ecdfs, high_percentile, axis=0)
-        # now plot a shaded region between the confidence intervals
-        plt.fill_between(data, lower, upper, alpha=0.2, color=color)
+            # calculate the confidence interval based on the user input
+            low_percentile = (1.0 - ci) / 2.0 * 100
+            high_percentile = 100 - low_percentile
+            lower = np.percentile(boot_ecdfs, low_percentile, axis=0)
+            upper = np.percentile(boot_ecdfs, high_percentile, axis=0)
+            # now plot a shaded region between the confidence intervals
+            plt.fill_between(data, lower, upper, alpha=0.2, color=color)
 
     if title is not None:
         plt.title(title, fontsize=14)
