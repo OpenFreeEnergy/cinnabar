@@ -112,7 +112,7 @@ class Estimator(abc.ABC):
         -----
         * Connectivity is checked per source before ``_estimate`` is called.
         * Experimental measurements are forwarded to every source so the
-          estimator can use them to centre predictions.
+          estimator can use them to center predictions.
         * The estimates are stamped with a composed source label of the form ``"{estimator.source}({input_source})"``
             when multiple computational sources are present, or just ``"{estimator.source}"`` when there is only one.
         """
@@ -195,7 +195,7 @@ class MLEEstimator(Estimator):
     ----------
     source : str, optional
         Label attached to the returned measurements and used as the storage
-        key on the FEMap  Defaults to MLE.
+        key on the FEMap. Defaults to MLE.
 
     Notes
     -----
