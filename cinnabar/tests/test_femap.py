@@ -107,9 +107,8 @@ def test_femap_add_measurement():
 
 @pytest.mark.parametrize("ki", [False, True])
 def test_femap_add_experimental(ki):
-    ref_v = -9.58015754 * unit.kilocalorie_per_mole
-    ref_u = 0.0594372794 * unit.kilocalorie_per_mole
-
+    ref_v = -9.58 * unit.kilocalorie_per_mole
+    ref_u = 0.06 * unit.kilocalorie_per_mole
     if ki:
         v = 100 * unit.nanomolar
         u = 10 * unit.nanomolar
@@ -334,7 +333,11 @@ def test_to_dataframe(example_map):
     rel_df = example_map.get_relative_dataframe()
 
     assert abs_df.shape == (36, 5)
-    assert rel_df.shape == (58, 6)
+    # the dataframe should have the simulated and experimental values
+    assert rel_df.shape == (116, 6)
+    # check the split between the results is correct
+    assert rel_df.loc[rel_df.computational].shape == (58, 6)
+    assert rel_df.loc[~rel_df.computational].shape == (58, 6)
 
     example_map.generate_absolute_values()
 

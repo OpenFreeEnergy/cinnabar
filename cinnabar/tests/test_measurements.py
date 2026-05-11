@@ -1,5 +1,6 @@
 import pytest
 from openff.units import unit
+from pint.errors import DimensionalityError
 
 import cinnabar
 
@@ -52,7 +53,7 @@ def test_measurement_hash():
             100 * unit.nanomolar,
             10 * unit.nanomolar,
             -9.55 * unit.kilocalorie_per_mole,
-            0.059 * unit.kilocalorie_per_mole,
+            0.06 * unit.kilocalorie_per_mole,
             "lig",
             298.15 * unit.kelvin,
         ],
@@ -60,7 +61,7 @@ def test_measurement_hash():
             0.1 * unit.micromolar,
             0.01 * unit.micromolar,
             -9.55 * unit.kilocalorie_per_mole,
-            0.059 * unit.kilocalorie_per_mole,
+            0.06 * unit.kilocalorie_per_mole,
             "lig",
             298.15 * unit.kelvin,
         ],
@@ -68,9 +69,18 @@ def test_measurement_hash():
             100 * unit.nanomolar,
             10 * unit.nanomolar,
             -10.57 * unit.kilocalorie_per_mole,
-            0.066 * unit.kilocalorie_per_mole,
+            0.07 * unit.kilocalorie_per_mole,
             "lig",
             330 * unit.kelvin,
+        ],
+        # make sure that string inputs are properly converted to quantities with units
+        [
+            "100 nM",
+            "10 nM",
+            -9.55 * unit.kilocalorie_per_mole,
+            0.06 * unit.kilocalorie_per_mole,
+            "lig",
+            "298.15 K",
         ],
     ],
 )
@@ -99,6 +109,11 @@ def test_negative_uncertainty():
         r"Check input.",
     ):
         cinnabar.Measurement.from_experiment("Test Label", 100 * unit.nanomolar, -10 * unit.nanomolar)
+
+
+def test_from_experiment_no_units():
+    with pytest.raises(ValueError, match="Ki, uncertainty, and temperature values must have units. Check input."):
+        _ = cinnabar.Measurement.from_experiment("Test Label", 100)
 
 
 def test_measurement_temp():
@@ -135,3 +150,53 @@ def test_is_true_ground(label, expected):
 def test_ref_state_repr(label, expected):
     rs = cinnabar.ReferenceState(label=label)
     assert repr(rs) == expected
+
+
+def test_convert_default_units():
+    m = cinnabar.Measurement(
+        labelA="foo",
+        labelB="bar",
+        DG=4.0 * unit.kilojoule_per_mole,
+        uncertainty=1.0 * unit.kilojoule_per_mole,
+        computational=True,
+    )
+    # regression test to make sure that default units are converted to kcal/mol
+    assert pytest.approx(0.9560, 0.0001) == m.DG.m
+    assert m.DG.units == unit.kilocalorie_per_mole
+    assert m.uncertainty.units == unit.kilocalorie_per_mole
+
+
+def test_convert_units_from_string():
+    m = cinnabar.Measurement(
+        labelA="foo",
+        labelB="bar",
+        DG="4.0 kJ/mol",
+        uncertainty="1.0 kJ/mol",
+        computational=True,
+    )
+    # regression test to make sure that default units are converted to kcal/mol
+    assert pytest.approx(0.9560, 0.0001) == m.DG.m
+    assert m.DG.units == unit.kilocalorie_per_mole
+    assert m.uncertainty.units == unit.kilocalorie_per_mole
+
+
+def test_unit_conversion_failure():
+    with pytest.raises(DimensionalityError, match="Cannot convert from 'hartree'"):
+        cinnabar.Measurement(
+            labelA="foo",
+            labelB="bar",
+            DG=4.0 * unit.hartree,
+            uncertainty=1.0 * unit.kilojoule_per_mole,
+            computational=True,
+        )
+
+
+def test_missing_units():
+    with pytest.raises(ValueError, match="DG, uncertainty, and temperature values must have units. Check input."):
+        cinnabar.Measurement(
+            labelA="foo",
+            labelB="bar",
+            DG=4.0,
+            uncertainty=1.0,
+            computational=True,
+        )

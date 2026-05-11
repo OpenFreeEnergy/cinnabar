@@ -134,6 +134,21 @@ def test_mle_bidirectional_edges():
         stats.mle(graph, factor="f_ij", node_factor="f_i")
 
 
+def test_mle_zero_uncertainty():
+    """
+    Test that the MLE raises an error on an edge with zero uncertainty
+    """
+    graph = nx.DiGraph()
+    edges = [(0, 1), (0, 2), (2, 1)]
+    for a, b in edges:
+        graph.add_edge(a, b, f_ij=1.0 + np.random.normal(0.0, scale=0.5), f_dij=0.0)
+
+    with pytest.raises(
+        ValueError, match="MLE solver will fail with zero reported uncertainty for calculated differences."
+    ):
+        _, _ = stats.mle(graph, factor="f_ij", node_factor="f_i")
+
+
 def test_correlation_positive(example_data_mle):
     """
     Test that the absolute DG plots have the correct signs,
@@ -159,6 +174,19 @@ def test_missing_statistic(example_data_mle):
 
     with pytest.raises(ValueError, match="unknown statistic UNKNOWN_STAT"):
         bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="UNKNOWN_STAT")
+
+
+def test_inconsistent_array_shape():
+    """
+    Test that an error is raised when input arrays have inconsistent shapes
+    """
+    x_data = np.array([1.0, 2.0, 3.0])
+    y_data = np.array([1.0, 2.0])  # inconsistent shape
+    xerr = np.array([0.1, 0.1, 0.1])
+    yerr = np.array([0.1, 0.1])
+
+    with pytest.raises(ValueError, match="All input arrays must have the same length"):
+        bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
 
 
 def test_confidence_intervals_defaults(example_data_mle):
@@ -232,6 +260,8 @@ def test_confidence_interval_edge_case():
         ("rho", 0.7841978196676316),
         ("KTAU", 0.58148151940828),
         ("RAE", 15.995712243925674),
+        ("NRMSE", 1.0040857354711985),
+        ("PI", 0.816249795651462),
     ],
 )
 def test_regression_bootstrap_statistics(example_data_mle, stat, expected):

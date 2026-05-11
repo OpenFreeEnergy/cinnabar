@@ -62,7 +62,7 @@ Limitations
 - The MLE method **can not** use multiple independent measurements of the same edge to improve precision automatically.
   Each edge must be represented by a single :math:`\Delta\Delta G` and uncertainty. If multiple measurements are available,
   they should be combined externally (e.g. via weighted averaging) before input to the estimator.
-
+- The MLE method automatically adds small non-zero uncertainties to edges with exactly zero reported uncertainty to ensure numerical stability.
 
 
 References
