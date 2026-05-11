@@ -11,7 +11,6 @@ import copy
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import Hashable, Optional, Union
 from typing import TYPE_CHECKING, Hashable, Optional, Union
 
 import matplotlib.pyplot as plt

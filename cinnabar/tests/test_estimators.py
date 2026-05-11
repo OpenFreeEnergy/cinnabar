@@ -1,4 +1,5 @@
 import pytest
+
 from cinnabar.estimators import MLEEstimator, _build_graph_from_measurements
 
 
