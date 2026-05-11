@@ -1,10 +1,9 @@
 from importlib import resources
 
-import numpy as np
 import pytest
 from openff.units import unit
 
-from cinnabar import FEMap
+from cinnabar import FEMap, estimators
 
 
 @pytest.fixture()
@@ -20,16 +19,20 @@ def fe_map(example_csv):
 
 
 @pytest.fixture()
-def example_data(fe_map):
+def example_data_mle(fe_map):
     """
-    Returns data w/ error bars from `cinnabar/data/example.csv`
+    Returns absolute DG data w/ error bars calculated using MLE with inputs from `cinnabar/data/example.csv`
     """
-    nodes = fe_map.to_legacy_graph().nodes
+    fe_map.generate_absolute_values(estimator=estimators.MLEEstimator())
+    abs_df = fe_map.get_absolute_dataframe()
 
-    x_data = np.asarray([n[1]["exp_DG"] for n in nodes(data=True)])
-    y_data = np.asarray([n[1]["calc_DG"] for n in nodes(data=True)])
-    xerr = np.asarray([n[1]["exp_dDG"] for n in nodes(data=True)])
-    yerr = np.asarray([n[1]["calc_dDG"] for n in nodes(data=True)])
+    comp_results = abs_df[abs_df["computational"] == True].sort_values("label").reset_index(drop=True)
+    exp_results = abs_df[abs_df["computational"] == False].sort_values("label").reset_index(drop=True)
+
+    x_data = exp_results["DG (kcal/mol)"].values
+    y_data = comp_results["DG (kcal/mol)"].values
+    xerr = exp_results["uncertainty (kcal/mol)"].values
+    yerr = comp_results["uncertainty (kcal/mol)"].values
 
     return x_data, y_data, xerr, yerr
 
