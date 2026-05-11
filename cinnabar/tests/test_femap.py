@@ -520,3 +520,9 @@ def test_measurement_ordering(example_map):
     abs_df2 = abs_df2.sort_values("label").reset_index(drop=True)
 
     assert np.allclose(abs_df["DG (kcal/mol)"].values, abs_df2["DG (kcal/mol)"].values)
+
+
+def test_missing_estimator_metadata(example_map):
+    with pytest.raises(KeyError, match="No estimator metadata stored for source test."):
+        example_map.generate_absolute_values()
+        example_map.get_estimator_metadata("test")
