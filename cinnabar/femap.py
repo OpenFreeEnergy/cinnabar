@@ -419,7 +419,7 @@ class FEMap:
         - uncertainty (kcal/mol)
         - source
         - computational
-        The dataframe will be sorted by source, computational, labelA, and labelB to ensure that paring order is consistent.
+        The dataframe will be sorted by source, computational, labelA, and labelB to ensure that pairing order is consistent.
         If `symmetrical` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
         """
         # we need to group by the source and computational labels and then compute the pairwise differences within each group, then concatenate the results together
