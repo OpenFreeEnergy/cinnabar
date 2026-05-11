@@ -639,6 +639,10 @@ def ecdf_plot(
     if not datasets:
         raise ValueError("At least one dataset is required to plot an ECDF.")
 
+    # make sure 0 < ci < 1
+    if not 0 < ci < 1:
+        raise ValueError("ci must be between 0 and 1.")
+
     if not isinstance(figsize, tuple):
         figsize = (figsize, figsize)
     fig, axs = plt.subplots(figsize=figsize)
