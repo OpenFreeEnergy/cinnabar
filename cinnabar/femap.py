@@ -427,7 +427,7 @@ class FEMap:
         grouped = df.groupby(["source", "computational"])
         pairwise_dfs = []
         for (source, computational), group in grouped:
-            # sort the group by label to ensure that paring order is consistent
+            # sort the group by label to ensure that pairing order is consistent
             group = group.sort_values(by="label")
             labels = group["label"].values
             dgs = group["DG (kcal/mol)"].values
