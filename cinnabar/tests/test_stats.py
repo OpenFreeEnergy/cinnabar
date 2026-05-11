@@ -134,13 +134,28 @@ def test_mle_bidirectional_edges():
         stats.mle(graph, factor="f_ij", node_factor="f_i")
 
 
-def test_correlation_positive(example_data):
+def test_mle_zero_uncertainty():
+    """
+    Test that the MLE raises an error on an edge with zero uncertainty
+    """
+    graph = nx.DiGraph()
+    edges = [(0, 1), (0, 2), (2, 1)]
+    for a, b in edges:
+        graph.add_edge(a, b, f_ij=1.0 + np.random.normal(0.0, scale=0.5), f_dij=0.0)
+
+    with pytest.raises(
+        ValueError, match="MLE solver will fail with zero reported uncertainty for calculated differences."
+    ):
+        _, _ = stats.mle(graph, factor="f_ij", node_factor="f_i")
+
+
+def test_correlation_positive(example_data_mle):
     """
     Test that the absolute DG plots have the correct signs,
     and statistics within reasonable agreement to the example data
     in `cinnabar/data/example.csv`
     """
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
 
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="rho")
     assert 0 < bss["mle"] < 1, "Correlation must be positive for this data"
@@ -151,23 +166,36 @@ def test_correlation_positive(example_data):
         assert 0.5 < bss["mle"] < 0.9, f"Correlation must be positive for this data. {stat} is {bss['mle']}"
 
 
-def test_missing_statistic(example_data):
+def test_missing_statistic(example_data_mle):
     """
     Test that an error is raised when an unknown statistic is requested
     """
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
 
-    with pytest.raises(Exception, match="unknown statistic UNKNOWN_STAT"):
+    with pytest.raises(ValueError, match="unknown statistic UNKNOWN_STAT"):
         bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="UNKNOWN_STAT")
 
 
-def test_confidence_intervals_defaults(example_data):
+def test_inconsistent_array_shape():
+    """
+    Test that an error is raised when input arrays have inconsistent shapes
+    """
+    x_data = np.array([1.0, 2.0, 3.0])
+    y_data = np.array([1.0, 2.0])  # inconsistent shape
+    xerr = np.array([0.1, 0.1, 0.1])
+    yerr = np.array([0.1, 0.1])
+
+    with pytest.raises(ValueError, match="All input arrays must have the same length"):
+        bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
+
+
+def test_confidence_intervals_defaults(example_data_mle):
     """
     Test that boostrap confidence intervals contains
     the 'mle' value when using defaults.
     """
     error_message = "The stat must lie within the bootstrapped 95% CI"
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic="RMSE")
     assert bss["low"] < bss["mle"] < bss["high"], error_message
 
@@ -182,14 +210,14 @@ def test_confidence_intervals_defaults(example_data):
         ["RMSE", True, True, "mean"],
     ],
 )
-def test_confidence_intervals(example_data, stat, true_uncert, pred_uncert, estimate):
+def test_confidence_intervals(example_data_mle, stat, true_uncert, pred_uncert, estimate):
     """
     Test that the bootstrapped confidence intervals contain the
     corresponding statistics.
     Uses the example data in `cinnabar/data/example.csv`
     """
     error_message = "The stat must lie within the bootstrapped 95% CI"
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
     bss = bootstrap_statistic(
         x_data,
         y_data,
@@ -232,14 +260,16 @@ def test_confidence_interval_edge_case():
         ("rho", 0.7841978196676316),
         ("KTAU", 0.58148151940828),
         ("RAE", 15.995712243925674),
+        ("NRMSE", 1.0040857354711985),
+        ("PI", 0.816249795651462),
     ],
 )
-def test_regression_bootstrap_statistics(example_data, stat, expected):
+def test_regression_bootstrap_statistics(example_data_mle, stat, expected):
     """
     Regression test for bootstrap statistics on example data
     in `cinnabar/data/example.csv`
     """
-    x_data, y_data, xerr, yerr = example_data
+    x_data, y_data, xerr, yerr = example_data_mle
 
     bss = bootstrap_statistic(x_data, y_data, xerr, yerr, statistic=stat)
     assert pytest.approx(bss["mle"], rel=1e-6) == expected, f"Regression test failed for statistic {stat}"
@@ -247,11 +277,11 @@ def test_regression_bootstrap_statistics(example_data, stat, expected):
     assert (bss["low"] < bss["mle"]) and (bss["mle"] < bss["high"]), error_message
 
 
-def test_bootstrap_statistic_no_errors(example_data):
+def test_bootstrap_statistic_no_errors(example_data_mle):
     """
     Test that compute_statistic works when no errors are provided
     """
-    x_data, y_data, _, _ = example_data
+    x_data, y_data, _, _ = example_data_mle
 
     bss = bootstrap_statistic(x_data, y_data, statistic="RMSE")
     assert pytest.approx(bss["mle"], rel=1e-6) == 9.364494046790412
@@ -262,7 +292,7 @@ def test_bad_edge_matrix_action(fe_map):
     Test that an error is raised when an unknown action is provided
     to the edge matrix computation
     """
-    with pytest.raises(Exception, match='action "bad_action" unknown'):
+    with pytest.raises(ValueError, match='action "bad_action" unknown'):
         _ = stats.form_edge_matrix(fe_map.to_legacy_graph(), label="calc_DDG", action="bad_action")
 
 
