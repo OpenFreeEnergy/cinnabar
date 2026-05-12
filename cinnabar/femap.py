@@ -475,7 +475,10 @@ class FEMap:
                 ddg = dgs[j] - dgs[i]
                 # get the covariance if this is computation data, otherwise assume zero covariance
                 if computational:
-                    ligand_i, ligand_j = estimator_metadata.ligand_order.index(label_a), estimator_metadata.ligand_order.index(label_b)
+                    ligand_i, ligand_j = (
+                        estimator_metadata.ligand_order.index(label_a),
+                        estimator_metadata.ligand_order.index(label_b),
+                    )
                     covariance = estimator_metadata.covariance_matrix[ligand_i, ligand_j]
                 else:
                     covariance = 0.0

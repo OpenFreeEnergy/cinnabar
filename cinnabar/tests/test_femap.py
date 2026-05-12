@@ -424,7 +424,9 @@ def test_to_all_pairwise_df_uses_covariance_matrix():
     naive_uncertainty = (
         abs_df.loc["A", "uncertainty (kcal/mol)"] ** 2 + abs_df.loc["B", "uncertainty (kcal/mol)"] ** 2
     ) ** 0.5
-    ab_uncertainty = pairwise_df.loc[(pairwise_df.labelA == "A") & (pairwise_df.labelB == "B"), "uncertainty (kcal/mol)"].iloc[0]
+    ab_uncertainty = pairwise_df.loc[
+        (pairwise_df.labelA == "A") & (pairwise_df.labelB == "B"), "uncertainty (kcal/mol)"
+    ].iloc[0]
     assert ab_uncertainty < naive_uncertainty
 
 
