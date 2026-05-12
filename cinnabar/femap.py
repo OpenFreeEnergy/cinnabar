@@ -462,13 +462,24 @@ class FEMap:
             labels = group["label"].values
             dgs = group["DG (kcal/mol)"].values
             uncertainties = group["uncertainty (kcal/mol)"].values
+            if computational:
+                # get the estimator metadata as we need the covariance matrix
+                estimator_metadata = self.get_estimator_metadata(source)
+            else:
+                estimator_metadata = None
 
             data = []
             for i, j in itertools.combinations(range(len(labels)), 2):
                 label_a, label_b = labels[i], labels[j]
                 # transformation i -> j has a DDG of j - i
                 ddg = dgs[j] - dgs[i]
-                uncertainty = (uncertainties[i] ** 2 + uncertainties[j] ** 2) ** 0.5
+                # get the covariance if this is computation data, otherwise assume zero covariance
+                if computational:
+                    ligand_i, ligand_j = estimator_metadata.ligand_order.index(label_a), estimator_metadata.ligand_order.index(label_b)
+                    covariance = estimator_metadata.covariance_matrix[ligand_i, ligand_j]
+                else:
+                    covariance = 0.0
+                uncertainty = (uncertainties[i] ** 2 + uncertainties[j] ** 2 - 2 * covariance) ** 0.5
                 data.append((label_a, label_b, ddg, uncertainty, source, computational))
                 if symmetrical:
                     data.append((label_b, label_a, -ddg, uncertainty, source, computational))

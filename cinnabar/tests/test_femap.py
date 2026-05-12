@@ -208,6 +208,7 @@ def test_generate_absolute_values(example_map, ref_mle_results):
         assert yerr.magnitude == pytest.approx(yerr_ref), e
     # check the metadata is correct
     metadata = example_map.get_estimator_metadata("MLE")
+    assert isinstance(metadata, estimators.MLEEstimatorResult)
     # check general metadata is correct
     assert metadata.source == "MLE"
     assert metadata.estimator == "MLEEstimator"
@@ -388,6 +389,43 @@ def test_to_all_pairwise_df_symmetry(example_map):
             dg_b = source_df.loc[source_df.label == label_b, "DG (kcal/mol)"].values[0]
             expected_ddg = dg_b - dg_a
             assert row["DDG (kcal/mol)"] == expected_ddg
+
+
+def test_to_all_pairwise_df_uses_covariance_matrix():
+    fe_map = cinnabar.FEMap()
+    kjpm = unit.kilojoule_per_mole
+
+    fe_map.add_relative_calculation("A", "B", 4.184 * kjpm, 0.4184 * kjpm)
+    fe_map.add_relative_calculation("B", "C", 8.368 * kjpm, 0.8368 * kjpm)
+    fe_map.add_relative_calculation("A", "C", 12.552 * kjpm, 1.2552 * kjpm)
+
+    fe_map.generate_absolute_values()
+
+    pairwise_df = fe_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    abs_df = fe_map.get_absolute_dataframe().set_index("label")
+    metadata = fe_map.get_estimator_metadata("MLE")
+    assert isinstance(metadata, estimators.MLEEstimatorResult)
+    label_to_index = {label: i for i, label in enumerate(metadata.ligand_order)}
+
+    for _, row in pairwise_df.iterrows():
+        label_a = row["labelA"]
+        label_b = row["labelB"]
+        i = label_to_index[label_a]
+        j = label_to_index[label_b]
+        covariance = metadata.covariance_matrix[i, j]
+        expected_uncertainty = (
+            abs_df.loc[label_a, "uncertainty (kcal/mol)"] ** 2
+            + abs_df.loc[label_b, "uncertainty (kcal/mol)"] ** 2
+            - 2 * covariance
+        ) ** 0.5
+
+        assert row["uncertainty (kcal/mol)"] == pytest.approx(expected_uncertainty)
+
+    naive_uncertainty = (
+        abs_df.loc["A", "uncertainty (kcal/mol)"] ** 2 + abs_df.loc["B", "uncertainty (kcal/mol)"] ** 2
+    ) ** 0.5
+    ab_uncertainty = pairwise_df.loc[(pairwise_df.labelA == "A") & (pairwise_df.labelB == "B"), "uncertainty (kcal/mol)"].iloc[0]
+    assert ab_uncertainty < naive_uncertainty
 
 
 def test_to_networkx(example_map):
