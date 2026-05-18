@@ -10,7 +10,8 @@ which form an interconnected "network" of values.
 import copy
 import pathlib
 import warnings
-from typing import Hashable, Optional, Union
+from dataclasses import asdict
+from typing import TYPE_CHECKING, Hashable, Optional, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -21,6 +22,9 @@ from openff.units import Quantity, unit
 
 from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
+
+if TYPE_CHECKING:
+    from cinnabar.estimators import Estimator, EstimatorResult  # pragma: no cover
 
 _kcalpm = unit.kilocalorie_per_mole
 
@@ -119,9 +123,11 @@ class FEMap:
     # all edges are directed
     # all edges can be multiply defined
     _graph: nx.MultiDiGraph
+    _estimator_metadata: dict[str, "EstimatorResult"]
 
     def __init__(self):
         self._graph = nx.MultiDiGraph()
+        self._estimator_metadata = {}
 
     def __iter__(self):
         for a, b, d in self._graph.edges(data=True):
@@ -213,7 +219,7 @@ class FEMap:
         ValueError : if bad type given
         """
         # slurp out tasty data, anything but labels
-        d = dict(measurement)
+        d = asdict(measurement)
         d.pop("labelA", None)
         d.pop("labelB", None)
 
@@ -340,42 +346,65 @@ class FEMap:
         self.add_measurement(m)
 
     def get_relative_dataframe(self) -> pd.DataFrame:
-        """Gets a dataframe of all relative results
+        """Get a dataframe of all relative results for all sources including experimental and computational.
 
+        Note
+        ----
         The pandas DataFrame will have the following columns:
         - labelA
         - labelB
-        - DDG
-        - uncertainty
+        - DDG (kcal/mol)
+        - uncertainty (kcal/mol)
         - source
         - computational
+        Only simulated relative results are included for the computational results
+        The dataframe will be sorted by source, computational, labelA, and labelB to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
         data = []
+        # store the non-computational results so we can include them in the dataframe for the same edges
+        non_comp_results = {}
         for l1, l2, d in self._graph.edges(data=True):
             if d["source"] == "reverse":
                 continue
-            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState):
+            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState) and not d["computational"]:
+                label = l2 if isinstance(l1, ReferenceState) else l1
+                non_comp_results[label] = d
                 continue
 
             data.append((l1, l2, d["DG"].to(kcpm).m, d["uncertainty"].to(kcpm).m, d["source"], d["computational"]))
 
+        # for each computational result add the experimental result for the same edge if it exists
+        comp_data = []
+        for l1, l2, *_ in data:
+            exp_1 = non_comp_results.get(l1, None)
+            exp_2 = non_comp_results.get(l2, None)
+            if exp_1 is not None and exp_2 is not None:
+                # if we have both, we can add the experimental DDG and uncertainty to the dataframe
+                exp_ddg = exp_2["DG"].to(kcpm).m - exp_1["DG"].to(kcpm).m
+                exp_uncertainty = (exp_1["uncertainty"].to(kcpm).m ** 2 + exp_2["uncertainty"].to(kcpm).m ** 2) ** 0.5
+                comp_data.append((l1, l2, exp_ddg, exp_uncertainty, "experimental", False))
+
         cols = ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
-        return pd.DataFrame(
-            data=data,
+        df = pd.DataFrame(
+            data=data + comp_data,
             columns=cols,
         )
+        return df.sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
 
     def get_absolute_dataframe(self) -> pd.DataFrame:
-        """Get a dataframe of all absolute results
+        """Get a dataframe of all absolute results from all sources.
 
+        Note
+        ----
         The dataframe will have the following columns:
         - label
-        - DG
-        - uncertainty
+        - DG (kcal/mol)
+        - uncertainty (kcal/mol)
         - source
         - computational
+        The dataframe will be sorted by source, computational, and label to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
         data = []
@@ -391,10 +420,11 @@ class FEMap:
 
         cols = ["label", "DG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
-        return pd.DataFrame(
+        df = pd.DataFrame(
             data=data,
             columns=cols,
         )
+        return df.sort_values(by=["source", "computational", "label"]).reset_index(drop=True)
 
     @property
     def n_measurements(self) -> int:
@@ -423,7 +453,19 @@ class FEMap:
         return sum(1 for _, _, d in self._graph.edges(data=True) if d["computational"]) // 2
 
     def check_weakly_connected(self) -> bool:
-        """Checks if all results in the graph are reachable from other results"""
+        """
+        Checks if all computational results in the graph are reachable from other results.
+
+        Returns
+        -------
+        bool
+             True if the graph is weakly connected, False otherwise.
+
+        Raises
+        ------
+        ValueError
+            If the graph contains no computational edges.
+        """
         # todo; cache
         comp_graph = nx.MultiGraph()
         for a, b, d in self._graph.edges(data=True):
@@ -431,65 +473,93 @@ class FEMap:
                 continue
             comp_graph.add_edge(a, b)
 
-        return nx.is_connected(comp_graph)
+        try:
+            is_connected = nx.is_connected(comp_graph)
+            return is_connected
+        except nx.NetworkXPointlessConcept:
+            raise ValueError("Graph contains no computational edges, cannot check connectivity")
 
-    def generate_absolute_values(self):
-        """Populate the FEMap with absolute computational values based on MLE"""
-        # TODO: Make this return a new Graph with computational nodes annotated with DG values
-        # TODO this could work if either relative or absolute expt values are provided
+    def generate_absolute_values(self, estimator: Optional["Estimator"] = None):
+        """Populate the FEMap with absolute computational values.
+
+        Runs the estimator on this femap for each unique computational
+        source, adds the returned ``Measurement`` objects, and stores the
+        ``EstimatorResult`` metadata per source for later retrieval via
+        ``get_estimator_metadata``.
+
+        Parameters
+        ----------
+        estimator : Estimator, optional
+            The estimator to use.  Defaults to
+            the MLEEstimator.
+
+        Raises
+        ------
+        ValueError
+            If measurements have mixed units or the computational graph for
+            any source is not weakly connected.
+
+        See Also
+        --------
+        get_estimator_metadata : retrieve stored metadata after estimation.
+
+        Notes
+        -----
+        * This method modifies the FEMap in-place, adding new measurements and metadata.
+        * The estimator is run separately for each unique computational source, predictions will have a new source tag of
+            the form ``{estimator_name}({original_source})``, e.g. ``MLE(openff-2.0.0)``.
+
+        """
         mes = list(self._graph.edges(data=True))
-        # for now, we must all be in the same units for this to work
-        # grab unit of first measurement
+        if not mes:
+            raise ValueError("FEMap contains no measurements")
         u = mes[0][-1]["DG"].u
-        # check all over values are this unit
         if not all(d["DG"].u == u for _, _, d in mes):
             raise ValueError("All units must be the same")
 
-        if self.check_weakly_connected():
-            graph = self.to_legacy_graph()
-            f_i_calc, C_calc = stats.mle(graph, factor="calc_DDG")
-            variance = np.diagonal(C_calc) ** 0.5
+        if estimator is None:
+            from cinnabar.estimators import MLEEstimator
 
-            g = ReferenceState(label="MLE")
+            estimator = MLEEstimator()
 
-            for n, f_i, df_i in zip(graph.nodes, f_i_calc, variance):
-                self.add_measurement(
-                    Measurement(
-                        labelA=g,
-                        labelB=n,
-                        DG=f_i * u,
-                        uncertainty=df_i * u,
-                        computational=True,
-                        source="MLE",
-                    )
-                )
+        # estimate() returns {composed_source: (measurements, result)},
+        # where composed_source is e.g. "MLE" or "MLE(openff-2.0.0)" depending on the number of input sources.
+        # the same keys are used in _estimator_metadata so that
+        # get_estimator_metadata can retrieve the result for a given source.
+        results_by_source = estimator.estimate(self)
+        for composed_source, (measurements, result) in results_by_source.items():
+            for m in measurements:
+                self.add_measurement(m)
+            self._estimator_metadata[composed_source] = result
 
-            # find all computational result labels
-            comp_ligands = set()
-            for A, B, d in self._graph.edges(data=True):
-                if not d["computational"]:
-                    continue
-                comp_ligands.add(A)
-                comp_ligands.add(B)
+    def get_estimator_metadata(self, source: str) -> "EstimatorResult":
+        """Retrieve stored metadata from a previous :meth:`generate_absolute_values` call.
 
-            # find corresponding experimental results
+        Parameters
+        ----------
+        source : str
+            The composed source identifier for the estimator results to retrieve, e.g. ``MLE(openff-2.0.0)``.
 
-            # use mean of experimental results to offset MLE reference point
+        Returns
+        -------
+        EstimatorResult
+            The concrete type depends on the estimator used, e.g.
+            :class:`~cinnabar.estimators.MLEEstimatorResult` for
+            :class:`~cinnabar.estimators.MLEEstimator`.
 
-            # add connection to MLE reference state and true reference state
-            self.add_measurement(
-                Measurement(
-                    labelA=ReferenceState(),
-                    labelB=g,
-                    DG=0.1 * u,
-                    uncertainty=0.0 * u,
-                    computational=True,
-                    source="MLE",
-                )
+        Raises
+        ------
+        KeyError
+            If no metadata is stored for the provided source.
+        """
+        if source not in self._estimator_metadata:
+            available = list(self._estimator_metadata.keys())
+            raise KeyError(
+                f"No estimator metadata stored for source {source}. "
+                f"Available sources: {available}. "
+                "Call generate_absolute_values() first."
             )
-        else:
-            # TODO: This can eventually be worked around surely?
-            raise ValueError("Computational results are not fully connected")
+        return self._estimator_metadata[source]
 
     def to_legacy_graph(self) -> nx.DiGraph:
         """Produce single graph version of this FEMap
@@ -504,6 +574,8 @@ class FEMap:
         """
         # reduces to nx.DiGraph
         g = nx.DiGraph()
+        # the MLE method can only use a single result per edge, we need to raise and error if we have repeats or bidirectional results
+        edges_seen = []
         # add DDG values from computational graph
         for a, b, d in self._graph.edges(data=True):
             if not d["computational"]:
@@ -512,8 +584,16 @@ class FEMap:
                 continue
             if d["source"] == "reverse":  # skip mirrors
                 continue
+            edge_name = tuple(sorted([a, b]))
+            if edge_name in edges_seen:
+                raise ValueError(
+                    f"Multiple edges detected between nodes {a} and {b}. MLE cannot be performed on graphs with multiple "
+                    f"edges between the same nodes. The results should be combined into a single estimate and uncertainty "
+                    f"before performing MLE. See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html#limitations for more details."
+                )
 
             g.add_edge(a, b, calc_DDG=d["DG"].magnitude, calc_dDDG=d["uncertainty"].magnitude)
+            edges_seen.append(edge_name)
         # add DG values from experiment graph
         for node, d in g.nodes(data=True):
             expt = self._graph.get_edge_data(ReferenceState(), node)
@@ -523,6 +603,8 @@ class FEMap:
 
             d["exp_DG"] = expt["DG"].magnitude
             d["exp_dDG"] = expt["uncertainty"].magnitude
+            # name of the node used to add data labels to plots
+            d["name"] = node
         # infer experiment DDG values
         for A, B, d in g.edges(data=True):
             try:

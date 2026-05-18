@@ -1,20 +1,40 @@
 from importlib import resources
 
 import pytest
+from openff.units import unit
 
-from cinnabar import FEMap
+from cinnabar import FEMap, estimators
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def example_csv():
     with resources.path("cinnabar.data", "example.csv") as fn:
         yield str(fn)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def fe_map(example_csv):
     """FEMap using test csv data"""
     return FEMap.from_csv(example_csv)
+
+
+@pytest.fixture()
+def example_data_mle(fe_map):
+    """
+    Returns absolute DG data w/ error bars calculated using MLE with inputs from `cinnabar/data/example.csv`
+    """
+    fe_map.generate_absolute_values(estimator=estimators.MLEEstimator())
+    abs_df = fe_map.get_absolute_dataframe()
+
+    comp_results = abs_df[abs_df["computational"] == True].sort_values("label").reset_index(drop=True)
+    exp_results = abs_df[abs_df["computational"] == False].sort_values("label").reset_index(drop=True)
+
+    x_data = exp_results["DG (kcal/mol)"].values
+    y_data = comp_results["DG (kcal/mol)"].values
+    xerr = exp_results["uncertainty (kcal/mol)"].values
+    yerr = comp_results["uncertainty (kcal/mol)"].values
+
+    return x_data, y_data, xerr, yerr
 
 
 @pytest.fixture()
@@ -477,3 +497,30 @@ def ref_mle_results():
         "CAT-4k": (1.9341200732632289, 0.1050229267217769),
         "CAT-4p": (-0.3889609918160919, 0.09895523959628322),
     }
+
+
+@pytest.fixture()
+def ecdf_femap_missing_exp_data():
+    """
+    FEMap with some missing experimental data for testing ECDF plotting with missing data
+    """
+    fe_map = FEMap()
+    fe_map.add_relative_calculation(
+        labelA="ligand1",
+        labelB="ligand2",
+        value=2.0 * unit.kilocalories_per_mole,
+        uncertainty=0.1 * unit.kilocalories_per_mole,
+    )
+    fe_map.add_relative_calculation(
+        labelA="ligand2",
+        labelB="ligand3",
+        value=-1.0 * unit.kilocalories_per_mole,
+        uncertainty=0.2 * unit.kilocalories_per_mole,
+    )
+    fe_map.add_experimental_measurement(
+        label="ligand1", value=-7.0 * unit.kilocalories_per_mole, uncertainty=0.3 * unit.kilocalories_per_mole
+    )
+    fe_map.add_experimental_measurement(
+        label="ligand2", value=-5.0 * unit.kilocalories_per_mole, uncertainty=0.2 * unit.kilocalories_per_mole
+    )
+    return fe_map

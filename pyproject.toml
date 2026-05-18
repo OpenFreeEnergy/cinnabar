@@ -89,4 +89,5 @@ exclude = ["build", "docs"]
 [tool.coverage.run]
 omit = [
     "cinnabar/_due.py",
+    "cinnabar/vendor/*",
 ]
