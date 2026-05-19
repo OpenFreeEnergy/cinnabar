@@ -2,9 +2,11 @@
 Import tests
 """
 
-import cinnabar
-import pytest
 import sys
+
+import pytest
+
+import cinnabar
 
 
 def test_cinnabar_imported():

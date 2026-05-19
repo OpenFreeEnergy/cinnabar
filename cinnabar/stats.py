@@ -1,8 +1,283 @@
+from typing import Literal, Union, get_args
+
 import networkx as nx
 import numpy as np
 import scipy
 import sklearn.metrics
-from typing import Union
+
+from cinnabar._due import Doi, due
+
+due.cite(
+    Doi("10.1021/acs.jcim.9b00528"),
+    description="Compute maximum likelihood estimate of free energies and covariance in their estimates",
+    path="cinnabar.stats.mle",
+    cite_module=True,
+)
+
+
+def calculate_rmse(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    r"""Compute root mean squared error between true and predicted values.
+
+    Note
+    ----
+    The RMSE is calculated as:
+
+    .. math:: RMSE = \sqrt{\frac{1}{N} \sum_{i=1}^N (y_i - \hat{y}_i)^2}
+
+    where :math:`y_i` is the predicted value and :math:`\hat{y}_i` is the true value.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    rmse : float
+        RMSE between true and predicted values
+    """
+    return np.sqrt(sklearn.metrics.mean_squared_error(y_true, y_pred))
+
+
+def calculate_mue(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    r"""Compute mean unsigned error between true and predicted values.
+
+    Note
+    ----
+    The MUE is calculated as:
+
+    .. math:: MUE = \frac{1}{N} \sum_{i=1}^N |y_i - \hat{y}_i|
+
+    where :math:`y_i` is the predicted value and :math:`\hat{y}_i` is the true value.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    mue : float
+        MUE between true and predicted values
+    """
+    return sklearn.metrics.mean_absolute_error(y_true, y_pred)
+
+
+def calculate_rae(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    r"""Compute relative absolute error between true and predicted values.
+
+    Note
+    ----
+    The RAE compares the mean absolute error of the predictions with a baseline model that always predicts the mean of the true values.
+    It is calculated as:
+
+    .. math:: RAE = \frac{\frac{1}{N} \sum_{i=1}^N |y_i - \hat{y}_i|}{\frac{1}{N} \sum_{i=1}^N |\bar{y} - \hat{y}_i|}
+
+    where :math:`y_i` is the predicted value, :math:`\hat{y}_i` is the true value, and :math:`\bar{y}` is the mean of the true values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    rae : float
+        RAE between true and predicted values
+    """
+    # mean unsigned error of the predictions
+    mue = calculate_mue(y_true, y_pred)
+    true_mean = np.mean(y_true)
+    # mean absolute deviation of the true values from their mean
+    mad = np.mean([np.abs(true_mean - i) for i in y_true])
+    return mue / mad
+
+
+def calculate_r2(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute R^2 between true and predicted values.
+
+    Note
+    ----
+    R^2 is calculated as the square of the Pearson correlation coefficient between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    r2 : float
+        R^2 between true and predicted values
+    """
+    r_value = calculate_pearson_r(y_true, y_pred)
+    return r_value**2
+
+
+def calculate_pearson_r(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute Pearson's r between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    r : float
+        Pearson's r between true and predicted values
+    """
+    return scipy.stats.pearsonr(y_true, y_pred)[0]
+
+
+def calculate_kendalls_tau(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> float:
+    """Compute Kendall's tau between true and predicted values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    tau : float
+        Kendall's tau between true and predicted values
+    """
+    return scipy.stats.kendalltau(y_true, y_pred)[0]
+
+
+def calculate_nrmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    r"""
+    Compute the normalized root mean squared error between true and predicted values, using the true mean to normalize
+    the RMSE. [1]_
+
+    Note
+    ----
+    The NRMSE is calculated as:
+
+    .. math:: NRMSE = \frac{RMSE}{\bar{y}}
+
+    where :math:`RMSE` is the root mean squared error between true and predicted values, and :math:`\bar{y}` is the mean of the true values.
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Returns
+    -------
+    nrmse : float
+        NRMSE between true and predicted values
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Root_mean_square_deviation
+    """
+    rmse = calculate_rmse(y_true, y_pred)
+    mean_true = np.mean(y_true)
+    return rmse / np.abs(mean_true)
+
+
+def calculate_predictive_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    r"""Compute the predictive index as introduced by Pearlman et al. between true and predicted values. [1]_
+
+    Parameters
+    ----------
+    y_true : ndarray with shape (N,)
+        True values
+    y_pred : ndarray with shape (N,)
+        Predicted values
+
+    Note
+    ----
+    The predictive index measures the correlation between the true and predicted values with a higher weight given to
+    ligand pairs with larger true differences. The final value is between -1 and 1, where 1 indicates perfect ranking
+    and -1 indicates perfectly anti-correlated ranking. It is calculated as:
+
+    .. math:: PI = \frac{\sum^n_{j>i}\sum^n_{i}{W_{ij}C_{ij}}}{\sum^n_{j>i}\sum^n_{i}{W_{ij}}}
+
+    where :math:`W_{ij} = abs(E_{j} - E_{i})` is a weight based on the true difference between the ligand pairs and :math:`C_{ij}`
+    indicates if the rank ordering of the true differences agree with the predicted differences:
+
+    .. math::
+
+        C_{ij} = \begin{cases}
+            1 & \text{if } (E_{j} - E_{i})/(P_{j} - P_{i}) > 0 \\
+            0 & \text{if } (P_{j} - P_{i}) = 0 \\
+            -1 & \text{if } (E_{j} - E_{i})/(P_{j} - P_{i}) < 0
+        \end{cases}
+
+    Returns
+    -------
+    pi : float
+        Predictive index between true and predicted values between -1 and 1.
+
+    References
+    ----------
+    .. [1] Pearlman, D.A. and Charifson, P.S., 2001. Are free energy calculations useful in practice? A comparison with rapid scoring functions for the p38 MAP kinase protein system. Journal of Medicinal Chemistry, 44(21), pp.3417-3423.
+    """
+    numerator, denominator = 0.0, 0.0
+    n = len(y_true)
+    for i in range(n):
+        for j in range(i + 1, n):
+            w_ij = np.abs(y_true[j] - y_true[i])
+            # avoid division by zero when the predicted values are the same
+            if y_pred[j] == y_pred[i]:
+                c_ij = 0.0
+            else:
+                c_ij = np.sign((y_true[j] - y_true[i]) / (y_pred[j] - y_pred[i]))
+            numerator += w_ij * c_ij
+            denominator += w_ij
+    return numerator / denominator
+
+
+# map from statistic name to function that calculates the statistic
+_AVAILABLE_STATS = {
+    "RMSE": calculate_rmse,
+    "NRMSE": calculate_nrmse,
+    "MUE": calculate_mue,
+    "RAE": calculate_rae,
+    "R2": calculate_r2,
+    "rho": calculate_pearson_r,
+    "KTAU": calculate_kendalls_tau,
+    "PI": calculate_predictive_index,
+}
+# make a type hint for the statistic names
+Statistics = Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU", "PI"]
+# make sure the type hint and the list stay in sync
+assert set(get_args(Statistics)) == set(_AVAILABLE_STATS.keys())
 
 
 def bootstrap_statistic(
@@ -11,13 +286,11 @@ def bootstrap_statistic(
     dy_true: Union[np.ndarray, None] = None,
     dy_pred: Union[np.ndarray, None] = None,
     ci: float = 0.95,
-    statistic: str = "RMSE",
+    statistic: Statistics = "RMSE",
     nbootstrap: int = 1000,
-    plot_type: str = "dG",
     include_true_uncertainty: bool = False,
     include_pred_uncertainty: bool = False,
 ) -> dict:
-
     """Compute mean and confidence intervals of specified statistic.
 
     Parameters
@@ -33,125 +306,84 @@ def bootstrap_statistic(
     ci : float, optional, default=0.95
         Interval for confidence interval (CI)
     statistic : str
-        Statistic, one of ['RMSE', 'MUE', 'R2', 'rho','KTAU','RAE']
+        Statistic, one of ['RMSE', 'MUE', 'R2', 'rho', 'KTAU', 'RAE', 'NRMSE']
     nbootstrap : int, optional, default=1000
         Number of bootstrap samples
-    plot_type : str, optional, default='dG'
-        'dG' or 'ddG'
     include_true_uncertainty : bool, default False
         whether to account for the uncertainty in y_true when bootstrapping
     include_pred_uncertainty : bool, default False
         whether to account for the uncertainty in y_pred when bootstrapping
 
+    Note
+    -----
+    If ``include_true_uncertainty`` or ``include_pred_uncertainty`` is True,
+    normal noise will be added to the corresponding values during each bootstrap replicate.
+    The standard deviation of the normal noise is taken from dy_true or dy_pred.
+
     Returns
     -------
-    rmse_stats : dict of float
-        'mean' : mean RMSE
-        'stderr' : standard error
+    stats : dict of float
+        'mle': statistic computed on the original data
+        'mean' : mean value of the statistic over all bootstrap samples
+        'stderr' : standard error of the statistic over all bootstrap samples
         'low' : low end of CI
         'high' : high end of CI
     """
-
-    def compute_statistic(y_true_sample: np.ndarray, y_pred_sample: np.ndarray, statistic: str):
-        """Compute requested statistic.
-
-        Parameters
-        ----------
-        y_true : ndarray with shape (N,)
-            True values
-        y_pred : ndarray with shape (N,)
-            Predicted values
-        statistic : str
-            Statistic, one of ['RMSE', 'MUE', 'R2', 'rho','RAE','KTAU']
-
-        """
-
-        def calc_RAE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
-            MAE = sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
-            mean = np.mean(y_true_sample)
-            MAD = np.sum([np.abs(mean - i) for i in y_true_sample]) / float(len(y_true_sample))
-            return MAE / MAD
-
-        def calc_RRMSE(y_true_sample: np.ndarray, y_pred_sample: np.ndarray):
-            rmse = np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
-            mean_exp = np.mean(y_true_sample)
-            mds = np.sum([(mean_exp - i) ** 2 for i in y_true_sample]) / float(len(y_true_sample))
-            rrmse = np.sqrt(rmse**2 / mds)
-            return rrmse
-
-        if statistic == "RMSE":
-            return np.sqrt(sklearn.metrics.mean_squared_error(y_true_sample, y_pred_sample))
-        elif statistic == "MUE":
-            return sklearn.metrics.mean_absolute_error(y_true_sample, y_pred_sample)
-        elif statistic == "R2":
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
-                y_true_sample, y_pred_sample
-            )
-            return r_value**2
-        elif statistic == "rho":
-            return scipy.stats.pearsonr(y_true_sample, y_pred_sample)[0]
-        elif statistic == "RAE":
-            return calc_RAE(y_true_sample, y_pred_sample)
-        elif statistic == "KTAU":
-            return scipy.stats.kendalltau(y_true_sample, y_pred_sample)[0]
-        else:
-            raise Exception("unknown statistic '{}'".format(statistic))
-
-    # not used?
-    def unique_differences(x):
-        """Compute all unique differences"""
-        N = len(x)
-        return np.array([(x[i] - x[j]) for i in range(N) for j in range(N) if (i != j)])
+    # check the statistic is valid
+    if statistic not in _AVAILABLE_STATS:
+        raise ValueError(f"unknown statistic {statistic}")
+    stat_func = _AVAILABLE_STATS[statistic]
 
     if dy_true is None:
         dy_true = np.zeros_like(y_true)
     if dy_pred is None:
         dy_pred = np.zeros_like(y_pred)
-    assert len(y_true) == len(y_pred)
-    assert len(y_true) == len(dy_true)
-    assert len(y_true) == len(dy_pred)
     sample_size = len(y_true)
-    s_n = np.zeros(
-        [nbootstrap], np.float64
-    )  # s_n[n] is the statistic computed for bootstrap sample n
+    # check the lengths of the inputs are the same and raise an error if not
+    for arr in [y_pred, dy_true, dy_pred]:
+        if len(arr) != sample_size:
+            raise ValueError("All input arrays must have the same length")
+
+    s_n = np.zeros([nbootstrap], np.float64)  # s_n[n] is the statistic computed for bootstrap sample n
+
     for replicate in range(nbootstrap):
-        y_true_sample = np.zeros_like(y_true)
-        y_pred_sample = np.zeros_like(y_pred)
-        for i, j in enumerate(
-            np.random.choice(np.arange(sample_size), size=[sample_size], replace=True)
-        ):
-            stddev_true = np.fabs(dy_true[j]) if include_true_uncertainty else 0
-            stddev_pred = np.fabs(dy_pred[j]) if include_pred_uncertainty else 0
-            y_true_sample[i] = np.random.normal(loc=y_true[j], scale=stddev_true, size=1)
-            y_pred_sample[i] = np.random.normal(loc=y_pred[j], scale=stddev_pred, size=1)
-        s_n[replicate] = compute_statistic(y_true_sample, y_pred_sample, statistic)
+        # draw bootstrap indices once and select values vectorized
+        indices = np.random.choice(sample_size, size=sample_size, replace=True)
+        y_true_sample = y_true[indices]
+        y_pred_sample = y_pred[indices]
 
-    rmse_stats = dict()
-    rmse_stats["mle"] = compute_statistic(y_true, y_pred, statistic)
-    rmse_stats["stderr"] = np.std(s_n)
-    rmse_stats["mean"] = np.mean(s_n)
-    # TODO: Is there a canned method to do this?
-    s_n = np.sort(s_n)
-    low_frac = (1.0 - ci) / 2.0
-    high_frac = 1.0 - low_frac
-    rmse_stats["low"] = s_n[int(np.floor(nbootstrap * low_frac))]
-    rmse_stats["high"] = s_n[int(np.ceil(nbootstrap * high_frac))]
+        # only simulate normal noise when requested
+        if include_true_uncertainty:
+            std_true = np.fabs(dy_true[indices])
+            y_true_sample = np.random.normal(loc=y_true_sample, scale=std_true)
 
-    return rmse_stats
+        if include_pred_uncertainty:
+            std_pred = np.fabs(dy_pred[indices])
+            y_pred_sample = np.random.normal(loc=y_pred_sample, scale=std_pred)
+
+        s_n[replicate] = stat_func(y_true_sample, y_pred_sample)
+
+    # calculate the statistics and CI
+    low_percentile = (1.0 - ci) / 2.0 * 100
+    high_percentile = 100 - low_percentile
+    stats = {
+        "mle": stat_func(y_true, y_pred),  # the sample statistic
+        "stderr": np.std(s_n),  # standard error of the bootstrap samples
+        "mean": np.mean(s_n),  # mean of the bootstrap samples
+        "low": np.percentile(s_n, low_percentile),  # low end of confidence interval
+        "high": np.percentile(s_n, high_percentile),  # high end of confidence interval
+    }
+    return stats
 
 
-def mle(
-    graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None
-) -> np.ndarray:
+def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None) -> np.ndarray:
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
     The number 'factor' is the node attribute on which the MLE will be calculated,
     where d'factor' will be used as the standard error of the factor
 
-    We assume the free energy of node 0 is zero.
-
     Reference : https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528
-    Xu, Huafengraph. "Optimal measurement network of pairwise differences."
+    Xu, Huafeng. "Optimal measurement network of pairwise differences."
     Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
 
     NOTE: Self-edges (edges that connect a node to itself) will be ignored.
@@ -172,13 +404,25 @@ def mle(
     Returns
     -------
     f_i : np.array with shape (n_ligands,)
-        f_i[i] is the absolute free energy of ligand i in kT
-        f_i[0] = 0
+        f_i[i] is the absolute free energy of ligand i in kcal/mol
 
     C : np.array with shape (n_ligands, n_ligands)
         C[i,j] is the covariance of the free energy estimates of i and j
 
     """
+    # if we have bidirectional edge results we need to raise an error as they can not be used with MLE
+    # track the edges we have seen
+    edges = []
+    for a, b in graph.edges:
+        edge_name = tuple(sorted([a, b]))
+        if edge_name in edges:
+            raise ValueError(
+                f"Multiple edges detected between nodes {a} and {b}. MLE cannot be performed on graphs with multiple "
+                f"edges between the same nodes. The results should be combined into a single estimate and uncertainty "
+                f"before performing MLE. See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html#limitations for more details."
+            )
+        edges.append(edge_name)
+
     N = graph.number_of_nodes()
     if node_factor is None:
         f_ij = form_edge_matrix(graph, factor, action="antisymmetrize")
@@ -198,14 +442,19 @@ def mle(
 
     # Form F matrix (Eq 4)
     F_matrix = np.zeros([N, N])
-    for (a, b) in graph.edges:
+    for a, b in graph.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
         if i == j:
             # The MLE solver will fail if we include self-edges, so we need to omit these
             continue
-        F_matrix[i, j] = -df_ij[i, j] ** (-2)
-        F_matrix[j, i] = -df_ij[i, j] ** (-2)
+        # check if the uncertainty is zero and raise an error if it is, since this will cause the MLE solver to fail
+        if df_ij[i, j] == 0.0:
+            raise ValueError(
+                f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs."
+            )
+        F_matrix[i, j] = -(df_ij[i, j] ** (-2))
+        F_matrix[j, i] = -(df_ij[i, j] ** (-2))
     for n in graph.nodes:
         i = node_name_to_index[n]
         if df_ij[i, i] == 0.0:
@@ -219,7 +468,7 @@ def mle(
         i = node_name_to_index[n]
         if df_ij[i, i] != 0.0:
             z[i] = f_ij[i, i] * df_ij[i, i] ** (-2)
-    for (a, b) in graph.edges:
+    for a, b in graph.edges:
         i = node_name_to_index[a]
         j = node_name_to_index[b]
         if i == j:
@@ -237,9 +486,7 @@ def mle(
     return f_i, C
 
 
-def form_edge_matrix(
-    graph: nx.Graph, label: str, step=None, action=None, node_label=None
-) -> np.ndarray:
+def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_label=None) -> np.ndarray:
     """
     Extract the labeled property from edges into a matrix.
 
@@ -277,7 +524,7 @@ def form_edge_matrix(
         elif action is None:
             pass
         else:
-            raise Exception(f'action "{action}" unknown.')
+            raise ValueError(f'action "{action}" unknown.')
 
     if node_label is not None:
         for n in graph.nodes(data=True):

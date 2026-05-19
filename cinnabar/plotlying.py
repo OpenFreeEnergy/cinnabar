@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 
-from . import stats
+from cinnabar import stats
 
 
 def plot_bar(
@@ -36,8 +36,7 @@ def plot_bar(
     exp_size = height / num_edges / 2.0
     alim = (
         np.max(
-            np.fabs(df.loc[:, ddg_cols + [exp_col]].values)
-            + np.fabs(df.loc[:, error_cols + [exp_error_col]].values)
+            np.fabs(df.loc[:, ddg_cols + [exp_col]].values) + np.fabs(df.loc[:, error_cols + [exp_error_col]].values)
         )
         * 1.05
     )
@@ -269,19 +268,19 @@ def _master_plot(
 
     # stats and title
     string = []
-    if statistic_type not in ['mle', 'mean']:
+    if statistic_type not in ["mle", "mean"]:
         raise ValueError(f"Unknown statistic type {statistic_type}")
     for statistic in statistics:
-        bss = stats.bootstrap_statistic(x,
-                                        y,
-                                        xerr,
-                                        yerr,
-                                        statistic=statistic,
-                                        include_true_uncertainty=bootstrap_x_uncertainty,
-                                        include_pred_uncertainty=bootstrap_y_uncertainty)
-        string.append(
-            f"{statistic + ':':5s}{bss[statistic_type]:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]"
+        bss = stats.bootstrap_statistic(
+            x,
+            y,
+            xerr,
+            yerr,
+            statistic=statistic,
+            include_true_uncertainty=bootstrap_x_uncertainty,
+            include_pred_uncertainty=bootstrap_y_uncertainty,
         )
+        string.append(f"{statistic + ':':5s}{bss[statistic_type]:5.2f} [95%: {bss['low']:5.2f}, {bss['high']:5.2f}]")
     stats_string = "<br>".join(string)
 
     long_title = f"{title}<br>{target_name} (N = {nsamples})<br>{stats_string}"
@@ -290,25 +289,22 @@ def _master_plot(
     fig.update_layout(
         title=dict(
             text=long_title,
-            font_family="monospace",
+            font=dict(family="monospace", size=14),
             x=0.0,
             y=0.95,
-            font_size=14,
         ),
         xaxis=dict(
-            title=f"Experimental {plot_type} [kcal mol<sup>-1</sup>]",
-            titlefont_size=14,
-            tickfont_size=12,
+            title=dict(text=f"Experimental {plot_type} [kcal mol<sup>-1</sup>]", font=dict(size=14)),
+            tickfont=dict(size=12),
             range=(ax_min, ax_max),
         ),
         yaxis=dict(
-            title=f"Calculated {plot_type} {method_name} [kcal mol<sup>-1</sup>]",
-            titlefont_size=14,
-            tickfont_size=12,
+            title=dict(text=f"Calculated {plot_type} {method_name} [kcal mol<sup>-1</sup>]", font=dict(size=14)),
+            tickfont=dict(size=12),
             range=(ax_min, ax_max),
         ),
         width=400,
-        height=400
+        height=400,
         #         legend=dict(
         #             x=1.0,
         #             y=1.0,
