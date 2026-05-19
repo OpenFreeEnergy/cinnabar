@@ -893,7 +893,8 @@ def ecdf_plot_all_DDGs(
         **kwargs,
     )
     return fig
-    
+
+
 def plot_cycle_closure(
     fe_map: FEMap,
     filename: Optional[str] = None,
@@ -932,5 +933,5 @@ def plot_cycle_closure(
         plt.show()
     else:
         fig.savefig(filename, bbox_inches="tight", dpi=300)
-    
+
     return fig

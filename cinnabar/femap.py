@@ -8,12 +8,12 @@ which form an interconnected "network" of values.
 """
 
 import copy
+import math
 import pathlib
 import warnings
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Hashable, Optional, Union
 
-import math
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -719,19 +719,14 @@ class FEMap:
             cycle closure error descending.
         """
         network = self.to_legacy_graph()
-        edge_ddg = {(a, b): d["calc_DDG"] for a, b, d in
-                    network.edges(data=True)}
+        edge_ddg = {(a, b): d["calc_DDG"] for a, b, d in network.edges(data=True)}
 
         # Find all ligand cycles
-        cycles = [
-            c for c in nx.simple_cycles(network.to_undirected())
-            if len(c) <= max_cycle_length
-        ]
+        cycles = [c for c in nx.simple_cycles(network.to_undirected()) if len(c) <= max_cycle_length]
 
         # Loop over cycles, calculate sum of DG along cycle
         rows = []
         for cycle in cycles:
-
             # Store DDG values along the cycle
             sum_ddgs = 0.0
             for inx, ligand in enumerate(cycle):
@@ -779,8 +774,7 @@ class FEMap:
 
         cc_df = self.get_cycle_closure(max_cycle_length=max_cycle_length)
         network = self.to_legacy_graph()
-        edge_ddg = {(a, b): d["calc_DDG"] for a, b, d in
-                    network.edges(data=True)}
+        edge_ddg = {(a, b): d["calc_DDG"] for a, b, d in network.edges(data=True)}
 
         edge_cycles: dict[tuple, list[float]] = defaultdict(list)
         for _, row in cc_df.iterrows():
@@ -789,20 +783,19 @@ class FEMap:
             for i, lig in enumerate(cycle):
                 lig_a = lig
                 lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
-                edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (
-                lig_b, lig_a)
+                edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (lig_b, lig_a)
                 edge_cycles[edge].append(cc)
 
         rows = []
         for (a, b), ccs in edge_cycles.items():
-            rows.append({
-                "ligandA": a,
-                "ligandB": b,
-                "n_cycles": len(ccs),
-                "mean_cc (kcal/mol)": round(sum(ccs) / len(ccs), 3),
-                "max_cc (kcal/mol)": round(max(ccs), 3),
-            })
+            rows.append(
+                {
+                    "ligandA": a,
+                    "ligandB": b,
+                    "n_cycles": len(ccs),
+                    "mean_cc (kcal/mol)": round(sum(ccs) / len(ccs), 3),
+                    "max_cc (kcal/mol)": round(max(ccs), 3),
+                }
+            )
 
-        return pd.DataFrame(rows).sort_values("mean_cc (kcal/mol)",
-                                              ascending=False).reset_index(
-            drop=True)
+        return pd.DataFrame(rows).sort_values("mean_cc (kcal/mol)", ascending=False).reset_index(drop=True)
