@@ -526,3 +526,17 @@ def test_missing_estimator_metadata(example_map):
     with pytest.raises(KeyError, match="No estimator metadata stored for source test."):
         example_map.generate_absolute_values()
         example_map.get_estimator_metadata("test")
+
+
+def test_get_cycle_closure_known_value():
+    """Perfect cycle should have closure 0."""
+    kcalpm = unit.kilocalorie_per_mole
+    fe = FEMap()
+    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("C", "A", value=-2.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    result = fe.get_cycle_closure()
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["cycle", "cc (kcal/mol)"]
+    assert len(result) == 1
+    assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
