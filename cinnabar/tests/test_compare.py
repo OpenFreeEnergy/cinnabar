@@ -1,53 +1,130 @@
-import networkx as nx
 import numpy as np
+import pytest
 
 from cinnabar import FEMap
-from cinnabar.compare import compare_and_rank_femaps
+from cinnabar.compare import compare_and_rank_results
+
+from openff.units import unit
 
 
-def test_compare_and_rank_femaps(fe_map):
-    graph1 = nx.MultiDiGraph()
-    graph2 = nx.MultiDiGraph()
-    for a, b, data in fe_map.to_networkx().edges(data=True):
-        new_data = data.copy()
-        if data["source"] != "reverse" and data["computational"]:
-            # add noise to the result
-            new_result = data["DG"] + np.random.normal(0, data["uncertainty"].m) * data["DG"].u
-            new_data["DG"] = new_result
-            graph1.add_edge(a, b, **new_data)
-            # and add the reverse edge
-            rev_data = new_data.copy()
-            rev_data["source"] = "reverse"
-            rev_data["DG"] = -new_data["DG"]
-            graph1.add_edge(b, a, **rev_data)
-            # add a large value to the second graph to simulate a bad prediction
-            new_result2 = data["DG"] + 1.5 * data["DG"].u
-            new_data["DG"] = new_result2
-            graph2.add_edge(a, b, **new_data)
-            # add the reverse edge
-            rev_data2 = new_data.copy()
-            rev_data2["source"] = "reverse"
-            rev_data2["DG"] = -new_data["DG"]
-            graph2.add_edge(b, a, **rev_data2)
+def test_compare_and_rank_results(fe_map):
+    np.random.seed(42)
 
+    compare_map = FEMap()
+    for m in fe_map:
+        if m.computational:
+            # add the result with a new source
+            compare_map.add_relative_calculation(
+                labelA=m.labelA,
+                labelB=m.labelB,
+                value=m.DG,
+                uncertainty=m.uncertainty,
+                source="original"
+            )
+            # add the data again under a second source with some noise added
+            compare_map.add_relative_calculation(
+                labelA=m.labelA,
+                labelB=m.labelB,
+                value=np.random.normal(m.DG.m, m.uncertainty.m) * unit.kilocalorie_per_mole,
+                uncertainty=m.uncertainty,
+                source="perturbed"
+            )
+            # add a third set of data with a lot of noise to get a significant difference
+            compare_map.add_relative_calculation(
+                labelA=m.labelA,
+                labelB=m.labelB,
+                value=np.random.normal(m.DG.m, 12.0 * m.uncertainty.m) * unit.kilocalorie_per_mole,
+                uncertainty=m.uncertainty,
+                source="noisy"
+            )
         else:
-            graph1.add_edge(a, b, **data)
-            graph2.add_edge(a, b, **data)
-    fe_map_2 = FEMap.from_networkx(graph1)
-    fe_map_3 = FEMap.from_networkx(graph2)
+            # add the experimental data
+            compare_map.add_measurement(m)
 
-    t1, t2 = compare_and_rank_femaps(
-        [fe_map, fe_map_2, fe_map_3],
-        ["FE Map 1", "FE Map 2", "FE Map 3"],
-        prediction_type="nodewise",
-        rank_metric="rho",
+    summary_df, comparison_df = compare_and_rank_results(
+        compare_map,
+        prediction_type="edgewise",
+        rank_metric="MUE",
+        metrics_to_compute=["MUE", "RMSE"],
     )
 
-    # check that FE Map 3 is ranked worst
-    assert t1[t1["Model"] == "FE Map 3"]["CLD"].values[0] == "b"
-    # check that FE Map 1 and FE Map 2 are ranked better
-    assert t1[t1["Model"] == "FE Map 1"]["CLD"].values[0] == "a"
-    assert t1[t1["Model"] == "FE Map 2"]["CLD"].values[0] == "a"
+    # make sure the MUE and RMSE have been calculated and recorded in the summary table
+    for metric in ["MUE", "RMSE"]:
+        assert metric in summary_df.columns
+        for ci in ["Upper", "Lower"]:
+            assert f"{metric}_CI_{ci}" in summary_df.columns
+    # check that noisy is ranked worst
+    assert summary_df[summary_df["Model"] == "noisy"]["CLD"].values[0] == "b"
+    # check that original and perturbed are ranked better
+    assert summary_df[summary_df["Model"] == "original"]["CLD"].values[0] == "a"
+    assert summary_df[summary_df["Model"] == "perturbed"]["CLD"].values[0] == "a"
     # check that the comparison table has all three models and corrected p-values
-    assert len(t2) == 3
-    assert "p-value corrected" in t2.columns
+    assert len(comparison_df) == 3
+    assert "p-value corrected" in comparison_df.columns
+
+
+def test_invalid_prediction_type(fe_map):
+    with pytest.raises(ValueError, match="Invalid prediction_type: pairwise"):
+        compare_and_rank_results(
+            fe_map,
+            prediction_type="pairwise",
+            rank_metric="MUE",
+            metrics_to_compute=["MUE", "RMSE"],
+        )
+
+
+def test_missing_experimental_data(fe_map):
+    new_map = FEMap()
+    for m in fe_map:
+        if m.computational:
+            new_map.add_measurement(m)
+
+    with pytest.raises(ValueError, match="Experimental values are required to rank the results."):
+        compare_and_rank_results(
+            new_map,
+        )
+
+
+def test_missing_source_data(fe_map):
+    new_map = FEMap()
+    for i, m in enumerate(fe_map):
+        if not m.computational:
+            new_map.add_measurement(m)
+        else:
+            new_map.add_relative_calculation(
+                labelA=m.labelA,
+                labelB=m.labelB,
+                value=m.DG,
+                uncertainty=m.uncertainty,
+                source="original"
+            )
+            # for even I add the second source as well
+            if i % 2 == 0:
+                new_map.add_relative_calculation(
+                    labelA=m.labelA,
+                    labelB=m.labelB,
+                    value=m.DG,
+                    uncertainty=m.uncertainty,
+                    source="perturbed"
+                )
+
+    with pytest.raises(ValueError, match="Missing predictions for source perturbed, all sources must have the same number of predictions."):
+        compare_and_rank_results(
+            new_map,
+        )
+
+
+def test_bad_metric(fe_map):
+    with pytest.raises(ValueError, match="Metric bad_metric is not available."):
+        compare_and_rank_results(
+            fe_map,
+            rank_metric="bad_metric",
+        )
+
+
+def test_missing_rank_metric(fe_map):
+    _, _ = compare_and_rank_results(
+        fe_map,
+        rank_metric="MUE",
+        metrics_to_compute=["RMSE"],  # miss the rank metric from the compute list and it should still work
+    )
