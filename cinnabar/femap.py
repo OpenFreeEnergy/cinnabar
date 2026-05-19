@@ -631,27 +631,48 @@ class FEMap:
 
         return g
 
-    def draw_graph(self, title: str = "", filename: Union[str, None] = None):
+    def draw_graph(self, title: str = "", filename: Union[str, None] = None, highlight_edges=None):
         """
-        Draw the graph using matplotlib.
+        Draw the FEMap network graph.
 
         Parameters
         ----------
         title : str, optional
-            Title for the graph.
-        filename : str or None, optional
-            If provided, the graph will be saved to this file. If None, the graph will be displayed.
+            Title for the plot.
+        filename : str, optional
+            Path to save the figure to. If None, the graph will be displayed.
+        highlight_edges : list of (str, str) tuples, optional
+            Edges to highlight in red, e.g. from get_edge_statistics().
         """
-        plt.figure(figsize=(10, 10))
-
+        fig, ax = plt.subplots(figsize=(10, 10))
         graph = self.to_legacy_graph()
-
         labels = {n: n for n in graph.nodes}
 
-        nx.draw_circular(graph, labels=labels, node_color="hotpink", node_size=250)
+        highlight_set = set()
+        if highlight_edges:
+            for a, b in highlight_edges:
+                highlight_set.add((a, b))
+                highlight_set.add((b, a))
+
+        edge_colors = [
+            "red" if (a, b) in highlight_set else "grey"
+            for a, b in graph.edges()
+        ]
+        edge_widths = [
+            2.5 if (a, b) in highlight_set else 1.0
+            for a, b in graph.edges()
+        ]
+
+
+        nx.draw_circular(
+            graph, labels=labels, node_color="hotpink", node_size=250,
+            edge_color=edge_colors, width=edge_widths, ax=ax,
+        )
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
-        plt.title(long_title)
+        ax.set_title(long_title)
+
         if filename is None:
             plt.show()
         else:
-            plt.savefig(filename, bbox_inches="tight")
+            fig.savefig(filename, bbox_inches="tight", dpi=150)
+        plt.close(fig)
