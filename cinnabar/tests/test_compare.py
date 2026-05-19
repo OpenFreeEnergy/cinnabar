@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
+from openff.units import unit
 
 from cinnabar import FEMap
 from cinnabar.compare import compare_and_rank_results
-
-from openff.units import unit
 
 
 def test_compare_and_rank_results(fe_map):
@@ -15,11 +14,7 @@ def test_compare_and_rank_results(fe_map):
         if m.computational:
             # add the result with a new source
             compare_map.add_relative_calculation(
-                labelA=m.labelA,
-                labelB=m.labelB,
-                value=m.DG,
-                uncertainty=m.uncertainty,
-                source="original"
+                labelA=m.labelA, labelB=m.labelB, value=m.DG, uncertainty=m.uncertainty, source="original"
             )
             # add the data again under a second source with some noise added
             compare_map.add_relative_calculation(
@@ -27,7 +22,7 @@ def test_compare_and_rank_results(fe_map):
                 labelB=m.labelB,
                 value=np.random.normal(m.DG.m, m.uncertainty.m) * unit.kilocalorie_per_mole,
                 uncertainty=m.uncertainty,
-                source="perturbed"
+                source="perturbed",
             )
             # add a third set of data with a lot of noise to get a significant difference
             compare_map.add_relative_calculation(
@@ -35,7 +30,7 @@ def test_compare_and_rank_results(fe_map):
                 labelB=m.labelB,
                 value=np.random.normal(m.DG.m, 12.0 * m.uncertainty.m) * unit.kilocalorie_per_mole,
                 uncertainty=m.uncertainty,
-                source="noisy"
+                source="noisy",
             )
         else:
             # add the experimental data
@@ -92,23 +87,18 @@ def test_missing_source_data(fe_map):
             new_map.add_measurement(m)
         else:
             new_map.add_relative_calculation(
-                labelA=m.labelA,
-                labelB=m.labelB,
-                value=m.DG,
-                uncertainty=m.uncertainty,
-                source="original"
+                labelA=m.labelA, labelB=m.labelB, value=m.DG, uncertainty=m.uncertainty, source="original"
             )
             # for even I add the second source as well
             if i % 2 == 0:
                 new_map.add_relative_calculation(
-                    labelA=m.labelA,
-                    labelB=m.labelB,
-                    value=m.DG,
-                    uncertainty=m.uncertainty,
-                    source="perturbed"
+                    labelA=m.labelA, labelB=m.labelB, value=m.DG, uncertainty=m.uncertainty, source="perturbed"
                 )
 
-    with pytest.raises(ValueError, match="Missing predictions for source perturbed, all sources must have the same number of predictions."):
+    with pytest.raises(
+        ValueError,
+        match="Missing predictions for source perturbed, all sources must have the same number of predictions.",
+    ):
         compare_and_rank_results(
             new_map,
         )

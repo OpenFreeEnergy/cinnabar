@@ -13,7 +13,7 @@ def compare_and_rank_results(
     femap: FEMap,
     prediction_type: Literal["nodewise", "edgewise"] = "edgewise",
     rank_metric: Literal["MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"] = "MUE",
-    metrics_to_compute: list[Literal["MUE", "RMSE", "RAE", "R2", "rho", "KTAU","PI"]] | None = None,
+    metrics_to_compute: list[Literal["MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"]] | None = None,
     num_bootstraps: int = 1_000,
     confidence_level: float = 0.95,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -69,18 +69,18 @@ def compare_and_rank_results(
             if not row["computational"]:
                 source_label = "exp"
             else:
-                source_label = f"{row["source"]}_calc"
+                source_label = f"{row['source']}_calc"
             predictions_by_key[node_label][source_label] = row["DG (kcal/mol)"]
 
     elif prediction_type == "edgewise":
         rel_df = femap.get_relative_dataframe()
-        sources =rel_df[rel_df["computational"] == True]["source"].unique()
+        sources = rel_df[rel_df["computational"] == True]["source"].unique()
         for _, row in rel_df.iterrows():
             key = (row["labelA"], row["labelB"])
             if not row["computational"]:
                 source_label = "exp"
             else:
-                source_label = f"{row["source"]}_calc"
+                source_label = f"{row['source']}_calc"
             predictions_by_key[key][source_label] = row["DDG (kcal/mol)"]
     else:
         raise ValueError(f"Invalid prediction_type: {prediction_type}")
@@ -95,7 +95,9 @@ def compare_and_rank_results(
     for source in sources:
         # check if any values for this source are missing
         if any(predictions_df[f"{source}_calc"].isna()):
-            raise ValueError(f"Missing predictions for source {source}, all sources must have the same number of predictions.")
+            raise ValueError(
+                f"Missing predictions for source {source}, all sources must have the same number of predictions."
+            )
 
     # set metrics to compute based on best practices if not provided
     if metrics_to_compute is None:
@@ -130,7 +132,9 @@ def compare_and_rank_results(
         for j, source_j in enumerate(sources):
             if j <= i:
                 continue
-            diffs = np.array(metrics_by_source[source_i][rank_metric]) - np.array(metrics_by_source[source_j][rank_metric])
+            diffs = np.array(metrics_by_source[source_i][rank_metric]) - np.array(
+                metrics_by_source[source_j][rank_metric]
+            )
             pairwise_metrics[(source_i, source_j)] = diffs
 
     # summarize all metrics
