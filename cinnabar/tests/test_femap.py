@@ -460,6 +460,21 @@ def test_draw_graph_show(fe_map, monkeypatch):
     assert called.get("show", False) is True
 
 
+def test_highlight_edges(fe_map):
+    edge = list(fe_map.to_legacy_graph().edges())[0]
+    fig = fe_map.draw_graph(highlight_edges=[edge])
+    assert isinstance(fig, plt.Figure)
+    plt.close(fig)
+
+
+def test_highlight_reverse_direction(fe_map):
+    """(B, A) should not raise and should produce the same figure as (A, B)."""
+    a, b = list(fe_map.to_legacy_graph().edges())[0]
+    fig = fe_map.draw_graph(highlight_edges=[(b, a)])
+    assert isinstance(fig, plt.Figure)
+    plt.close(fig)
+
+
 def test_to_legacy_missing_exp():
     """Check we can convert to legacy graph when no experimental data is present"""
     m = cinnabar.FEMap()
