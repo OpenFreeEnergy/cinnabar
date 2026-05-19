@@ -1,4 +1,6 @@
 import pathlib
+import csv
+import math
 from typing import Union
 
 import openff.units
@@ -492,69 +494,152 @@ class FEMap:
         else:
             plt.savefig(filename, bbox_inches="tight")
 
-    def get_cycle_closure(self):
-        """Calculate the sum of DDG along all ligand cycles as a measure of convergence."""
+    # def draw_graph(self, title: str = "", filename: Union[str, None] = None,
+    #                highlight_edges=None):
+    #     """
+    #     Draw the FEMap network graph.
+    #
+    #     Parameters
+    #     ----------
+    #     title : str, optional
+    #         Title for the plot.
+    #     filename : str, optional
+    #         Path to save the figure to. If None, displays interactively.
+    #     highlight_edges : list of (str, str) tuples, optional
+    #         Edges to highlight in red, e.g. from get_edge_statistics().
+    #     """
+    #     fig, ax = plt.subplots(figsize=(10, 10))
+    #     graph = self.to_legacy_graph()
+    #     labels = {n: n for n in graph.nodes}
+    #
+    #     highlight_set = set()
+    #     if highlight_edges:
+    #         for a, b in highlight_edges:
+    #             highlight_set.add((a, b))
+    #             highlight_set.add((b, a))
+    #
+    #     edge_colors = [
+    #         "red" if (a, b) in highlight_set else "grey"
+    #         for a, b in graph.edges()
+    #     ]
+    #     edge_widths = [
+    #         2.5 if (a, b) in highlight_set else 1.0
+    #         for a, b in graph.edges()
+    #     ]
+    #
+    #
+    #     nx.draw_circular(graph, labels=labels, node_color="hotpink",
+    #                      node_size=250, edge_color=edge_colors,
+    #                      width=edge_widths, ax=ax)
+    #     long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
+    #     ax.set_title(long_title)
+    #
+    #     if filename is None:
+    #         plt.show()
+    #     else:
+    #         fig.savefig(filename, bbox_inches="tight", dpi=150)
+    #     plt.close(fig)
+
+    def get_cycle_closure(self, max_cycle_length: int = 5) -> list[tuple[str, float]]:
+        """
+        Calculate cycle closure errors for all cycles in the network.
+
+        Parameters
+        ----------
+        max_cycle_length : int, optional
+            Only consider cycles up to this length. Default 5.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with columns 'cycle', 'cc (kcal/mol)', sorted by
+            cycle closure error descending.
+        """
         network = self.to_legacy_graph()
-        y = [x[2]["calc_DDG"] for x in network.edges(data=True)]
+        edge_ddg = {(a, b): d["calc_DDG"] for a, b, d in
+                    network.edges(data=True)}
 
         # Find all ligand cycles
-        cycles = sorted(nx.simple_cycles(network.to_undirected()))
-        edges = network.edges
+        cycles = [
+            c for c in nx.simple_cycles(network.to_undirected())
+            if len(c) <= max_cycle_length
+        ]
 
         # Loop over cycles, calculate sum of DG along cycle
-        dict = {}
+        rows = []
         for cycle in cycles:
 
             # Store DDG values along the cycle
-            sum_ddgs = 0
+            sum_ddgs = 0.0
             for inx, ligand in enumerate(cycle):
-                if inx < len(cycle) - 1:
-                    ligA = ligand
-                    ligB = cycle[inx + 1]
-                # Last ligand is connected to first ligand
-                else:
-                    ligA = ligand
-                    ligB = cycle[0]
+                lig_a = ligand
+                lig_b = cycle[inx + 1] if inx < len(cycle) - 1 else cycle[0]
+
                 # depending on the direction the edge was calculated,
                 # the sign of the DDG has to change
-                if (ligA, ligB) in list(edges):
-                    ddg = y[list(edges).index((ligA, ligB))]
-                elif (ligB, ligA) in edges:
-                    ddg = -y[list(edges).index((ligB, ligA))]
-                # sum up DDGs along cycle
-                sum_ddgs += ddg
+                if (lig_a, lig_b) in edge_ddg:
+                    sum_ddgs += edge_ddg[(lig_a, lig_b)]
+                elif (lig_b, lig_a) in edge_ddg:
+                    sum_ddgs -= edge_ddg[(lig_b, lig_a)]
+                else:
+                    # Edge missing from network; skip this cycle
+                    break
 
-            # divide by sqrt of number of ligands in the cycle
-            # to get cycle closure error PER EDGE
-            cc = abs(sum_ddgs / math.sqrt(len(cycle)))
-            # Store cycle and cycle closure in dict
-            dict[','.join(cycle)] = round(cc, 2)
+            else:
+                # divide by sqrt of number of ligands in the cycle
+                # to get cycle closure error per edge
+                cc = abs(sum_ddgs / math.sqrt(len(cycle)))
+                rows.append({"cycle": tuple(cycle), "cc (kcal/mol)": round(cc, 2)})
 
-        # Sort cycle closure from high to low
-        sorted_list = sorted(dict.items(), key=lambda x: x[1], reverse=True)
+        return pd.DataFrame(rows).sort_values("cc (kcal/mol)", ascending=False).reset_index(drop=True)
 
-        return sorted_list
+    def get_edge_statistics(self, max_cycle_length: int = 5) -> pd.DataFrame:
+        """
+        For each edge, report how many cycles it appears in and
+        the mean and max cycle closure error of those cycles.
+        Edges with high mean closure error across many cycles are
+        likely candidates for re-simulation.
 
-    def store_cycle_closure_to_csv(self, file='cycle_closure.csv'):
-        """Save cycle closure, sorted from highest cycle closure to lowest
-        in a csv file."""
-        sorted_list = get_cycle_closure(self)
+        Parameters
+        ----------
+        max_cycle_length : int, optional
+            Only consider cycles up to this length. Defaults to 5.
 
-        # CSV file to store results
-        f = open(file, 'w')
-        writer = csv.writer(f, lineterminator='\n')
-        header = '# ligands in cycle, sum(DDGs) / ' \
-                 'sqrt(number of ligands in cycle)\n'
-        f.write(header)
-        writer.writerows(sorted_list)
-        f.close()
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with columns 'ligandA', 'ligandB', 'n_cycles',
+            'mean_cc (kcal/mol)', 'max_cc (kcal/mol)', sorted by
+            mean cycle closure error descending.
+        """
+        from collections import defaultdict
 
-        return
+        cc_df = self.get_cycle_closure(max_cycle_length=max_cycle_length)
+        network = self.to_legacy_graph()
+        edge_ddg = {(a, b): d["calc_DDG"] for a, b, d in
+                    network.edges(data=True)}
 
-    def plot_hist_cycle_closure(self, file='cycle_closure_hist.png'):
+        edge_cycles: dict[tuple, list[float]] = defaultdict(list)
+        for _, row in cc_df.iterrows():
+            cycle = list(row["cycle"])
+            cc = row["cc (kcal/mol)"]
+            for i, lig in enumerate(cycle):
+                lig_a = lig
+                lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
+                edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (
+                lig_b, lig_a)
+                edge_cycles[edge].append(cc)
 
-        sorted_list = get_cycle_closure(self)
+        rows = []
+        for (a, b), ccs in edge_cycles.items():
+            rows.append({
+                "ligandA": a,
+                "ligandB": b,
+                "n_cycles": len(ccs),
+                "mean_cc (kcal/mol)": round(sum(ccs) / len(ccs), 3),
+                "max_cc (kcal/mol)": round(max(ccs), 3),
+            })
 
-        plt.hist([s[1] for s in sorted_list])
-        plt.xlabel('Cycle closure in kcal/mol')
-        plt.savefig(file, bbox_inches="tight")
+        return pd.DataFrame(rows).sort_values("mean_cc (kcal/mol)",
+                                              ascending=False).reset_index(
+            drop=True)

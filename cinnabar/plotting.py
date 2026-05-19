@@ -4,7 +4,7 @@ import matplotlib.pylab as plt
 import numpy as np
 import networkx as nx
 from adjustText import adjust_text
-from . import plotlying, stats
+from . import plotlying, stats, FEMap
 
 
 def _master_plot(
@@ -572,3 +572,48 @@ def plot_all_DDGs(
             statistic_type=statistic_type,
             **kwargs,
         )
+
+def plot_cycle_closure(
+    fe_map: FEMap,
+    filename: Optional[str] = None,
+    max_cycle_length: int = 5,
+) -> plt.Figure:
+    """
+    Plot a histogram of cycle closure errors.
+
+    Parameters
+    ----------
+    fe_map : FEMap
+        FEMap object containing the calculated edges.
+    filename : str, optional
+        If provided, the plot will be saved to this filename.
+    max_cycle_length : int, optional
+        Only consider cycles up to this length. Defaults to 5.
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object, which can be edited further.
+    """
+    df = fe_map.get_cycle_closure(max_cycle_length=max_cycle_length)
+
+    if df.empty:
+        warnings.warn("No cycles found; skipping plot.")
+        return
+
+    errors = df["cc (kcal/mol)"]
+    n_cycles = len(errors)
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    ax.hist(errors, bins="auto", alpha=0.6, color="steelblue")
+    ax.set_xlabel(r"Cycle closure (kcal mol$^{-1}$)")
+    ax.set_ylabel("Count")
+    ax.set_title(f"Cycle closure distribution (n={n_cycles})")
+    fig.tight_layout()
+
+    if filename is None:
+        plt.show()
+    else:
+        fig.savefig(filename, bbox_inches="tight", dpi=300)
+
+    return fig
