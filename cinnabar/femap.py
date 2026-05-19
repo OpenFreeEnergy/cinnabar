@@ -657,52 +657,6 @@ class FEMap:
         else:
             plt.savefig(filename, bbox_inches="tight")
 
-    # def draw_graph(self, title: str = "", filename: Union[str, None] = None,
-    #                highlight_edges=None):
-    #     """
-    #     Draw the FEMap network graph.
-    #
-    #     Parameters
-    #     ----------
-    #     title : str, optional
-    #         Title for the plot.
-    #     filename : str, optional
-    #         Path to save the figure to. If None, displays interactively.
-    #     highlight_edges : list of (str, str) tuples, optional
-    #         Edges to highlight in red, e.g. from get_edge_statistics().
-    #     """
-    #     fig, ax = plt.subplots(figsize=(10, 10))
-    #     graph = self.to_legacy_graph()
-    #     labels = {n: n for n in graph.nodes}
-    #
-    #     highlight_set = set()
-    #     if highlight_edges:
-    #         for a, b in highlight_edges:
-    #             highlight_set.add((a, b))
-    #             highlight_set.add((b, a))
-    #
-    #     edge_colors = [
-    #         "red" if (a, b) in highlight_set else "grey"
-    #         for a, b in graph.edges()
-    #     ]
-    #     edge_widths = [
-    #         2.5 if (a, b) in highlight_set else 1.0
-    #         for a, b in graph.edges()
-    #     ]
-    #
-    #
-    #     nx.draw_circular(graph, labels=labels, node_color="hotpink",
-    #                      node_size=250, edge_color=edge_colors,
-    #                      width=edge_widths, ax=ax)
-    #     long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
-    #     ax.set_title(long_title)
-    #
-    #     if filename is None:
-    #         plt.show()
-    #     else:
-    #         fig.savefig(filename, bbox_inches="tight", dpi=150)
-    #     plt.close(fig)
-
     def get_cycle_closure(self, max_cycle_length: int = 5) -> list[tuple[str, float]]:
         """
         Calculate cycle closure errors for all cycles in the network.
@@ -751,7 +705,7 @@ class FEMap:
 
         return pd.DataFrame(rows).sort_values("cc (kcal/mol)", ascending=False).reset_index(drop=True)
 
-    def get_edge_statistics(self, max_cycle_length: int = 5) -> pd.DataFrame:
+    def get_cc_based_edge_statistics(self, max_cycle_length: int = 5) -> pd.DataFrame:
         """
         For each edge, report how many cycles it appears in and
         the mean and max cycle closure error of those cycles.
