@@ -417,3 +417,18 @@ def test_plot_ecdf_dgs_no_data(graph):
         match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`.",
     ):
         plotting.ecdf_plot_DGs([graph], labels=["test"], filename=None)
+
+
+def test_plot_cycle_closure(fe_map, tmp_path):
+    output_file = tmp_path / "cycle_closure.png"
+    fig = plotting.plot_cycle_closure(fe_map, filename=str(output_file))
+    assert fig is not None
+    axes = fig.get_axes()[0]
+    assert axes.get_xlabel() == r"Cycle closure (kcal mol$^{-1}$)"
+    assert axes.get_ylabel() == "Count"
+    assert output_file.exists()
+
+
+def test_plot_cycle_closure_show(fe_map, show_called):
+    _ = plotting.plot_cycle_closure(fe_map, filename=None)
+    assert "show" in show_called
