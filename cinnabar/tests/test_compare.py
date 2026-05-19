@@ -58,6 +58,20 @@ def test_compare_and_rank_results(fe_map):
     assert "p-value corrected" in comparison_df.columns
 
 
+def test_nodewise_comparison(fe_map):
+    # a simple test to make sure it runs
+    summary_df, comparison_df = compare_and_rank_results(
+        fe_map,
+        prediction_type="nodewise",
+        rank_metric="PI",
+    )
+    for metric in ["MUE", "RMSE", "R2", "rho", "PI", "KTAU", "RAE"]:
+        assert metric in summary_df.columns
+        for ci in ["Upper", "Lower"]:
+            assert f"{metric}_CI_{ci}" in summary_df.columns
+    summary_df.to_csv("summary_df.csv")
+
+
 def test_invalid_prediction_type(fe_map):
     with pytest.raises(ValueError, match="Invalid prediction_type: pairwise"):
         compare_and_rank_results(
