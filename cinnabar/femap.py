@@ -1,5 +1,6 @@
 """
 FEMap
+=====
 
 The workhorse of cinnabar, a :class:`FEMap` contains many measurements of free energy differences,
 both relative and absolute,
