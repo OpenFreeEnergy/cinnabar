@@ -532,7 +532,7 @@ def test_missing_estimator_metadata(example_map):
 def perfect_cycle():
     """A perfect cycle with zero cycle closure."""
     kcalpm = unit.kilocalorie_per_mole
-    fe = FEMap()
+    fe = femap.FEMap()
     fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
     fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
     fe.add_relative_calculation("C", "A", value=-2.0 * kcalpm, uncertainty=0.1 * kcalpm)
