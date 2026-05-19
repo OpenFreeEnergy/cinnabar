@@ -703,7 +703,7 @@ class FEMap:
                 cc = abs(sum_ddgs / math.sqrt(len(cycle)))
                 rows.append({"cycle": tuple(cycle), "cc (kcal/mol)": round(cc, 2)})
 
-        return pd.DataFrame(rows).sort_values("cc (kcal/mol)", ascending=False).reset_index(drop=True)
+        return pd.DataFrame(rows, columns=["cycle", "cc (kcal/mol)"]).sort_values("cc (kcal/mol)", ascending=False).reset_index(drop=True)
 
     def get_cc_based_edge_statistics(self, max_cycle_length: int = 5) -> pd.DataFrame:
         """

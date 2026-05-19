@@ -432,3 +432,19 @@ def test_plot_cycle_closure(fe_map, tmp_path):
 def test_plot_cycle_closure_show(fe_map, show_called):
     _ = plotting.plot_cycle_closure(fe_map, filename=None)
     assert "show" in show_called
+
+
+def test_plot_cycle_closure_no_cycles_no_plot(tmp_path):
+    fe = FEMap()
+    fe.add_relative_calculation(
+        "A",
+        "B",
+        value=1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    assert fe.get_cycle_closure().empty
+    output_file = tmp_path / "cycle_closure.png"
+    with pytest.warns(UserWarning, match="No cycles found"):
+        fig = plotting.plot_cycle_closure(fe, filename=str(output_file))
+    assert fig is None
+    assert not output_file.exists()
