@@ -654,19 +654,17 @@ class FEMap:
                 highlight_set.add((a, b))
                 highlight_set.add((b, a))
 
-        edge_colors = [
-            "red" if (a, b) in highlight_set else "grey"
-            for a, b in graph.edges()
-        ]
-        edge_widths = [
-            2.5 if (a, b) in highlight_set else 1.0
-            for a, b in graph.edges()
-        ]
-
+        edge_colors = ["red" if (a, b) in highlight_set else "grey" for a, b in graph.edges()]
+        edge_widths = [2.5 if (a, b) in highlight_set else 1.0 for a, b in graph.edges()]
 
         nx.draw_circular(
-            graph, labels=labels, node_color="hotpink", node_size=250,
-            edge_color=edge_colors, width=edge_widths, ax=ax,
+            graph,
+            labels=labels,
+            node_color="hotpink",
+            node_size=250,
+            edge_color=edge_colors,
+            width=edge_widths,
+            ax=ax,
         )
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
         ax.set_title(long_title)
