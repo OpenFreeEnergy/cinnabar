@@ -528,15 +528,28 @@ def test_missing_estimator_metadata(example_map):
         example_map.get_estimator_metadata("test")
 
 
-def test_get_cycle_closure_known_value():
-    """Perfect cycle should have closure 0."""
+@pytest.fixture()
+def perfect_cycle():
+    """A perfect cycle with zero cycle closure."""
     kcalpm = unit.kilocalorie_per_mole
     fe = FEMap()
     fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
     fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
     fe.add_relative_calculation("C", "A", value=-2.0 * kcalpm, uncertainty=0.1 * kcalpm)
-    result = fe.get_cycle_closure()
+    return fe
+
+
+def test_get_cycle_closure_known_value(perfect_cycle):
+    result = perfect_cycle.get_cycle_closure()
     assert isinstance(result, pd.DataFrame)
     assert list(result.columns) == ["cycle", "cc (kcal/mol)"]
     assert len(result) == 1
     assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_get_cc_based_edge_statistics_known_value(perfect_cycle):
+    result = perfect_cycle.get_cc_based_edge_statistics()
+    assert len(result) == 3
+    assert (result["n_cycles"] == 1).all()
+    assert (result["mean_cc (kcal/mol)"] == 0.0).all()
+    assert (result["max_cc (kcal/mol)"] == 0.0).all()
