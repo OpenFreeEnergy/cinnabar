@@ -728,10 +728,7 @@ def ecdf_plot_DDGs(
         labels = list(sources)
 
     if len(sources) != len(labels):
-        raise ValueError(
-            f"`sources` and `labels` must have the same length, "
-            f"got {len(sources)} and {len(labels)}."
-        )
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
 
     # get the experimental data
     exp_df = (
@@ -742,10 +739,7 @@ def ecdf_plot_DDGs(
 
     datasets = {}
     for source, label in zip(sources, labels):
-        src_df = (
-            rel_df[comp_mask & (rel_df["source"] == source)]
-            .set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
-        )
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
         if src_df.empty:
             raise ValueError(f"No computational edges found for source '{source}'.")
 
@@ -756,7 +750,9 @@ def ecdf_plot_DDGs(
 
     # finally check all datasets are the same length
     if len(set([len(v) for v in datasets.values()])) != 1:
-        raise ValueError("Inconsistent number of computational edges across sources, make sure all edges has a result for each source.")
+        raise ValueError(
+            "Inconsistent number of computational edges across sources, make sure all edges has a result for each source."
+        )
 
     return ecdf_plot(
         datasets,
@@ -827,10 +823,7 @@ def ecdf_plot_DGs(
         labels = list(sources)
 
     if len(sources) != len(labels):
-        raise ValueError(
-            f"`sources` and `labels` must have the same length, "
-            f"got {len(sources)} and {len(labels)}."
-        )
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
 
     exp_df = (
         df[~comp_mask]
@@ -841,10 +834,7 @@ def ecdf_plot_DGs(
 
     datasets = {}
     for source, label in zip(sources, labels):
-        src_df = (
-            df[comp_mask & (df["source"] == source)]
-            .set_index("label")[["DG (kcal/mol)"]]
-        )
+        src_df = df[comp_mask & (df["source"] == source)].set_index("label")[["DG (kcal/mol)"]]
         if src_df.empty:
             raise ValueError(f"No computed absolute values found for source '{source}'.")
 
@@ -858,7 +848,9 @@ def ecdf_plot_DGs(
         datasets[label] = np.abs(y - x)
 
     if len(set([len(v) for v in datasets.values()])) != 1:
-        raise ValueError("Inconsistent number of computational edges across sources, make sure all edges has a result for each source.")
+        raise ValueError(
+            "Inconsistent number of computational edges across sources, make sure all edges has a result for each source."
+        )
 
     return ecdf_plot(
         datasets,
@@ -920,10 +912,7 @@ def ecdf_plot_all_DDGs(
     all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
 
     if not all_comp_sources:
-        raise ValueError(
-            "The FEMap contains no computed absolute values. "
-            "Call femap.generate_absolute_values() first."
-        )
+        raise ValueError("The FEMap contains no computed absolute values. Call femap.generate_absolute_values() first.")
 
     if sources is None:
         sources = all_comp_sources
@@ -931,10 +920,7 @@ def ecdf_plot_all_DDGs(
         labels = list(sources)
 
     if len(sources) != len(labels):
-        raise ValueError(
-            f"`sources` and `labels` must have the same length, "
-            f"got {len(sources)} and {len(labels)}."
-        )
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
 
     exp_df = (
         df[~comp_mask]
@@ -945,10 +931,7 @@ def ecdf_plot_all_DDGs(
 
     datasets = {}
     for source, label in zip(sources, labels):
-        src_df = (
-            df[comp_mask & (df["source"] == source)]
-            .set_index("label")[["DG (kcal/mol)"]]
-        )
+        src_df = df[comp_mask & (df["source"] == source)].set_index("label")[["DG (kcal/mol)"]]
         if src_df.empty:
             raise ValueError(f"No computed absolute values found for source '{source}'.")
 
@@ -957,14 +940,13 @@ def ecdf_plot_all_DDGs(
         calc = merged["DG (kcal/mol)"].values
         exp = merged["DG_exp"].values
 
-        errors = [
-            abs((calc[b] - calc[a]) - (exp[b] - exp[a]))
-            for a, b in itertools.combinations(range(len(calc)), 2)
-        ]
+        errors = [abs((calc[b] - calc[a]) - (exp[b] - exp[a])) for a, b in itertools.combinations(range(len(calc)), 2)]
         datasets[label] = np.array(errors)
 
     if len(set([len(v) for v in datasets.values()])) != 1:
-        raise ValueError("Inconsistent number of computational edges across sources, make sure all edges has a result for each source.")
+        raise ValueError(
+            "Inconsistent number of computational edges across sources, make sure all edges has a result for each source."
+        )
 
     return ecdf_plot(
         datasets,
