@@ -302,6 +302,7 @@ def test_plot_ecdf_ddgs_mismatched_sources_labels(fe_map):
 def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
     """Test ECDF All DDG plotting function."""
     output_file = tmp_path / "test_ecdf_all_ddgs.png"
+    fe_map.generate_absolute_values()
     fig = plotting.ecdf_plot_all_DDGs(fe_map, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
@@ -318,6 +319,7 @@ def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
 def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     """Test ECDF All DDG plotting function with missing experimental data."""
     output_file = tmp_path / "test_ecdf_all_ddgs_missing_data.png"
+    ecdf_femap_missing_exp_data.generate_absolute_values()
     fig = plotting.ecdf_plot_all_DDGs(ecdf_femap_missing_exp_data, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
