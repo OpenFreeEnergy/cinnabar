@@ -706,13 +706,19 @@ class FEMap:
                 # different cycle lengths
                 cc = abs(sum_ddgs / math.sqrt(len(cycle)))
                 cc_uncertainty_normalized = abs(sum_ddgs) / math.sqrt(sum_var)
-                rows.append({
-                    "cycle": tuple(cycle),
-                    "cc (kcal/mol)": round(cc, 2),
-                    "cc_unc_normalized (kcal/mol)": round(cc_uncertainty_normalized, 2),
-                })
+                rows.append(
+                    {
+                        "cycle": tuple(cycle),
+                        "cc (kcal/mol)": round(cc, 2),
+                        "cc_unc_normalized (kcal/mol)": round(cc_uncertainty_normalized, 2),
+                    }
+                )
 
-        df = pd.DataFrame(rows, columns=["cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"]).sort_values("cc (kcal/mol)", ascending=False).reset_index(drop=True)
+        df = (
+            pd.DataFrame(rows, columns=["cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"])
+            .sort_values("cc (kcal/mol)", ascending=False)
+            .reset_index(drop=True)
+        )
 
         return df
 
