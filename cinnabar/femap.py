@@ -642,7 +642,7 @@ class FEMap:
         filename : str, optional
             Path to save the figure to. If None, the graph will be displayed.
         highlight_edges : list of (str, str) tuples, optional
-            Edges to highlight in red, e.g. from get_edge_statistics().
+            Edges to highlight in red.
         """
         fig, ax = plt.subplots(figsize=(10, 10))
         graph = self.to_legacy_graph()
