@@ -1,10 +1,10 @@
 import matplotlib.pylab as plt
-import networkx as nx
 import numpy as np
 import pytest
 from openff.units import unit
 
 from cinnabar import FEMap, plotting
+from cinnabar.measurements import ReferenceState
 
 
 @pytest.fixture(scope="function")
@@ -247,7 +247,7 @@ def test_master_plot_clashing_scatter_kwargs(example_data_mle, show_called):
 def test_plot_ecdf_ddgs(fe_map, tmp_path):
     """Test ECDF DDG plotting function."""
     output_file = tmp_path / "test_ecdf_ddgs.png"
-    fig = plotting.ecdf_plot_DDGs([fe_map], labels=["Test FE Map"], filename=output_file.as_posix())
+    fig = plotting.ecdf_plot_DDGs(fe_map, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -261,11 +261,9 @@ def test_plot_ecdf_ddgs(fe_map, tmp_path):
 
 
 def test_plot_ecdf_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
-    """Test ECDF DDG plotting function with missing experimental data."""
+    """Test ECDF DDG plotting function with missing experimental data (one edge skipped)."""
     output_file = tmp_path / "test_ecdf_ddgs_missing_data.png"
-    fig = plotting.ecdf_plot_DDGs(
-        [ecdf_femap_missing_exp_data], labels=["FE Map with Missing Data"], filename=output_file.as_posix()
-    )
+    fig = plotting.ecdf_plot_DDGs(ecdf_femap_missing_exp_data, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -277,25 +275,34 @@ def test_plot_ecdf_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     assert output_file.exists()
 
 
-@pytest.mark.parametrize(
-    "graph",
-    [
-        nx.MultiDiGraph(),
-        nx.MultiDiGraph([(0, 1, {"calc_deltadeltaG": 1.0})]),
-    ],
-)
-def test_plot_ecdf_ddgs_no_data(graph):
-    with pytest.raises(
-        ValueError,
-        match="Graph with label test has edges with missing calculated DDG values, which should be stored as `calc_DDG`.",
-    ):
-        plotting.ecdf_plot_DDGs([graph], labels=["test"], filename=None)
+def test_plot_ecdf_ddgs_no_computational_edges():
+    """Test that a FEMap with no computational edges raises a clear error."""
+    fe = FEMap()
+    fe.add_experimental_measurement(
+        label="ligand1",
+        value=-7.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+    )
+    with pytest.raises(ValueError, match="no computational edges"):
+        plotting.ecdf_plot_DDGs(fe)
+
+
+def test_plot_ecdf_ddgs_invalid_source(fe_map):
+    """Test that a requested source not present in the FEMap raises a clear error."""
+    with pytest.raises(ValueError, match="No computational edges found for source 'nonexistent'"):
+        plotting.ecdf_plot_DDGs(fe_map, sources=["nonexistent"])
+
+
+def test_plot_ecdf_ddgs_mismatched_sources_labels(fe_map):
+    """Test that mismatched sources/labels lengths raise a clear error."""
+    with pytest.raises(ValueError, match="must have the same length"):
+        plotting.ecdf_plot_DDGs(fe_map, sources=[""], labels=["A", "B"])
 
 
 def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
     """Test ECDF All DDG plotting function."""
     output_file = tmp_path / "test_ecdf_all_ddgs.png"
-    fig = plotting.ecdf_plot_all_DDGs([fe_map], labels=["Test FE Map"], filename=output_file.as_posix())
+    fig = plotting.ecdf_plot_all_DDGs(fe_map, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -311,9 +318,7 @@ def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
 def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     """Test ECDF All DDG plotting function with missing experimental data."""
     output_file = tmp_path / "test_ecdf_all_ddgs_missing_data.png"
-    fig = plotting.ecdf_plot_all_DDGs(
-        [ecdf_femap_missing_exp_data], labels=["FE Map with Missing Data"], filename=output_file.as_posix()
-    )
+    fig = plotting.ecdf_plot_all_DDGs(ecdf_femap_missing_exp_data, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -325,29 +330,18 @@ def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     assert output_file.exists()
 
 
-@pytest.mark.parametrize(
-    "graph",
-    [
-        nx.MultiDiGraph(),
-        # graph with nodes but no calculated DDG edges
-        nx.MultiDiGraph([(0, 1, {"some_other_data": 1.0})]),
-    ],
-)
-def test_plot_ecdf_all_ddgs_no_data(graph):
-    with pytest.raises(
-        ValueError,
-        match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`.",
-    ):
-        plotting.ecdf_plot_all_DDGs([graph], labels=["test"], filename=None)
+def test_plot_ecdf_all_ddgs_no_absolute_values(fe_map):
+    """Test that calling ecdf_plot_all_DDGs without generating absolute values raises a clear error."""
+    with pytest.raises(ValueError, match="generate_absolute_values"):
+        plotting.ecdf_plot_all_DDGs(fe_map)
 
 
 @pytest.mark.parametrize("centralising, xlim", [(True, (2.1, 2.2)), (False, (11.5, 11.6))])
 def test_plot_ecdf_dgs(fe_map, tmp_path, centralising, xlim):
     """Test ECDF DG plotting function with and without centralizing."""
+    fe_map.generate_absolute_values()
     output_file = tmp_path / "test_ecdf_dgs.png"
-    fig = plotting.ecdf_plot_DGs(
-        [fe_map], labels=["Test FE Map"], filename=output_file.as_posix(), centralizing=centralising
-    )
+    fig = plotting.ecdf_plot_DGs(fe_map, filename=output_file.as_posix(), centralizing=centralising)
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -359,30 +353,40 @@ def test_plot_ecdf_dgs(fe_map, tmp_path, centralising, xlim):
     assert output_file.exists()
 
 
-def test_plot_ecdf_ddgs_multiple(fe_map, tmp_path):
-    """Test ECDF DDG plotting function with multiple FE maps."""
+def test_plot_ecdf_dgs_no_absolute_values(fe_map):
+    """Test that calling ecdf_plot_DGs without generating absolute values raises a clear error."""
+    with pytest.raises(ValueError, match="generate_absolute_values"):
+        plotting.ecdf_plot_DGs(fe_map)
+
+
+def test_plot_ecdf_ddgs_multiple_sources(fe_map, tmp_path):
+    """Test ECDF DDG plotting with two computational sources in a single FEMap."""
     output_file = tmp_path / "test_ecdf_ddgs_multiple.png"
-    # Create a second FE map for testing
-    # add gaussian noise to the first map to create a second map
-    graph = nx.MultiDiGraph()
-    for a, b, data in fe_map.to_networkx().edges(data=True):
-        new_data = data.copy()
-        if data["source"] != "reverse" and data["computational"]:
-            # add noise to the result
-            new_result = data["DG"] + np.random.normal(0, data["uncertainty"].m) * data["DG"].u
-            new_data["DG"] = new_result
-            graph.add_edge(a, b, **new_data)
-            # and add the reverse edge
-            rev_data = new_data.copy()
-            rev_data["source"] = "reverse"
-            rev_data["DG"] = -new_data["DG"]
-            graph.add_edge(b, a, **rev_data)
-        else:
-            graph.add_edge(a, b, **data)
-    fe_map_2 = FEMap.from_networkx(graph)
-    fig = plotting.ecdf_plot_DDGs([fe_map, fe_map_2], labels=["FE Map 1", "FE Map 2"], filename=output_file.as_posix())
+    # add a second source (Method B) with small noise on the same edges
+    rng = np.random.default_rng(seed=42)
+    for m in list(fe_map):
+        if m.computational:
+            if isinstance(m.labelA, ReferenceState):
+                continue
+            noise = rng.normal(0, 0.3) * m.DG.u
+            fe_map.add_relative_calculation(
+                labelA=m.labelA,
+                labelB=m.labelB,
+                value=m.DG + noise,
+                uncertainty=m.uncertainty,
+                source="Method B",
+            )
+    fig = plotting.ecdf_plot_DDGs(
+        fe_map,
+        sources=["", "Method B"],
+        labels=["Method A", "Method B"],
+        filename=output_file.as_posix(),
+    )
     assert fig is not None
-    # check the file was created
+    # legend should contain both labels
+    legend_texts = [t.get_text() for t in fig.get_axes()[0].get_legend().get_texts()]
+    assert "Method A" in legend_texts
+    assert "Method B" in legend_texts
     assert output_file.exists()
 
 
@@ -394,26 +398,10 @@ def test_plot_ecdf_no_datasets():
 def test_plot_ecdf_colors(fe_map, tmp_path):
     """Test ECDF plotting function with custom colors."""
     output_file = tmp_path / "test_ecdf_colors.png"
-    fig = plotting.ecdf_plot_DDGs([fe_map], labels=["Test FE Map"], colors=["#FF5733"], filename=output_file.as_posix())
+    fig = plotting.ecdf_plot_DDGs(fe_map, colors=["#FF5733"], filename=output_file.as_posix())
     assert fig is not None
     # check the file was created
     assert output_file.exists()
     # check that the line color matches the specified color
     line = fig.get_axes()[0].lines[0]
     assert line.get_color() == "#FF5733"
-
-
-@pytest.mark.parametrize(
-    "graph",
-    [
-        nx.MultiDiGraph(),
-        # graph with nodes but no calculated DDG edges
-        nx.MultiDiGraph([(0, 1, {"some_other_data": 1.0})]),
-    ],
-)
-def test_plot_ecdf_dgs_no_data(graph):
-    with pytest.raises(
-        ValueError,
-        match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`.",
-    ):
-        plotting.ecdf_plot_DGs([graph], labels=["test"], filename=None)

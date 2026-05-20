@@ -367,16 +367,24 @@ class FEMap:
         for l1, l2, d in self._graph.edges(data=True):
             if d["source"] == "reverse":
                 continue
-            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState) and not d["computational"]:
+            # grab only the experimental non-computational results
+            if (isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState)) and not d["computational"]:
                 label = l2 if isinstance(l1, ReferenceState) else l1
                 non_comp_results[label] = d
+                continue
+            # if this is a computational reference state from MLE or ABFE skip it
+            elif (isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState)) and d["computational"]:
                 continue
 
             data.append((l1, l2, d["DG"].to(kcpm).m, d["uncertainty"].to(kcpm).m, d["source"], d["computational"]))
 
         # for each computational result add the experimental result for the same edge if it exists
         comp_data = []
+        # track the experimental edges added we only want one experimental value per-edge
+        seen_edges = set()
         for l1, l2, *_ in data:
+            if (l1, l2) in seen_edges:
+                continue
             exp_1 = non_comp_results.get(l1, None)
             exp_2 = non_comp_results.get(l2, None)
             if exp_1 is not None and exp_2 is not None:
@@ -384,6 +392,7 @@ class FEMap:
                 exp_ddg = exp_2["DG"].to(kcpm).m - exp_1["DG"].to(kcpm).m
                 exp_uncertainty = (exp_1["uncertainty"].to(kcpm).m ** 2 + exp_2["uncertainty"].to(kcpm).m ** 2) ** 0.5
                 comp_data.append((l1, l2, exp_ddg, exp_uncertainty, "experimental", False))
+                seen_edges.add((l1, l2))
 
         cols = ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
