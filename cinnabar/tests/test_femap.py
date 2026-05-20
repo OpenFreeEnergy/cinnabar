@@ -1,5 +1,5 @@
 import json
-
+import math
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -543,9 +543,23 @@ def perfect_cycle():
 def test_get_cycle_closure_known_value(perfect_cycle):
     result = perfect_cycle.get_cycle_closure()
     assert isinstance(result, pd.DataFrame)
-    assert list(result.columns) == ["cycle", "cc (kcal/mol)"]
+    assert list(result.columns) == ["cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"]
     assert len(result) == 1
     assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result["cc_unc_normalized (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_get_cycle_closure_normalized_known_value():
+    kcalpm = unit.kilocalorie_per_mole
+    fe = femap.FEMap()
+    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("C", "A", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm)
+
+    result = fe.get_cycle_closure()
+    expected_cc_normalized = round(abs(0.5) / math.sqrt(3 * 0.1**2), 2)
+
+    assert result["cc_unc_normalized (kcal/mol)"].iloc[0] == pytest.approx(expected_cc_normalized, abs=0.01)
 
 
 def test_get_cc_based_edge_statistics_known_value(perfect_cycle):

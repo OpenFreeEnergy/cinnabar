@@ -674,6 +674,7 @@ class FEMap:
         """
         network = self.to_legacy_graph()
         edge_ddg = {(a, b): d["calc_DDG"] for a, b, d in network.edges(data=True)}
+        edge_uncertainty = {(a, b): d["calc_dDDG"] for a, b, d in network.edges(data=True)}
 
         # Find all ligand cycles
         cycles = [c for c in nx.simple_cycles(network.to_undirected()) if len(c) <= max_cycle_length]
@@ -683,6 +684,7 @@ class FEMap:
         for cycle in cycles:
             # Store DDG values along the cycle
             sum_ddgs = 0.0
+            sum_var = 0.0
             for inx, ligand in enumerate(cycle):
                 lig_a = ligand
                 lig_b = cycle[inx + 1] if inx < len(cycle) - 1 else cycle[0]
@@ -691,23 +693,28 @@ class FEMap:
                 # the sign of the DDG has to change
                 if (lig_a, lig_b) in edge_ddg:
                     sum_ddgs += edge_ddg[(lig_a, lig_b)]
+                    sum_var += edge_uncertainty[(lig_a, lig_b)] ** 2
                 elif (lig_b, lig_a) in edge_ddg:
                     sum_ddgs -= edge_ddg[(lig_b, lig_a)]
+                    sum_var += edge_uncertainty[(lig_b, lig_a)] ** 2
                 else:
                     # Edge missing from network; skip this cycle
                     break
 
             else:
-                # divide by sqrt of number of ligands in the cycle
-                # to get cycle closure error per edge
+                # Normalize by sqrt(cycle length) to allow comparison across
+                # different cycle lengths
                 cc = abs(sum_ddgs / math.sqrt(len(cycle)))
-                rows.append({"cycle": tuple(cycle), "cc (kcal/mol)": round(cc, 2)})
+                cc_uncertainty_normalized = abs(sum_ddgs) / math.sqrt(sum_var)
+                rows.append({
+                    "cycle": tuple(cycle),
+                    "cc (kcal/mol)": round(cc, 2),
+                    "cc_unc_normalized (kcal/mol)": round(cc_uncertainty_normalized, 2),
+                })
 
-        return (
-            pd.DataFrame(rows, columns=["cycle", "cc (kcal/mol)"])
-            .sort_values("cc (kcal/mol)", ascending=False)
-            .reset_index(drop=True)
-        )
+        df = pd.DataFrame(rows, columns=["cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"]).sort_values("cc (kcal/mol)", ascending=False).reset_index(drop=True)
+
+        return df
 
     def get_cc_based_edge_statistics(self, max_cycle_length: int = 5) -> pd.DataFrame:
         """
