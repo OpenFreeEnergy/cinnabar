@@ -1,5 +1,6 @@
 import json
 
+import pandas as pd
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -389,6 +390,49 @@ def test_to_all_pairwise_df_symmetry(example_map):
             dg_b = source_df.loc[source_df.label == label_b, "DG (kcal/mol)"].values[0]
             expected_ddg = dg_b - dg_a
             assert row["DDG (kcal/mol)"] == expected_ddg
+
+
+def test_all_to_all_pairwise_df_absolute(example_map):
+    """Test that we can generate the all-to-all pairwise dataframe using the absolute values,
+    and that it matches the pairwise df generated from the original map.
+    """
+    example_map.generate_absolute_values()
+    abs_df = example_map.get_absolute_dataframe()
+    abs_df = abs_df[(abs_df["computational"] == True) & (abs_df["source"] == "MLE")]
+    pair_rel_df = example_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    pair_rel_df = pair_rel_df[pair_rel_df["computational"] == True].reset_index(drop=True)
+
+    abs_map = femap.FEMap()
+    # add each predicted absolute value as a measurement and compute the pairwise df again
+    for _, row in abs_df.iterrows():
+        abs_map.add_absolute_calculation(
+            label=row["label"],
+            value=row["DG (kcal/mol)"] * unit.kilocalorie_per_mole,
+            uncertainty=row["uncertainty (kcal/mol)"] * unit.kilocalorie_per_mole,
+            source="ABFE",
+        )
+
+    abs_pair_rel_df = abs_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    # the df should match between the two maps, except for the uncertainty and source columns which will be different
+    # due to the different sources and the way uncertainties are propagated for the pairwise df
+    pd.testing.assert_frame_equal(
+        pair_rel_df.drop(columns=["uncertainty (kcal/mol)", "source"]),
+        abs_pair_rel_df.drop(columns=["uncertainty (kcal/mol)", "source"])
+    )
+    # we should also check that the uncertainty is different as we should be using the covariance in the pair_rel_df
+    assert not np.array_equal(
+        pair_rel_df["uncertainty (kcal/mol)"].values,
+        abs_pair_rel_df["uncertainty (kcal/mol)"].values
+    )
+
+
+def test_all_to_all_pairwise_df_no_data():
+    """Test that we can generate the all-to-all pairwise dataframe with no data without error."""
+    fe_map = femap.FEMap()
+    df = fe_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    assert len(df) == 0
+    # make sure the columns are still correct though
+    assert df.columns.tolist() == ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
 
 def test_to_all_pairwise_df_uses_covariance_matrix():

@@ -451,6 +451,8 @@ class FEMap:
         - computational
         The dataframe will be sorted by source, computational, labelA, and labelB to ensure that pairing order is consistent.
         If `symmetrical` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
+        If an estimator is used to generate the absolute binding affinities from relative results this function attempts
+        to use the covariance_matrix in the uncertainty if available, if not the covariance is set to zero.
         """
         # we need to group by the source and computational labels and then compute the pairwise differences within each group, then concatenate the results together
         df = self.get_absolute_dataframe()
@@ -463,8 +465,12 @@ class FEMap:
             dgs = group["DG (kcal/mol)"].values
             uncertainties = group["uncertainty (kcal/mol)"].values
             if computational:
-                # get the estimator metadata as we need the covariance matrix
-                estimator_metadata = self.get_estimator_metadata(source)
+                # get the estimator metadata as we need the covariance matrix, but it may not be
+                # available (e.g. ABFE-only data added directly without running an estimator)
+                try:
+                    estimator_metadata = self.get_estimator_metadata(source)
+                except KeyError:
+                    estimator_metadata = None
             else:
                 estimator_metadata = None
 
@@ -473,15 +479,22 @@ class FEMap:
                 label_a, label_b = labels[i], labels[j]
                 # transformation i -> j has a DDG of j - i
                 ddg = dgs[j] - dgs[i]
-                # get the covariance if this is computation data, otherwise assume zero covariance
-                if computational:
-                    ligand_i, ligand_j = (
-                        estimator_metadata.ligand_order.index(label_a),
-                        estimator_metadata.ligand_order.index(label_b),
-                    )
-                    covariance = estimator_metadata.covariance_matrix[ligand_i, ligand_j]
-                else:
-                    covariance = 0.0
+                # get the covariance if metadata with a covariance matrix is available,
+                # otherwise assume zero covariance (e.g. ABFE-only data, or a custom estimator
+                # that does not expose a covariance matrix) this will slightly degrade the error estimate in some cases
+                covariance = 0.0
+                if (
+                    estimator_metadata is not None
+                    and hasattr(estimator_metadata, "covariance_matrix")
+                    and hasattr(estimator_metadata, "ligand_order")
+                ):
+                    try:
+                        ligand_i = estimator_metadata.ligand_order.index(label_a)
+                        ligand_j = estimator_metadata.ligand_order.index(label_b)
+                        covariance = estimator_metadata.covariance_matrix[ligand_i, ligand_j]
+                    except ValueError:
+                        # label not found in ligand_order — fall back to zero covariance
+                        covariance = 0.0
                 uncertainty = (uncertainties[i] ** 2 + uncertainties[j] ** 2 - 2 * covariance) ** 0.5
                 data.append((label_a, label_b, ddg, uncertainty, source, computational))
                 if symmetrical:
@@ -492,6 +505,11 @@ class FEMap:
                 columns=["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"],
             )
             pairwise_dfs.append(pairwise_df)
+
+        if not pairwise_dfs:
+            return pd.DataFrame(
+                columns=["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
+            )
         return (
             pd.concat(pairwise_dfs)
             .sort_values(by=["source", "computational", "labelA", "labelB"])
