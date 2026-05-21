@@ -1,9 +1,9 @@
 import json
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import pandas as pd
 import pytest
 from openff.units import unit
 
@@ -417,12 +417,11 @@ def test_all_to_all_pairwise_df_absolute(example_map):
     # due to the different sources and the way uncertainties are propagated for the pairwise df
     pd.testing.assert_frame_equal(
         pair_rel_df.drop(columns=["uncertainty (kcal/mol)", "source"]),
-        abs_pair_rel_df.drop(columns=["uncertainty (kcal/mol)", "source"])
+        abs_pair_rel_df.drop(columns=["uncertainty (kcal/mol)", "source"]),
     )
     # we should also check that the uncertainty is different as we should be using the covariance in the pair_rel_df
     assert not np.array_equal(
-        pair_rel_df["uncertainty (kcal/mol)"].values,
-        abs_pair_rel_df["uncertainty (kcal/mol)"].values
+        pair_rel_df["uncertainty (kcal/mol)"].values, abs_pair_rel_df["uncertainty (kcal/mol)"].values
     )
 
 
@@ -432,7 +431,14 @@ def test_all_to_all_pairwise_df_no_data():
     df = fe_map.get_all_to_all_relative_dataframe(symmetrical=False)
     assert len(df) == 0
     # make sure the columns are still correct though
-    assert df.columns.tolist() == ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
+    assert df.columns.tolist() == [
+        "labelA",
+        "labelB",
+        "DDG (kcal/mol)",
+        "uncertainty (kcal/mol)",
+        "source",
+        "computational",
+    ]
 
 
 def test_to_all_pairwise_df_uses_covariance_matrix():
