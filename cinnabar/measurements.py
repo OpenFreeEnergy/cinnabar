@@ -10,7 +10,7 @@ as well as the :class:`ReferenceState` class which denotes the end point for abs
 from dataclasses import dataclass
 from typing import Hashable, cast
 
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 
 from cinnabar.conversion import convert_observable
 

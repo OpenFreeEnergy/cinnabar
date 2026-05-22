@@ -14,11 +14,10 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
+from openff.units import Quantity
 
 from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
-
-from openff.units import Quantity
 
 if TYPE_CHECKING:
     from cinnabar.femap import FEMap  # pragma: no cover

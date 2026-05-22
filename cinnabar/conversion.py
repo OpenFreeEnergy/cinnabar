@@ -6,7 +6,7 @@ Conversion functions taken from
 from typing import Literal, get_args
 
 import numpy as np
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 
 # Single source of truth for the observable types we support
 OBSERVABLE_TYPES = Literal["dg", "ki", "ic50", "pic50"]

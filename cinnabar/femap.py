@@ -68,7 +68,7 @@ def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> dict:
                 expt = Measurement(
                     labelA=ground,
                     labelB=ligand,
-                    DG=Quantity(float(DG),  units=units),
+                    DG=Quantity(float(DG), units=units),
                     uncertainty=Quantity(float(dDG), units=units),
                     computational=False,
                 )
