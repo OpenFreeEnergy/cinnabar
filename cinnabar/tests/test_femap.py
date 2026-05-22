@@ -397,8 +397,8 @@ def test_to_absolute_dataframe_regression(example_map):
     example_map.generate_absolute_values()
     abs_df = example_map.get_absolute_dataframe()
     # make sure the RMSE and R2 matches some historic data
-    calc_dg = abs_df[abs_df["computational"] == True]["DG (kcal/mol)"].values
-    exp_dg = abs_df[abs_df["computational"] == False]["DG (kcal/mol)"].values
+    calc_dg = abs_df[abs_df["computational"] == True]["DG (kcal/mol)"].to_numpy(copy=True)
+    exp_dg = abs_df[abs_df["computational"] == False]["DG (kcal/mol)"].to_numpy(copy=True)
     # as the MLE values are centered at zero apply a shift to the experimental mean
     calc_dg -= calc_dg.mean()  # remove any systematic shift
     calc_dg += exp_dg.mean()
