@@ -96,7 +96,7 @@ omit = [
 files = "cinnabar"
 python_version = "3.12"
 # exclude tests and vendored code
-exclude = "cinnabar/(tests|data)/"
+exclude = "cinnabar/(tests|data|_due)/"
 ignore_missing_imports = true
 warn_unused_ignores = true
 show_error_codes = true

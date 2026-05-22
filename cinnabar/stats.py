@@ -1,4 +1,4 @@
-from typing import Literal, Union, get_args
+from typing import Literal, get_args
 
 import networkx as nx
 import numpy as np
@@ -283,8 +283,8 @@ assert set(get_args(Statistics)) == set(_AVAILABLE_STATS.keys())
 def bootstrap_statistic(
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    dy_true: Union[np.ndarray, None] = None,
-    dy_pred: Union[np.ndarray, None] = None,
+    dy_true: np.ndarray | None = None,
+    dy_pred: np.ndarray | None = None,
     ci: float = 0.95,
     statistic: Statistics = "RMSE",
     nbootstrap: int = 1000,
@@ -376,7 +376,7 @@ def bootstrap_statistic(
     return stats
 
 
-def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None) -> np.ndarray:
+def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
     The number 'factor' is the node attribute on which the MLE will be calculated,

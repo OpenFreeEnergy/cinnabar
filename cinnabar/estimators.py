@@ -10,13 +10,15 @@ measurements stored in an FEMap.
 import abc
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
 
 from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
+
+from openff.units import Quantity
 
 if TYPE_CHECKING:
     from cinnabar.femap import FEMap  # pragma: no cover
@@ -239,7 +241,7 @@ class MLEEstimator(Estimator):
         ref = ReferenceState(label=source)
         ligand_order = list(g.nodes)
 
-        out_measurements: List[Measurement] = []
+        out_measurements: list[Measurement] = []
         for n, f_i, df_i in zip(ligand_order, f_i_calc, variance):
             out_measurements.append(
                 Measurement(
@@ -257,8 +259,8 @@ class MLEEstimator(Estimator):
             Measurement(
                 labelA=ReferenceState(),
                 labelB=ref,
-                DG=0.1 * u,
-                uncertainty=0.0 * u,
+                DG=Quantity(0.1, units=u),
+                uncertainty=Quantity(0.0, units=u),
                 computational=True,
                 source=source,
             )
@@ -271,7 +273,7 @@ class MLEEstimator(Estimator):
 
 
 def _build_graph_from_measurements(
-    measurements: List[Measurement],
+    measurements: list[Measurement],
 ) -> tuple[nx.DiGraph, object]:
     """Build a legacy graph from the list of measurements for use in the MLE method, this is copied over from the
     to_legacy_graph method of FEMap.
@@ -303,14 +305,15 @@ def _build_graph_from_measurements(
     u = next(iter(units))
 
     g = nx.DiGraph()
-    edges_seen: List[tuple] = []
+    edges_seen: list[tuple] = []
 
     for m in measurements:
         if not m.computational:
             continue
         if isinstance(m.labelA, ReferenceState):
             continue
-        edge_name = tuple(sorted([m.labelA, m.labelB]))
+        # cast to string as hashable does not support < > comparisons
+        edge_name = tuple(sorted([str(m.labelA), str(m.labelB)]))
         if edge_name in edges_seen:
             raise ValueError(
                 f"Multiple edges detected between nodes {m.labelA} and {m.labelB}. "

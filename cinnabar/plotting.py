@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 import matplotlib.pylab as plt
 import networkx as nx
@@ -15,8 +15,8 @@ def _master_plot(
     x: np.ndarray,
     y: np.ndarray,
     title: str = "",
-    xerr: Optional[np.ndarray] = None,
-    yerr: Optional[np.ndarray] = None,
+    xerr: np.ndarray | None = None,
+    yerr: np.ndarray | None = None,
     method_name: str = "",
     target_name: str = "",
     quantity: str = r"$\Delta\Delta$G",
@@ -25,13 +25,13 @@ def _master_plot(
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
     guidelines: bool = True,
     origins: bool = True,
-    color: Optional[str] = None,
+    color: str | None = None,
     statistics: list = ["RMSE", "MUE"],
-    filename: Optional[str] = None,
+    filename: str | None = None,
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
-    dpi: Union[float, str] = "figure",
+    dpi: float | str = "figure",
     data_labels: list = [],
     axis_padding: float = 0.5,
     xy_lim: list = [],
@@ -160,9 +160,12 @@ def _master_plot(
     cm = plt.get_cmap("coolwarm")
 
     if color is None:
-        color = np.abs(x - y)
+        _color = np.abs(x - y)
         # 2.372 kcal / mol = 4 RT
-        color = cm(color / 2.372)
+        _color = cm(_color / 2.372)
+    else:
+        _color = color
+
     plt.errorbar(
         x,
         y,
@@ -175,8 +178,8 @@ def _master_plot(
     )
     # add our cinnabar preset settings to the scatter_kwargs to make sure they do not clash
     # scatter kwargs will override the default settings
-    default_kwargs = {
-        "color": color,
+    default_kwargs: dict[str, Any] = {
+        "color": _color,
         "zorder": 2,
         "edgecolors": "dimgrey",
         "linewidths": 0.7,
@@ -230,7 +233,7 @@ def plot_DDGs(
     target_name: str = "",
     title: str = "",
     map_positive: bool = False,
-    filename: Optional[str] = None,
+    filename: str | None = None,
     symmetrise: bool = False,
     plotly: bool = False,
     data_label_type: Literal["small-molecule", "protein-mutation"] | None = None,
@@ -303,7 +306,7 @@ def plot_DDGs(
     yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
 
     # labels
-    data_labels = []
+    data_labels: list[str] = []
     if data_label_type:
         node_names = {node_id: node_data["name"] for node_id, node_data in graph.nodes(data=True)}
         data_labels = []
@@ -333,19 +336,21 @@ def plot_DDGs(
         y_data = np.append(y, [-i for i in y])
         xerr = np.append(xerr, xerr)
         yerr = np.append(yerr, yerr)
-        data_labels = np.append(data_labels, data_labels)
+        # double the data labels list
+        data_labels = data_labels + data_labels
+
     elif map_positive:
-        x_data = []
-        y_data = []
+        x_data_map = []
+        y_data_map = []
         for i, j in zip(x, y):
             if i < 0:
-                x_data.append(-i)
-                y_data.append(-j)
+                x_data_map.append(-i)
+                y_data_map.append(-j)
             else:
-                x_data.append(i)
-                y_data.append(j)
-        x_data = np.asarray(x_data)
-        y_data = np.asarray(y_data)
+                x_data_map.append(i)
+                y_data_map.append(j)
+        x_data = np.asarray(x_data_map)
+        y_data = np.asarray(y_data_map)
     else:
         x_data = np.asarray(x)
         y_data = np.asarray(y)
@@ -389,7 +394,7 @@ def plot_DGs(
     method_name: str = "",
     target_name: str = "",
     title: str = "",
-    filename: Optional[str] = None,
+    filename: str | None = None,
     plotly: bool = False,
     centralizing: bool = True,
     shift: float = 0.0,
@@ -480,7 +485,7 @@ def plot_all_DDGs(
     method_name: str = "",
     target_name: str = "",
     title: str = "",
-    filename: Optional[str] = None,
+    filename: str | None = None,
     plotly: bool = False,
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,

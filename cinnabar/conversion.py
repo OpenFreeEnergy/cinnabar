@@ -6,19 +6,19 @@ Conversion functions taken from
 from typing import Literal, get_args
 
 import numpy as np
-from openff.units import unit
+from openff.units import unit, Quantity
 
 # Single source of truth for the observable types we support
 OBSERVABLE_TYPES = Literal["dg", "ki", "ic50", "pic50"]
 
 
 def convert_observable(
-    value: unit.Quantity,
+    value: Quantity,
     original_type: OBSERVABLE_TYPES,
     final_type: OBSERVABLE_TYPES,
-    uncertainty: unit.Quantity | None = None,
-    temperature: unit.Quantity = 298.15 * unit.kelvin,
-) -> tuple[unit.Quantity, unit.Quantity | None]:
+    uncertainty: Quantity | None = None,
+    temperature: Quantity = 298.15 * unit.kelvin,
+) -> tuple[Quantity, Quantity | None]:
     """
     Converts an affinity value into another derived quantity,
     including automatic error propagation if error is provided.
@@ -82,7 +82,7 @@ def convert_observable(
     if final_type not in valid_types:
         raise ValueError(f"Unknown final_type: {final_type}. Must be one of: {', '.join(valid_types)}")
     # validate that uncertainty is non-negative if provided
-    if uncertainty is not None and uncertainty < 0:
+    if uncertainty is not None and uncertainty.m < 0:
         raise ValueError("Uncertainty must be positive")
 
     # store the conversion functions by (original_type, final_type) in a dictionary for easy lookup
@@ -114,19 +114,19 @@ def convert_observable(
 
     # if the input is in pic50, add dimensionless units for consistent conversions
     if original_type == "pic50":
-        value = value * unit("")
+        value = Quantity(value, units=unit.dimensionless)
         if uncertainty is not None:
-            uncertainty = uncertainty * unit("")
+            uncertainty = Quantity(uncertainty, units=unit.dimensionless)
 
     # do the conversion and error propagation
     converted_value, converted_uncertainty = converter(value, uncertainty)
 
     # get the units for the output type and convert the value and uncertainty to those units
     default_units = {
-        "dg": unit("kilocalories / mole"),
-        "ki": unit("nanomolar"),
-        "ic50": unit("nanomolar"),
-        "pic50": unit(""),
+        "dg": unit.kilocalorie_per_mole,
+        "ki": unit.nanomolar,
+        "ic50": unit.nanomolar,
+        "pic50": unit.dimensionless,
     }
     out_unit = default_units[final_type]
     converted_value = converted_value.to(out_unit)

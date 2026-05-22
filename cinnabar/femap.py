@@ -12,12 +12,11 @@ import itertools
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Hashable, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import openff.units
 import pandas as pd
 from openff.units import Quantity, unit
 
@@ -30,14 +29,14 @@ if TYPE_CHECKING:
 _kcalpm = unit.kilocalorie_per_mole
 
 
-def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
+def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> dict:
     """Read a legacy format csv file
 
     Parameters
     ----------
     filepath
       path to the csv file
-    units : openff.units.Quantity, optional
+    units : Quantity, optional
       the units to use for values in the file, defaults to kcal/mol
 
     Returns
@@ -50,7 +49,8 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
         units = _kcalpm
 
     path_obj = pathlib.Path(filepath)
-    raw_results = {"Experimental": {}, "Calculated": []}
+    experimental_results: dict[Hashable, Measurement] = {}
+    calculated_results: list[Measurement] = []
     expt_block = False
     calc_block = False
 
@@ -68,23 +68,23 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
                 expt = Measurement(
                     labelA=ground,
                     labelB=ligand,
-                    DG=float(DG) * units,
-                    uncertainty=float(dDG) * units,
+                    DG=Quantity(float(DG),  units=units),
+                    uncertainty=Quantity(float(dDG), units=units),
                     computational=False,
                 )
-                raw_results["Experimental"][expt.labelB] = expt
+                experimental_results[expt.labelB] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
                 ligA, ligB, calc_DDG, mbar_err, other_err = line.split(",")
 
                 calc = Measurement(
                     labelA=ligA.strip(),
                     labelB=ligB.strip(),
-                    DG=float(calc_DDG) * units,
-                    uncertainty=(float(mbar_err) + float(other_err)) * units,
+                    DG=Quantity(float(calc_DDG), units=units),
+                    uncertainty=Quantity(float(mbar_err) + float(other_err), units=units),
                     computational=True,
                 )
-                raw_results["Calculated"].append(calc)
-    return raw_results
+                calculated_results.append(calc)
+    return {"Experimental": experimental_results, "Calculated": calculated_results}
 
 
 class FEMap:
@@ -197,7 +197,7 @@ class FEMap:
         return m
 
     @classmethod
-    def from_csv(cls, filename, units: Optional[Quantity] = None):
+    def from_csv(cls, filename, units: Quantity | None = None):
         """Construct from legacy csv format"""
         data = read_csv(filename, units=units)
 
@@ -231,9 +231,9 @@ class FEMap:
 
     def add_experimental_measurement(
         self,
-        label: Union[str, Hashable],
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        label: str | Hashable,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -244,17 +244,17 @@ class FEMap:
         ----------
         label
           the ligand being measured
-        value : openff.units.Quantity
+        value : Quantity
           the measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
           of input is determined by the units of the input.
-        uncertainty : openff.units.Quantity
+        uncertainty : Quantity
           the uncertainty in the measurement
         source : str, optional
           an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
+        temperature : Quantity, optional
           the temperature the measurement was taken at, defaults to 298.15 K
         """
-        if not isinstance(value, openff.units.Quantity):
+        if not isinstance(value, Quantity):
             raise ValueError("Must include units with values, e.g. openff.units.unit.kilocalorie_per_mole")
 
         if value.is_compatible_with("molar"):
@@ -274,10 +274,10 @@ class FEMap:
 
     def add_relative_calculation(
         self,
-        labelA: Union[str, Hashable],
-        labelB: Union[str, Hashable],
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        labelA: str | Hashable,
+        labelB: str | Hashable,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -290,13 +290,13 @@ class FEMap:
           the ligands being measured.  The measurement is taken from ligandA
           to ligandB, i.e. ligandA is the "old" or lambda=0.0 state, and ligandB
           is the "new" or lambda=1.0 state.
-        value : openff.units.Quantity
+        value : Quantity
           the measured DDG value, as kcal/mol, or kJ/mol.
-        uncertainty : openff.units.Quantity
+        uncertainty : Quantity
           the uncertainty in the measurement
         source : str, optional
           an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
+        temperature : Quantity, optional
           the temperature the measurement was taken at, defaults to 298.15 K
         """
         self.add_measurement(
@@ -314,8 +314,8 @@ class FEMap:
     def add_absolute_calculation(
         self,
         label,
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -326,13 +326,13 @@ class FEMap:
         ----------
         label
           the ligand being measured
-        value : openff.units.Quantity
+        value : Quantity
           the measured value, as kcal/mol, or kJ/mol.
-        uncertainty : openff.units.Quantity
+        uncertainty : Quantity
           the uncertainty in the measurement
         source : str, optional
           an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
+        temperature : Quantity, optional
           the temperature the measurement was taken at, defaults to 298.15 K
         """
         m = Measurement(
@@ -721,7 +721,7 @@ class FEMap:
 
         return g
 
-    def draw_graph(self, title: str = "", filename: Union[str, None] = None):
+    def draw_graph(self, title: str = "", filename: str | None = None):
         """
         Draw the graph using matplotlib.
 
