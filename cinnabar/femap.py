@@ -12,7 +12,7 @@ import itertools
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Hashable, Optional, Union, Literal
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -21,6 +21,7 @@ import openff.units
 import pandas as pd
 from openff.units import Quantity, unit
 
+from cinnabar.conversion import convert_observable
 from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
 
@@ -28,6 +29,56 @@ if TYPE_CHECKING:
     from cinnabar.estimators import Estimator, EstimatorResult  # pragma: no cover
 
 _kcalpm = unit.kilocalorie_per_mole
+
+# Reusable typing alias for unit conversions
+ANALYSIS_UNITS = Literal["dg", "pic50"]
+
+
+def _convert_dg_df_to_pic50(
+    df: pd.DataFrame,
+    value_col: str,
+    uncertainty_col: str,
+    new_value_col: str,
+    new_uncertainty_col: str,
+    temperature: Quantity,
+) -> pd.DataFrame:
+    """Return a copy of the dataframe with the kcal/mol columns replaced by pIC50 columns using the convert_observable function.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input dataframe.  ``value_col`` and ``uncertainty_col`` must be present and
+        contain plain floats in kcal/mol.
+    value_col, uncertainty_col : str
+        Names of the columns to convert.
+    new_value_col, new_uncertainty_col : str
+        Column names to use in the returned dataframe.
+    temperature : Quantity
+        Temperature for the conversion (passed to
+        :func:`~cinnabar.conversion.convert_observable`).
+
+    Returns
+    -------
+    pd.DataFrame
+        Copy of the dataframe with ``value_col`` / ``uncertainty_col`` dropped and the two
+        new columns in their place.
+    """
+    # default units should always be kcal/mol in the FEMap
+    values = df[value_col].to_numpy() * _kcalpm
+    uncertainties = df[uncertainty_col].to_numpy() * _kcalpm
+    converted_values, converted_uncertainties = convert_observable(
+        values, "dg", "pic50", uncertainties, temperature
+    )
+   # make sure we do not change the column order the dataframe should feel the same
+    col_order = [
+        new_value_col if c == value_col else (new_uncertainty_col if c == uncertainty_col else c)
+        for c in df.columns
+    ]
+    return (
+        df.drop(columns=[value_col, uncertainty_col])
+        .assign(**{new_value_col: converted_values.m, new_uncertainty_col: converted_uncertainties.m})
+        [col_order]
+    )
 
 
 def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
@@ -346,20 +397,34 @@ class FEMap:
         )
         self.add_measurement(m)
 
-    def get_relative_dataframe(self) -> pd.DataFrame:
+    def get_relative_dataframe(
+        self,
+        observable_type: ANALYSIS_UNITS = "dg",
+        temperature: Quantity = 298.15 * unit.kelvin,
+    ) -> pd.DataFrame:
         """Get a dataframe of all relative results for all sources including experimental and computational.
+
+        Parameters
+        ----------
+        observable_type : ANALYSIS_UNITS, optional
+            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+            Use ``pic50`` to report ΔpIC50 values.
+        temperature : Quantity, optional
+            Temperature used for the unit conversion.  Defaults to 298.15 K.
 
         Note
         ----
         The pandas DataFrame will have the following columns:
+
         - labelA
         - labelB
-        - DDG (kcal/mol)
-        - uncertainty (kcal/mol)
+        - ``DDG (kcal/mol)`` / ``ΔpIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (ΔpIC50)``
         - source
         - computational
-        Only simulated relative results are included for the computational results
-        The dataframe will be sorted by source, computational, labelA, and labelB to ensure consistent ordering of results between sources.
+
+        Only simulated relative results are included for the computational results.
+        The dataframe is sorted by source, computational, labelA, and labelB to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
         data = []
@@ -368,16 +433,24 @@ class FEMap:
         for l1, l2, d in self._graph.edges(data=True):
             if d["source"] == "reverse":
                 continue
-            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState) and not d["computational"]:
+            # grab only the experimental non-computational results
+            if (isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState)) and not d["computational"]:
                 label = l2 if isinstance(l1, ReferenceState) else l1
                 non_comp_results[label] = d
+                continue
+            # if this is a computational reference state from MLE or ABFE skip it
+            elif (isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState)) and d["computational"]:
                 continue
 
             data.append((l1, l2, d["DG"].to(kcpm).m, d["uncertainty"].to(kcpm).m, d["source"], d["computational"]))
 
         # for each computational result add the experimental result for the same edge if it exists
         comp_data = []
+        # track the experimental edges added we only want one experimental value per-edge
+        seen_edges = set()
         for l1, l2, *_ in data:
+            if (l1, l2) in seen_edges:
+                continue
             exp_1 = non_comp_results.get(l1, None)
             exp_2 = non_comp_results.get(l2, None)
             if exp_1 is not None and exp_2 is not None:
@@ -385,6 +458,7 @@ class FEMap:
                 exp_ddg = exp_2["DG"].to(kcpm).m - exp_1["DG"].to(kcpm).m
                 exp_uncertainty = (exp_1["uncertainty"].to(kcpm).m ** 2 + exp_2["uncertainty"].to(kcpm).m ** 2) ** 0.5
                 comp_data.append((l1, l2, exp_ddg, exp_uncertainty, "experimental", False))
+                seen_edges.add((l1, l2))
 
         cols = ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
@@ -392,19 +466,39 @@ class FEMap:
             data=data + comp_data,
             columns=cols,
         )
+        # convert if required
+        if observable_type.lower() == "pic50":
+            df = _convert_dg_df_to_pic50(
+                df, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "ΔpIC50", "uncertainty (ΔpIC50)", temperature
+            )
+
         return df.sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
 
-    def get_absolute_dataframe(self) -> pd.DataFrame:
+    def get_absolute_dataframe(
+        self,
+        observable_type: ANALYSIS_UNITS = "dg",
+        temperature: Quantity = 298.15 * unit.kelvin,
+    ) -> pd.DataFrame:
         """Get a dataframe of all absolute results from all sources.
+
+        Parameters
+        ----------
+        observable_type : ANALYSIS_UNITS, optional
+            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+            Use ``pic50`` to report ΔpIC50 values.
+        temperature : Quantity, optional
+            Temperature used for the unit conversion.  Defaults to 298.15 K.
 
         Note
         ----
         The dataframe will have the following columns:
+
         - label
-        - DG (kcal/mol)
-        - uncertainty (kcal/mol)
+        - ``DG (kcal/mol)`` / ``pIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (pIC50)``
         - source
         - computational
+
         The dataframe will be sorted by source, computational, and label to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
@@ -421,19 +515,32 @@ class FEMap:
 
         cols = ["label", "DG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
-        df = pd.DataFrame(
-            data=data,
-            columns=cols,
-        )
+        df = pd.DataFrame(data=data, columns=cols)
+
+        if observable_type.lower() == "pic50":
+            df = _convert_dg_df_to_pic50(
+                df, "DG (kcal/mol)", "uncertainty (kcal/mol)", "pIC50", "uncertainty (pIC50)", temperature
+            )
+
         return df.sort_values(by=["source", "computational", "label"]).reset_index(drop=True)
 
-    def get_all_to_all_relative_dataframe(self, symmetrical: bool = True) -> pd.DataFrame:
+    def get_all_to_all_relative_dataframe(
+        self,
+        symmetrical: bool = True,
+        observable_type: ANALYSIS_UNITS = "dg",
+        temperature: Quantity = 298.15 * unit.kelvin,
+    ) -> pd.DataFrame:
         """Get a dataframe of the all-to-all pairwise relative results using the absolute DG values.
 
         Parameters
         ----------
         symmetrical : bool, optional
             If True, include both directions of each pairwise comparison. If False, include only one direction (default is True).
+        observable_type : ANALYSIS_UNITS, optional
+            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+            Use ``pic50`` to report ΔpIC50 values.
+        temperature : Quantity, optional
+            Temperature used for the unit conversion.  Defaults to 298.15 K.
 
         Returns
         -------
@@ -443,10 +550,11 @@ class FEMap:
         Note
         ----
         The dataframe will have the following columns:
+
         - labelA
         - labelB
-        - DDG (kcal/mol)
-        - uncertainty (kcal/mol)
+        - ``DDG (kcal/mol)`` / ``ΔpIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (ΔpIC50)``
         - source
         - computational
         The dataframe will be sorted by source, computational, labelA, and labelB to ensure that pairing order is consistent.
@@ -510,11 +618,19 @@ class FEMap:
             return pd.DataFrame(
                 columns=["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
             )
-        return (
+
+        result = (
             pd.concat(pairwise_dfs)
             .sort_values(by=["source", "computational", "labelA", "labelB"])
             .reset_index(drop=True)
         )
+
+        if observable_type.lower() == "pic50":
+            result = _convert_dg_df_to_pic50(
+                result, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "ΔpIC50", "uncertainty (ΔpIC50)", temperature
+            )
+
+        return result
 
     @property
     def n_measurements(self) -> int:
