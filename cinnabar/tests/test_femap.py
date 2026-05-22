@@ -8,8 +8,7 @@ import pytest
 from openff.units import unit
 
 import cinnabar
-from cinnabar import estimators, femap
-from cinnabar import stats, conversion
+from cinnabar import conversion, estimators, femap, stats
 
 
 def test_read_csv(example_csv):
@@ -332,18 +331,11 @@ def test_generate_absolute_values_repeats():
 
 
 @pytest.mark.parametrize(
-    "dataframe_func, expected", [
-        pytest.param(
-            lambda fe: fe.get_relative_dataframe(),
-            1.05,
-            id="relative"
-        ),
-        pytest.param(
-            lambda fe: fe.get_all_to_all_relative_dataframe(symmetrical=False),
-            1.21,
-            id="all-to-all"
-        )
-    ]
+    "dataframe_func, expected",
+    [
+        pytest.param(lambda fe: fe.get_relative_dataframe(), 1.05, id="relative"),
+        pytest.param(lambda fe: fe.get_all_to_all_relative_dataframe(symmetrical=False), 1.21, id="all-to-all"),
+    ],
 )
 def test_to_relative_dataframe_regression(example_map, dataframe_func, expected):
     """Test that the values in the relative/pairwise relative dataframe match the original values in the map."""
@@ -359,17 +351,15 @@ def test_to_relative_dataframe_regression(example_map, dataframe_func, expected)
 
 
 @pytest.mark.parametrize(
-    "dataframe_func", [
-        pytest.param(
-            lambda fe, observable: fe.get_relative_dataframe(observable_type=observable),
-            id="relative"
-        ),
+    "dataframe_func",
+    [
+        pytest.param(lambda fe, observable: fe.get_relative_dataframe(observable_type=observable), id="relative"),
         pytest.param(
             # we need the abs values for the all-to-all method
             lambda fe, observable: fe.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable),
-            id="all-to-all"
-        )
-    ]
+            id="all-to-all",
+        ),
+    ],
 )
 def test_to_relative_dataframe_pic50(example_map, dataframe_func):
     """Test that returning the values in units of pIC50 gives error metrics consistent with the values in kcal/mol"""
@@ -379,7 +369,14 @@ def test_to_relative_dataframe_pic50(example_map, dataframe_func):
     assert rel_dg.shape == rel_pci50.shape
 
     # make sure the column order is the same but the names have been updated
-    assert rel_pci50.columns.tolist() == ["labelA", "labelB", "ΔpIC50", "uncertainty (ΔpIC50)", "source", "computational"]
+    assert rel_pci50.columns.tolist() == [
+        "labelA",
+        "labelB",
+        "ΔpIC50",
+        "uncertainty (ΔpIC50)",
+        "source",
+        "computational",
+    ]
 
     # as dg to pic50 is linear check the RMSE also converts
     calc_ddg = rel_dg[rel_dg["computational"] == True]["DDG (kcal/mol)"].values
@@ -419,8 +416,7 @@ def test_to_absolute_dataframe_pic50(example_map):
     assert abs_dg.shape == abs_pci50.shape
 
     # make sure the column order is the same but the names have been updated
-    assert abs_pci50.columns.tolist() == ["label", "pIC50", "uncertainty (pIC50)", "source",
-                                          "computational"]
+    assert abs_pci50.columns.tolist() == ["label", "pIC50", "uncertainty (pIC50)", "source", "computational"]
 
     # as dg to pic50 is linear check the RMSE also converts
     calc_ddg = abs_dg[abs_dg["computational"] == True]["DG (kcal/mol)"].values

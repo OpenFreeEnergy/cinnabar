@@ -12,7 +12,7 @@ import itertools
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Hashable, Optional, Union, Literal
+from typing import TYPE_CHECKING, Hashable, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -21,8 +21,8 @@ import openff.units
 import pandas as pd
 from openff.units import Quantity, unit
 
-from cinnabar.conversion import convert_observable
 from cinnabar import stats
+from cinnabar.conversion import convert_observable
 from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
@@ -66,19 +66,14 @@ def _convert_dg_df_to_pic50(
     # default units should always be kcal/mol in the FEMap
     values = df[value_col].to_numpy() * _kcalpm
     uncertainties = df[uncertainty_col].to_numpy() * _kcalpm
-    converted_values, converted_uncertainties = convert_observable(
-        values, "dg", "pic50", uncertainties, temperature
-    )
-   # make sure we do not change the column order the dataframe should feel the same
+    converted_values, converted_uncertainties = convert_observable(values, "dg", "pic50", uncertainties, temperature)
+    # make sure we do not change the column order the dataframe should feel the same
     col_order = [
-        new_value_col if c == value_col else (new_uncertainty_col if c == uncertainty_col else c)
-        for c in df.columns
+        new_value_col if c == value_col else (new_uncertainty_col if c == uncertainty_col else c) for c in df.columns
     ]
-    return (
-        df.drop(columns=[value_col, uncertainty_col])
-        .assign(**{new_value_col: converted_values.m, new_uncertainty_col: converted_uncertainties.m})
-        [col_order]
-    )
+    return df.drop(columns=[value_col, uncertainty_col]).assign(
+        **{new_value_col: converted_values.m, new_uncertainty_col: converted_uncertainties.m}
+    )[col_order]
 
 
 def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
