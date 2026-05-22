@@ -552,6 +552,7 @@ class FEMap:
         - ``uncertainty (kcal/mol)`` / ``uncertainty (ΔpIC50)``
         - source
         - computational
+
         The dataframe will be sorted by source, computational, labelA, and labelB to ensure that pairing order is consistent.
         If `symmetrical` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
         If an estimator is used to generate the absolute binding affinities from relative results this function attempts
