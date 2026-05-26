@@ -674,7 +674,7 @@ def ecdf_plot(
             for _ in range(nbootstraps):
                 sample = np.random.choice(data, size=len(data), replace=True)
                 # calculate the ECDF for this sample at each point in the true sample data
-                boot_ecdf = [np.mean(sample <= x) for x in data]
+                boot_ecdf = np.searchsorted(np.sort(sample), data, side="right") / len(sample)
                 boot_ecdfs.append(boot_ecdf)
 
             # calculate the confidence interval based on the user input
