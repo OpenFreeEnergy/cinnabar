@@ -587,7 +587,7 @@ def plot_all_DDGs(
 def ecdf_plot(
     datasets: dict[str, np.ndarray],
     title: str | None = "ECDF of Absolute Errors",
-    xlabel: str = "Pairwise",
+    xlabel: str = "Edgewise",
     quantity: str = r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
     ylabel: str = "Cumulative Probability",
@@ -607,7 +607,7 @@ def ecdf_plot(
         A dictionary where keys are dataset labels and values are the data arrays.
     title: str | None, default = "ECDF of Absolute Errors"
         Title for the plot. If None, no title is set.
-    xlabel : str, default = "Absolute Error"
+    xlabel : str, default "Edgewise"
         Label for the x-axis.
     quantity : str, default = r"$\Delta\Delta$G"
         Metric that is being plotted.
@@ -942,12 +942,12 @@ def ecdf_plot_all_DDGs(
     pairwise combinations.  Only unique (unordered) pairs are included, so N
     ligands contribute N*(N-1)/2 data points.
     """
-    df = femap.get_absolute_dataframe()
-    comp_mask = df["computational"]
-    all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
+    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=False)
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
     if not all_comp_sources:
-        raise ValueError("The FEMap contains no computed absolute values. Call femap.generate_absolute_values() first.")
+        raise ValueError("The FEMap contains no computed absolute values. Call femap.generate_absolute_values() first or add calculated absolute measurements directly.")
 
     if sources is None:
         sources = all_comp_sources
@@ -958,30 +958,28 @@ def ecdf_plot_all_DDGs(
         raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
 
     exp_df = (
-        df[~comp_mask]
-        .drop_duplicates(subset=["label"])
-        .set_index("label")[["DG (kcal/mol)"]]
-        .rename(columns={"DG (kcal/mol)": "DG_exp"})
+        rel_df[~comp_mask]
+        .set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
+        .rename(columns={"DDG (kcal/mol)": "DDG_exp"})
     )
 
     datasets = {}
     for source, label in zip(sources, labels):
-        src_df = df[comp_mask & (df["source"] == source)].set_index("label")[["DG (kcal/mol)"]]
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
         if src_df.empty:
-            raise ValueError(f"No computed absolute values found for source '{source}'.")
+            raise ValueError(f"No computational edges found for source '{source}'.")
 
         merged = src_df.join(exp_df, how="left")
-        merged = merged.dropna(subset=["DG_exp"])
-        calc = merged["DG (kcal/mol)"].values
-        exp = merged["DG_exp"].values
+        # skip edges without an experimental reference DDG
+        merged = merged.dropna(subset=["DDG_exp"])
+        datasets[label] = np.abs(merged["DDG (kcal/mol)"] - merged["DDG_exp"]).values
 
-        errors = [abs((calc[b] - calc[a]) - (exp[b] - exp[a])) for a, b in itertools.combinations(range(len(calc)), 2)]
-        datasets[label] = np.array(errors)
-
+    # finally check all datasets are the same length
     if len(set([len(v) for v in datasets.values()])) != 1:
         raise ValueError(
             "Inconsistent number of computational edges across sources, make sure all edges has a result for each source."
         )
+
 
     return ecdf_plot(
         datasets,
