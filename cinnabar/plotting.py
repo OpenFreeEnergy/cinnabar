@@ -26,7 +26,7 @@ def _master_plot(
     guidelines: bool = True,
     origins: bool = True,
     color: str | None = None,
-    statistics: list[str] | None = None,
+    statistics: list[Literal['RMSE', 'NRMSE', 'MUE', 'RAE', 'R2', 'rho', 'KTAU', 'PI']] | None = None,
     filename: str | None = None,
     centralizing: bool = True,
     shift: float = 0.0,
@@ -73,7 +73,7 @@ def _master_plot(
         Toggles plotting of x and y-axis.
     color : str, default None
         The name of the colour scheme for the scatter plots. If None, will be coloured according to distance from unity
-    statistics : list[str] | None, default None
+    statistics : list[{'RMSE', 'NRMSE', 'MUE', 'RAE', 'R2', 'rho', 'KTAU', 'PI'}] | None, default None
         List of statistics to calculate and report on the plot, if None "RMSE" and "MUE" will be reported.
     filename : str | None, default None
         Filename for plot, if not provided the plot will be displayed.
@@ -131,7 +131,7 @@ def _master_plot(
     else:
         ax_min = min(min(x), min(y)) - axis_padding
         ax_max = max(max(x), max(y)) + axis_padding
-        scale = [ax_min, ax_max]
+        scale = (ax_min, ax_max)
 
     plt.xlim(scale)
     plt.ylim(scale)

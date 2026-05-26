@@ -12,7 +12,7 @@ import itertools
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Hashable, Optional
+from typing import TYPE_CHECKING, Hashable, Optional, TypedDict
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -29,9 +29,14 @@ if TYPE_CHECKING:
 _kcalpm = unit.kilocalorie_per_mole
 
 
+class CSVData(TypedDict):
+    Experimental: dict[Hashable, Measurement]
+    Calculated: list[Measurement]
+
+
 def read_csv(
     filepath: pathlib.Path, units: Quantity | None = None
-) -> dict[str, dict[Hashable, Measurement] | list[Measurement]]:
+) -> CSVData:
     """Read a legacy format csv file
 
     Parameters
@@ -43,8 +48,8 @@ def read_csv(
 
     Returns
     -------
-    raw_results : dict
-      a dict with Experimental and Calculated keys
+    raw_results : CSVData
+        A dict with Experimental and Calculated keys.
     """
     if units is None:
         warnings.warn("Assuming kcal/mol units on measurements")
