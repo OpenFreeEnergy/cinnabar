@@ -41,7 +41,7 @@ def _master_plot(
     statistic_type: Literal["mle", "mean"] = "mle",
     scatter_kwargs: dict[str, float | int | str] | None = None,
 ):
-    """Handles the aesthetics of the plots in one place.
+    r"""Handles the aesthetics of the plots in one place.
 
     Parameters
     ----------

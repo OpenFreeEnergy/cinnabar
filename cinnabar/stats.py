@@ -486,7 +486,13 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None)
     return f_i, C
 
 
-def form_edge_matrix(graph: nx.Graph, label: str, step=None, action: Literal["symmetrize", "antisymmetrize"] | None = None, node_label=None) -> np.ndarray:
+def form_edge_matrix(
+    graph: nx.Graph,
+    label: str,
+    step=None,
+    action: Literal["symmetrize", "antisymmetrize"] | None = None,
+    node_label=None,
+) -> np.ndarray:
     """
     Extract the labeled property from edges into a matrix.
 
