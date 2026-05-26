@@ -25,16 +25,16 @@ def convert_observable(
 
     Parameters
     ----------
-    value : unit.Quantity
+    value : Quantity
         Numerical value of the original observable with units.
     original_type : str
         Code for the original observable. Can be `dg`, `ki`, `ic50`, `pic50`.
     final_type : str
         Code for the desired derived quantity. Can be `dg`, `ki`, `ic50`, `pic50`.
-    uncertainty : unit.Quantity, optional
+    uncertainty : Quantity, default None
         The uncertainty/error in the original observable with units, should always be positive.
-    temperature : unit.Quantity, optional
-        Temperature in kelvin for conversions involving dG. Default is 298.15 K.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature in kelvin for conversions involving dG.
 
 
     Notes
@@ -42,18 +42,18 @@ def convert_observable(
     - The function uses the molar gas constant (R) and the provided temperature to perform conversions involving dG.
     - If the original value is below a threshold (e.g., 1e-15 M for Ki/IC50), the function will return a default value to avoid numerical issues.
     - The function rounds the converted value and uncertainty to 2 decimal places if the type changes to reflect the typical precision of such measurements.
-    - The following default units are used for the output based on the final_type:
-        - `dg`: kilocalories per mole
-        - `ki`: nanomolar
-        - `ic50`: nanomolar
-        - `pic50`: unitless (logarithmic scale)
+    - The following default units are used for the output based on the ``final_type``:
+        - ``dg``: kilocalories per mole
+        - ``ki``: nanomolar
+        - ``ic50``: nanomolar
+        - ``pic50``: unitless (logarithmic scale)
 
 
     Returns
     -------
-    converted_value : unit.Quantity
+    converted_value : Quantity
         The converted value in the desired units.
-    converted_error : unit.Quantity or None
+    converted_error : Quantity or None
         The propagated error in the converted value, or None if no error was provided.
 
     Examples
@@ -70,7 +70,7 @@ def convert_observable(
     Raises
     ------
     ValueError
-        If the original_type or final_type is not recognized or if the uncertainty is negative.
+        If the ``original_type`` or ``final_type`` is not recognized or if the ``uncertainty`` is negative.
     """
     # calculate kT for the given temperature, this will be used in the conversions involving dG
     k_bt = unit.molar_gas_constant * temperature

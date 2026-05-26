@@ -30,9 +30,9 @@ class ReferenceState:
         """
         Parameters
         ----------
-        label: str, optional
-          label for this reference point.  If no label is given, an empty string
-          is used, signifying the "true zero" reference point.
+        label: str, default ""
+            Label for this reference point.  If no label is given, an empty string
+            is used, signifying the "true zero" reference point.
         """
         self.label = label
 
@@ -150,18 +150,15 @@ class Measurement:
         Parameters
         ----------
         label: str | Hashable
-            label for this data point.
+            Label for this data point.
         Ki: Quantity | str
-            experimental Ki value
-            ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar or "0.5 * unit.nanomolar"
+            Experimental Ki value ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar or "0.5 * unit.nanomolar"
         uncertainty: Quantity | str
-            uncertainty of the experimental value
-            default is zero if no uncertainty is provided (0 * unit.nanomolar)
-        source: str, optional
-            source of experimental measurement
-        temperature: Quantity | str, optional
-            temperature in K at which the experimental measurement was carried out.
-            By default: 298 K (298.15 * unit.kelvin)
+            Uncertainty of the experimental value default is zero if no uncertainty is provided (0 * unit.nanomolar)
+        source: str, default ""
+            Source of experimental measurement, by default an empty string.
+        temperature: Quantity | str, default 298.15 * unit.kelvin
+            Temperature in K at which the experimental measurement was carried out.
         """
         # check for units
         unit_values = [Ki, uncertainty, temperature]

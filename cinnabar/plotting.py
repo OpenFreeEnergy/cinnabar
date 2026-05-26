@@ -26,91 +26,95 @@ def _master_plot(
     guidelines: bool = True,
     origins: bool = True,
     color: str | None = None,
-    statistics: list = ["RMSE", "MUE"],
+    statistics: list[str] | None = None,
     filename: str | None = None,
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
     dpi: float | str = "figure",
-    data_labels: list = [],
+    data_labels: list[str] | None = None,
     axis_padding: float = 0.5,
-    xy_lim: list = [],
-    font_sizes: dict = {"title": 12, "labels": 9, "other": 12},
+    xy_lim: tuple[float, float] | None = None,
+    font_sizes: dict[str, int] | None = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
-    scatter_kwargs: dict = {"s": 20, "marker": "o"},
+    statistic_type: Literal["mle", "mean"] = "mle",
+    scatter_kwargs: dict[str, float | int | str] | None = None,
 ):
     """Handles the aesthetics of the plots in one place.
 
     Parameters
     ----------
     x : np.ndarray
-        Values to plot on the x axis
+        Values to plot on the x-axis
     y : np.ndarray
-        Values to plot on the y axis
-    title : string, default = ''
+        Values to plot on the y-axis
+    title : string, default ""
         Title for the plot
-    xerr : np.ndarray , default = None
-        Error bars for x values
-    yerr : np.ndarray , default = None
-        Error bars for y values
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    quantity : str, default = '$\\Delta \\Delta$ G'
-        metric that is being plotted
-    xlabel : str, default = 'Experimental'
-        label for xaxis
-    ylabel : str, default = 'Calculated'
-        label for yaxis
-    units : str, default = r'$\\mathrm{kcal\\,mol^{-1}}$'
-        string value of units to label axis
-    guidelines : bool, default = True
-        toggles plotting of grey 0.5 and 1 kcal/mol error zone
-    origins : bool, default = True
-        toggles plotting of x and y axis
-    color : str, default = None
-        if None, will be coloured according to distance from unity
-    statistics : list(str), default = ['RMSE',  'MUE']
-        list of statistics to calculate and report on the plot
-    filename : str, default = None
-        filename for plot
-    centralizing : bool, default = True
-        ofset the free energies
-    shift : float, default = 0.
-        shift both the x and y axis by a constant
-    figsize : float, default = 3.25
-        size of figure for matplotlib
+    xerr : np.ndarray | None , default None
+        Error bars for x values if available.
+    yerr : np.ndarray | None , default None
+        Error bars for y values if available.
+    method_name : string, default ""
+        Name of method associated with results, e.g. "openfe".
+    target_name : string, default ""
+        Name of system for results, e.g. "Thrombin".
+    quantity : str, default r"$\Delta\Delta$G"
+        Metric that is being plotted, which will be included in the axis labels.
+    xlabel : str, default "Experimental"
+        Main abel for the x-axis.
+    ylabel : str, default "Calculated"
+        Main label for the y-axis.
+    units : str, default r"$\mathrm{kcal\,mol^{-1}}$"
+        String value of units to label axis with.
+    guidelines : bool, default True
+        Toggles plotting of grey 0.5 and 1 kcal/mol error zone.
+    origins : bool, default True
+        Toggles plotting of x and y-axis.
+    color : str, default None
+        The name of the colour scheme for the scatter plots. If None, will be coloured according to distance from unity
+    statistics : list[str] | None, default None
+        List of statistics to calculate and report on the plot, if None "RMSE" and "MUE" will be reported.
+    filename : str | None, default None
+        Filename for plot, if not provided the plot will be displayed.
+    centralizing : bool, default True
+        Offset the free energies ``True`` or report raw values ``False``.
+    shift : float, default 0.
+        Shift both the x and y-axis by a constant.
+    figsize : float, default 3.25
+        Size of figure for matplotlib.
     dpi : float or 'figure', default 'figure'
-        the resolution in dots per inch
+        The resolution in dots per inch
         if 'figure', uses the figure's dpi value (this behavior is copied from
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
-    data_labels : list of str, default []
-        list of labels for each data point
-    axis_padding : float, default = 0.5
-        padding to add to maximum axis value and subtract from the minimum axis value
-    xy_lim : list, default []
-        contains the minimum and maximum values to use for the x and y axes. if specified, axis_padding is ignored
-    font_sizes : dict, default {"title": 12, "labels": 9, "other": 12}
-        font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other")
+    data_labels : list[str] | None, default None
+        List of labels for each data point.
+    axis_padding : float, default 0.5
+        Padding to add to maximum axis value and subtract from the minimum axis value.
+    xy_lim : tuple[float, float] | None, default None
+        Contains the minimum and maximum values to use for the x and y-axis. if specified, ``axis_padding`` is ignored.
+    font_sizes : dict[str, int] | None, default None
+        Font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other").
+        Defaults to {"title": 12, "labels": 9, "other": 12}
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
-    scatter_kwargs : dict, default {"s": 20, "marker": "o"}
-        arguments to control plt.scatter(), these will override the default cinnabar settings
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic)
+    scatter_kwargs : dict[str, float | int | str] | None, default None
+        Arguments to control plt.scatter(), these will override the default cinnabar settings.
 
     Returns
     -------
 
     """
     nsamples = len(x)
+
     # aesthetics
+    if font_sizes is None:
+        font_sizes = {"title": 12, "labels": 9, "other": 12}
+
     plt.rcParams["xtick.labelsize"] = font_sizes["other"]
     plt.rcParams["ytick.labelsize"] = font_sizes["other"]
     plt.rcParams["font.size"] = font_sizes["other"]
@@ -183,20 +187,28 @@ def _master_plot(
         "zorder": 2,
         "edgecolors": "dimgrey",
         "linewidths": 0.7,
+        "s": 20,
+        "marker": "o",
     }
     default_kwargs.update(scatter_kwargs)
     plt.scatter(x, y, **default_kwargs)
 
     # Label points
-    texts = []
-    for i, label in enumerate(data_labels):
-        texts.append(plt.text(x[i] + 0.03, y[i] + 0.03, label, fontsize=font_sizes["labels"]))
-    adjust_text(texts)
+    if data_labels is not None:
+        texts = []
+        for i, label in enumerate(data_labels):
+            texts.append(plt.text(x[i] + 0.03, y[i] + 0.03, label, fontsize=font_sizes["labels"]))
+        adjust_text(texts)
 
     # stats and title
     statistics_string = ""
     if statistic_type not in ["mle", "mean"]:
         raise ValueError(f"Unknown statistic type {statistic_type}")
+
+    # set default statistics values if not provided
+    if statistics is None:
+        statistics = ["RMSE", "MUE"]
+
     for statistic in statistics:
         s = stats.bootstrap_statistic(
             x,
@@ -239,7 +251,7 @@ def plot_DDGs(
     data_label_type: Literal["small-molecule", "protein-mutation"] | None = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
+    statistic_type: Literal["mle", "mean"] = "mle",
     **kwargs,
 ):
     """Function to plot relative free energies
@@ -247,25 +259,24 @@ def plot_DDGs(
     Parameters
     ----------
     graph : nx.DiGraph
-        graph object with relative free energy edges
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    title : string, default = ''
-        Title for the plot
-    map_positive : bool, default=False
-        whether to map all DDGs to the positive x values.
-        this is an aesthetic choice
-    filename : str, default = None
-        filename for plot
-    symmetrise : bool, default = False
-        whether to plot each datapoint twice, both
-        positive and negative
-    plotly : bool, default = False
-        whether to use plotly to generate the plot
-    data_label_type : str or None, default = None
-        type of data label to add to each edge
+        Graph object with relative free energy edges.
+    method_name : string, default ""
+        Name of method associated with results, e.g. "openfe" by default an empty string.
+    target_name : string, default ""
+        Name of system for results, e.g. "Thrombin".
+    title : string, default ""
+        Title for the plot.
+    map_positive : bool, default False
+        Whether to map all DDGs to the positive x values.
+        This is an aesthetic choice
+    filename : str | None, default None
+        Filename for plot, if None the plot will be displayed.
+    symmetrise : bool, default False
+        Whether to plot each datapoint twice, both positive and negative values.
+    plotly : bool, default False
+        Whether to use plotly to generate the plot.
+    data_label_type : {"small-molecule", "protein-mutation"} | None, default None
+        Type of data label to add to each edge
 
         if ``None`` data labels will not be added
 
@@ -282,12 +293,11 @@ def plot_DDGs(
         .. TODO: implement data labeling for the case where plotly=True
 
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
 
     Returns
     -------
@@ -400,7 +410,7 @@ def plot_DGs(
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
+    statistic_type: Literal["mle", "mean"] = "mle",
     **kwargs,
 ):
     """Function to plot absolute free energies.
@@ -408,22 +418,21 @@ def plot_DGs(
     Parameters
     ----------
     graph : nx.DiGraph
-        graph object with relative free energy edges
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    title : string, default = ''
-        Title for the plot
-    filename : str, default = None
-        filename for plot
+        Graph object with relative free energy edges.
+    method_name : string, default ""
+        Name of method associated with results, e.g. "openfe" by default an empty string.
+    target_name : string, default ""
+        Name of system for results, e.g. "Thrombin" by default an empty string.
+    title : string, default ""
+        Title for the plot.
+    filename : str | None, default None
+        Filename for plot if None the plot will be displayed.
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
 
     Returns
     -------
@@ -490,35 +499,34 @@ def plot_all_DDGs(
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
+    statistic_type: Literal["mle", "mean"] = "mle",
     **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from
-    the differences between all the absolute free energies. This data is different to `plot_DGs`
+    the differences between all the absolute free energies. This data is different to ``plot_DGs``.
 
     Parameters
     ----------
     graph : nx.DiGraph
-        graph object with relative free energy edges
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    title : string, default = ''
-        Title for the plot
-    filename : str, default = None
-        filename for plot
-    plotly : bool, default = True
-        whether to use plotly for the plotting
-    shift : float, default = 0.
-        shift both the x and y axis by a constant
+        Graph object with relative free energy edges.
+    method_name : string, default ""
+        Name of method associated with results, e.g. "openfe" by default an empty string.
+    target_name : string, default ""
+        Name of system for results, e.g. "Thrombin" by default an empty string.
+    title : string, default ""
+        Title for the plot.
+    filename : str | None, default None
+        Filename for plot if None the plot will be displayed.
+    plotly : bool, default True
+        Whether to use plotly for the plotting.
+    shift : float, default 0.
+        Shift both the x and y-axis by a constant.
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
 
     Returns
     -------
@@ -608,23 +616,23 @@ def ecdf_plot(
     ----------
     datasets : dict[str, np.ndarray]
         A dictionary where keys are dataset labels and values are the data arrays.
-    title: str | None, default = "ECDF of Absolute Errors"
+    title: str | None, default "ECDF of Absolute Errors"
         Title for the plot. If None, no title is set.
-    xlabel : str, default = "Absolute Error"
+    xlabel : str, default "Absolute Error"
         Label for the x-axis.
-    quantity : str, default = r"$\Delta\Delta$G"
+    quantity : str, default r"$\Delta\Delta$G"
         Metric that is being plotted.
-    units : str, default = r"$\mathrm{kcal\,mol^{-1}}$"
+    units : str, default r"$\mathrm{kcal\,mol^{-1}}$"
         Units of the metric being plotted.
-    ylabel : str, default = "Cumulative Probability"
+    ylabel : str, default "Cumulative Probability"
         Label for the y-axis.
-    figsize : float | tuple[float, float], default = 4
+    figsize : float | tuple[float, float], default 4
         Size of the figure.
-    colors : list[str] | None, default = None
+    colors : list[str] | None, default None
         List of colors for each dataset. If None, default colors are used.
-    ecdf_kwargs : dict, optional
+    ecdf_kwargs : dict, default None
         Additional keyword arguments to pass to seaborn.ecdfplot.
-    filename : str | None, default = None
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
 
     Returns
@@ -689,9 +697,9 @@ def ecdf_plot_DDGs(
         A list of graph objects with relative free energy edges.
     labels: list[str]
         A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default = "ECDF of Absolute Errors"
+    title : str | None, default "ECDF of Absolute Errors"
         Title for the plot. If None, no title is set.
-    filename : str | None, default = None
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
@@ -760,11 +768,11 @@ def ecdf_plot_DGs(
         A list of graph objects with relative free energy edges.
     labels: list[str]
         A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default = "ECDF of Absolute Errors"
+    title : str | None, default "ECDF of Absolute Errors"
         Title for the plot. If None, no title is set.
-    filename : str | None, default = None
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
-    centralizing : bool, default = True
+    centralizing : bool, default True
         whether to center both calculated and experimental values around zero before calculating absolute errors.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
@@ -837,9 +845,9 @@ def ecdf_plot_all_DDGs(
         A list of graph objects with relative free energy edges.
     labels: list[str]
         A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default = "ECDF of Absolute Errors"
+    title : str | None, default "ECDF of Absolute Errors"
         Title for the plot. If None, no title is set.
-    filename : str | None, default = None
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.

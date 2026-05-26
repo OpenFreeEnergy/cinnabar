@@ -299,26 +299,26 @@ def bootstrap_statistic(
         True values
     y_pred : ndarray with shape (N,)
         Predicted values
-    dy_true : ndarray with shape (N,) or None
-        Errors of true values. If None, the values are assumed to have no errors
-    dy_pred : ndarray with shape (N,) or None
+    dy_true : ndarray with shape (N,) | None, default None
+        Errors of true values. If None, the values are assumed to have no errors.
+    dy_pred : ndarray with shape (N,) | None, default None
         Errors of predicted values. If None, the values are assumed to have no errors
-    ci : float, optional, default=0.95
-        Interval for confidence interval (CI)
-    statistic : str
-        Statistic, one of ['RMSE', 'MUE', 'R2', 'rho', 'KTAU', 'RAE', 'NRMSE']
-    nbootstrap : int, optional, default=1000
-        Number of bootstrap samples
+    ci : float, default 0.95
+        Interval for confidence interval (CI).
+    statistic : {"RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU", "PI"}, default "RMSE"
+        Statistic to be calculated.
+    nbootstrap : int, default 1000
+        Number of bootstrap samples used to estimate the confidence interval.
     include_true_uncertainty : bool, default False
-        whether to account for the uncertainty in y_true when bootstrapping
+        Whether to account for the uncertainty in ``y_true`` when bootstrapping.
     include_pred_uncertainty : bool, default False
-        whether to account for the uncertainty in y_pred when bootstrapping
+        Whether to account for the uncertainty in ``y_pred`` when bootstrapping.
 
     Note
     -----
     If ``include_true_uncertainty`` or ``include_pred_uncertainty`` is True,
     normal noise will be added to the corresponding values during each bootstrap replicate.
-    The standard deviation of the normal noise is taken from dy_true or dy_pred.
+    The standard deviation of the normal noise is taken from ``dy_true`` or ``dy_pred``.
 
     Returns
     -------
@@ -396,10 +396,10 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None)
         estimate
         Will have 'bayesian_f_ij' and 'bayesian_df_ij' added to each edge
         and 'bayesian_f_i' and 'bayesian_df_i' added to each node.
-    factor : string, default = 'f_ij'
-        node attribute of nx.Graph that will be used for MLE
-    node_factor : string, default = None
-        optional - provide if there is node data (i.e. absolute values) 'f_i' or 'exp_DG' to
+    factor : string, default 'f_ij'
+        Node attribute of nx.Graph that will be used for MLE.
+    node_factor : string, default None
+        Provide if there is node data (i.e. absolute values) 'f_i' or 'exp_DG' to
         include will expect a corresponding uncertainty 'f_di' or 'exp_dDG'
     Returns
     -------
@@ -486,21 +486,21 @@ def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None)
     return f_i, C
 
 
-def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_label=None) -> np.ndarray:
+def form_edge_matrix(graph: nx.Graph, label: str, step=None, action: Literal["symmetrize", "antisymmetrize"] | None = None, node_label=None) -> np.ndarray:
     """
     Extract the labeled property from edges into a matrix.
 
     Parameters
     ----------
     graph : nx.Graph
-        The graph to extract data from
+        The graph to extract data from.
     label : str
-        The label to use for extracting edge properties
-    action : str, optional, default=None
+        The label to use for extracting edge properties.
+    action : {"symmetrize", "antisymmetrize"} | None, default None
         If 'symmetrize', returns a symmetric matrix A[i,j] = A[j,i]
         If 'antisymmetrize', returns an antisymmetric matrix A[i,j] = -A[j,i]
-    node_label : sr, optional, default=None
-        Diagonal will be occupied with absolute values, where labelled
+    node_label : str | None, default None
+        Diagonal will be occupied with absolute values, where labeled.
 
     Returns
     ----------

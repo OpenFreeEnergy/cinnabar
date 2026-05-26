@@ -34,10 +34,10 @@ def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> dict:
 
     Parameters
     ----------
-    filepath
-      path to the csv file
-    units : Quantity, optional
-      the units to use for values in the file, defaults to kcal/mol
+    filepath: pathlib.Path
+        The path to the csv file.
+    units : Quantity, default None
+        The units to use for values in the file, defaults to kcal/mol
 
     Returns
     -------
@@ -187,6 +187,11 @@ class FEMap:
     def from_networkx(cls, graph: nx.MultiDiGraph):
         """Create FEMap from network representation
 
+        Parameters
+        ----------
+        graph : nx.MultiDiGraph
+            The networkx representation of the FEMap.
+
         Note
         ----
         Currently absolutely no validation of the input is done.
@@ -197,8 +202,16 @@ class FEMap:
         return m
 
     @classmethod
-    def from_csv(cls, filename, units: Quantity | None = None):
-        """Construct from legacy csv format"""
+    def from_csv(cls, filename: pathlib.Path, units: Quantity | None = None):
+        """Construct from legacy csv format
+
+        Parameters
+        ----------
+        filename : pathlib.Path
+            The path to the csv file.
+        units : Quantity, default None
+            The units to use for values in the file, defaults to kcal/mol.
+        """
         data = read_csv(filename, units=units)
 
         # unpack data dictionary
@@ -214,6 +227,11 @@ class FEMap:
         """Add new observation to FEMap, modifies the FEMap in-place
 
         Any other attributes on the measurement are used as annotations
+
+        Parameters
+        ----------
+        measurement : Measurement
+            The measurement to add.
 
         Raises
         ------
@@ -242,17 +260,17 @@ class FEMap:
 
         Parameters
         ----------
-        label
-          the ligand being measured
+        label: str | Hashable
+            The ligand being measured
         value : Quantity
-          the measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
-          of input is determined by the units of the input.
+            The measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
+            of input is determined by the units of the input.
         uncertainty : Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
         if not isinstance(value, Quantity):
             raise ValueError("Must include units with values, e.g. openff.units.unit.kilocalorie_per_mole")
@@ -286,18 +304,17 @@ class FEMap:
 
         Parameters
         ----------
-        labelA, labelB
-          the ligands being measured.  The measurement is taken from ligandA
-          to ligandB, i.e. ligandA is the "old" or lambda=0.0 state, and ligandB
-          is the "new" or lambda=1.0 state.
+        labelA, labelB: str | Hashable
+            The ligands being measured.  The measurement is taken from ligandA to ligandB, i.e. ligandA is the "old"
+            or lambda=0.0 state, and ligandB is the "new" or lambda=1.0 state.
         value : Quantity
-          the measured DDG value, as kcal/mol, or kJ/mol.
+            The measured DDG value, as kcal/mol, or kJ/mol.
         uncertainty : Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement.
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
         self.add_measurement(
             Measurement(
@@ -324,16 +341,16 @@ class FEMap:
 
         Parameters
         ----------
-        label
-          the ligand being measured
+        label: str | Hashable
+            The ligand being measured.
         value : Quantity
-          the measured value, as kcal/mol, or kJ/mol.
+            The measured value, as kcal/mol, or kJ/mol.
         uncertainty : Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
         m = Measurement(
             labelA=ReferenceState(),
@@ -432,8 +449,8 @@ class FEMap:
 
         Parameters
         ----------
-        symmetrical : bool, optional
-            If True, include both directions of each pairwise comparison. If False, include only one direction (default is True).
+        symmetrical : bool, default True
+            If True, include both directions of each pairwise comparison. If False, include only one direction.
 
         Returns
         -------
@@ -450,9 +467,9 @@ class FEMap:
         - source
         - computational
         The dataframe will be sorted by source, computational, labelA, and labelB to ensure that pairing order is consistent.
-        If `symmetrical` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
+        If ``symmetrical`` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
         If an estimator is used to generate the absolute binding affinities from relative results this function attempts
-        to use the covariance_matrix in the uncertainty if available, if not the covariance is set to zero.
+        to use the ``covariance_matrix`` in the uncertainty if available, if not the covariance is set to zero.
         """
         # we need to group by the source and computational labels and then compute the pairwise differences within each group, then concatenate the results together
         df = self.get_absolute_dataframe()
@@ -579,7 +596,7 @@ class FEMap:
 
         Parameters
         ----------
-        estimator : Estimator, optional
+        estimator : Estimator, default None
             The estimator to use.  Defaults to
             the MLEEstimator.
 
@@ -727,9 +744,9 @@ class FEMap:
 
         Parameters
         ----------
-        title : str, optional
-            Title for the graph.
-        filename : str or None, optional
+        title : str, default ""
+            Title for the graph, by default an empty string.
+        filename : str or None, default None
             If provided, the graph will be saved to this file. If None, the graph will be displayed.
         """
         plt.figure(figsize=(10, 10))

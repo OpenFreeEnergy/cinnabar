@@ -37,12 +37,12 @@ class EstimatorResult:
     ----------
     estimator : str
         The class name of the estimator that produced this result,
-        e.g. ``"MLEEstimator"``.  Set automatically by `Estimator.estimate`.
+        e.g. ``"MLEEstimator"``.  Set automatically by ``Estimator.estimate``.
     source : str
         The composed source label stamped on the output measurements,
         e.g. ``"MLE"`` for a single-source map or ``"MLE(openff-sage)"`` when
         multiple input sources are present.  Set automatically by
-        `Estimator.estimate`.
+        ``Estimator.estimate``.
     """
 
     estimator: str = field(default="", init=False)
@@ -61,7 +61,7 @@ class MLEEstimatorResult(EstimatorResult):
 
     ligand_order : list
         Ordered list of ligand labels whose index maps to rows/columns of
-        covariance_matrix
+        ``covariance_matrix``
     """
 
     covariance_matrix: np.ndarray
@@ -194,7 +194,7 @@ class MLEEstimator(Estimator):
 
     Parameters
     ----------
-    source : str, optional
+    source : str, default "MLE"
         Label attached to the returned measurements and used as the storage
         key on the FEMap. Defaults to MLE.
 
@@ -220,6 +220,8 @@ class MLEEstimator(Estimator):
         measurements : list[Measurement]
             Relative computational edges plus any experimental or computational absolute
             measurements for a single source.
+        source : str
+            The composed source label to stamp on returned measurements and use as the key for storing the result on the FEMap.
 
         Returns
         -------
