@@ -674,6 +674,9 @@ def ecdf_plot(
             for _ in range(nbootstraps):
                 sample = np.random.choice(data, size=len(data), replace=True)
                 # calculate the ECDF for this sample at each point in the true sample data
+                # searchsorted returns an array of indices in sample where the values in data would fit in
+                # by dividing by the length of the sample we get the fraction of sample points that are less than or
+                # equal to each point in the data, which is the ECDF value at that point
                 boot_ecdf = np.searchsorted(np.sort(sample), data, side="right") / len(sample)
                 boot_ecdfs.append(boot_ecdf)
 
