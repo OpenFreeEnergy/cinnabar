@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 _kcalpm = unit.kilocalorie_per_mole
 
 
-def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> dict:
+def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> dict[str, dict[Hashable, Measurement] | list[[Measurement]]
     """Read a legacy format csv file
 
     Parameters
