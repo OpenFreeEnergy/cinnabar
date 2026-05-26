@@ -112,12 +112,6 @@ def convert_observable(
     # get the converter function based on the original and final types
     converter = converters[(original_type, final_type)]
 
-    # if the input is in pic50, add dimensionless units for consistent conversions
-    if original_type == "pic50":
-        value = Quantity(value, units=unit.dimensionless)
-        if uncertainty is not None:
-            uncertainty = Quantity(uncertainty, units=unit.dimensionless)
-
     # do the conversion and error propagation
     converted_value, converted_uncertainty = converter(value, uncertainty)
 

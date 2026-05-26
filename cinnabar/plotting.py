@@ -190,7 +190,8 @@ def _master_plot(
         "s": 20,
         "marker": "o",
     }
-    default_kwargs.update(scatter_kwargs)
+    if scatter_kwargs is not None:
+        default_kwargs.update(scatter_kwargs)
     plt.scatter(x, y, **default_kwargs)
 
     # Label points
