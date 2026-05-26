@@ -664,13 +664,13 @@ def ecdf_plot(
         color = colors[i]
         default_kwargs["color"] = color
 
+        # we first need to sort the data so its in the same order if CIs are plotted
+        data = np.sort(data)
         sns.ecdfplot(data, label=label, **default_kwargs)
 
         # estimate an error bounds via bootsrapping over the data if the number of bootstraps is > 0
         if nbootstraps > 0:
             boot_ecdfs = []
-            # we first need to sort the data so its in the same order used in the ecdf plot
-            data = np.sort(data)
             for _ in range(nbootstraps):
                 sample = np.random.choice(data, size=len(data), replace=True)
                 # calculate the ECDF for this sample at each point in the true sample data
