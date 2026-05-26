@@ -595,6 +595,8 @@ def ecdf_plot(
     colors: list[str] | None = None,
     ecdf_kwargs: dict[str, Any] | None = None,
     filename: str | None = None,
+    nbootstraps: int = 1_000,
+    ci: float = 0.95,
 ) -> plt.Figure:
     r"""
     Plot ECDFs for one or more datasets. Where the dataset is a flat array of absolute errors.
@@ -621,6 +623,10 @@ def ecdf_plot(
         Additional keyword arguments to pass to seaborn.ecdfplot.
     filename : str | None, default = None
         If provided, the plot will be saved to this filename.
+    nbootstraps : int, default = 1_000
+        Number of bootstraps to perform for estimating confidence intervals.
+    ci : float, default = 0.95
+        Confidence level for the confidence intervals (e.g., 0.95 for 95% confidence intervals).
 
     Returns
     -------
@@ -633,6 +639,10 @@ def ecdf_plot(
     if not datasets:
         raise ValueError("At least one dataset is required to plot an ECDF.")
 
+    # make sure 0 < ci < 1
+    if not 0 < ci < 1:
+        raise ValueError("ci must be between 0 and 1.")
+
     if not isinstance(figsize, tuple):
         figsize = (figsize, figsize)
     fig, axs = plt.subplots(figsize=figsize)
@@ -644,14 +654,39 @@ def ecdf_plot(
     }
     default_kwargs.update(ecdf_kwargs)
 
+    if colors is None:
+        # get the default colors
+        colors = sns.color_palette(None, n_colors=len(datasets))
+
     # Iterate over the dictionary to plot ECDFs
     for i, (label, data) in enumerate(datasets.items()):
         # Pick a color for the dataset if specified
-        color = colors[i] if colors and i < len(colors) else None
-        if color:
-            default_kwargs["color"] = color
+        color = colors[i]
+        default_kwargs["color"] = color
 
+        # we first need to sort the data so its in the same order if CIs are plotted
+        data = np.sort(data)
         sns.ecdfplot(data, label=label, **default_kwargs)
+
+        # estimate an error bounds via bootsrapping over the data if the number of bootstraps is > 0
+        if nbootstraps > 0:
+            boot_ecdfs = []
+            for _ in range(nbootstraps):
+                sample = np.random.choice(data, size=len(data), replace=True)
+                # calculate the ECDF for this sample at each point in the true sample data
+                # searchsorted returns an array of indices in sample where the values in data would fit in
+                # by dividing by the length of the sample we get the fraction of sample points that are less than or
+                # equal to each point in the data, which is the ECDF value at that point
+                boot_ecdf = np.searchsorted(np.sort(sample), data, side="right") / len(sample)
+                boot_ecdfs.append(boot_ecdf)
+
+            # calculate the confidence interval based on the user input
+            low_percentile = (1.0 - ci) / 2.0 * 100
+            high_percentile = 100 - low_percentile
+            lower = np.percentile(boot_ecdfs, low_percentile, axis=0)
+            upper = np.percentile(boot_ecdfs, high_percentile, axis=0)
+            # now plot a shaded region between the confidence intervals
+            plt.fill_between(data, lower, upper, alpha=0.2, color=color)
 
     if title is not None:
         plt.title(title, fontsize=14)

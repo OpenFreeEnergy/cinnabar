@@ -391,6 +391,11 @@ def test_plot_ecdf_no_datasets():
         plotting.ecdf_plot({})
 
 
+def test_plot_ecdf_bad_ci(fe_map):
+    with pytest.raises(ValueError, match="ci must be between 0 and 1."):
+        plotting.ecdf_plot(fe_map, ci=1.1)
+
+
 def test_plot_ecdf_colors(fe_map, tmp_path):
     """Test ECDF plotting function with custom colors."""
     output_file = tmp_path / "test_ecdf_colors.png"
