@@ -947,7 +947,9 @@ def ecdf_plot_all_DDGs(
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
     if not all_comp_sources:
-        raise ValueError("The FEMap contains no computed absolute values. Call femap.generate_absolute_values() first or add calculated absolute measurements directly.")
+        raise ValueError(
+            "The FEMap contains no computed absolute values. Call femap.generate_absolute_values() first or add calculated absolute measurements directly."
+        )
 
     if sources is None:
         sources = all_comp_sources
@@ -979,7 +981,6 @@ def ecdf_plot_all_DDGs(
         raise ValueError(
             "Inconsistent number of computational edges across sources, make sure all edges has a result for each source."
         )
-
 
     return ecdf_plot(
         datasets,
