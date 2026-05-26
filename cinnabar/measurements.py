@@ -112,6 +112,21 @@ class Measurement:
     ):
         """
         Initialize a Measurement object converting all quantities to the correct default units.
+
+        Parameters
+        ----------
+        labelA, labelB: Hashable
+            Label of the A/B state e.g. a ligand name.
+        DG: openff.units.Quantity | str
+            The free energy difference of moving from A to B in units compatible with kcal/mol.
+        uncertainty: openff.units.Quantity | str
+            The uncertainty of the DG measurement in units compatible with kcal/mol.
+        computational: bool
+            If this measurement is computationally based ``True`` (or experimental ``False``).
+        source: str, default ""
+            An arbitrary label to group measurements from a common source, by default an empty string.
+        temperature: openff.units.Quantity | str, default 298.15 * unit.kelvin
+            Temperature that the measurement was taken at in K.
         """
         # This dataclass used to be based on pydantic and could automatically convert units from strings
         # we now do this manually to avoid the dependency and not break old behavior.
@@ -151,13 +166,13 @@ class Measurement:
         ----------
         label: str | Hashable
             Label for this data point.
-        Ki: Quantity | str
+        Ki: openff.units.Quantity | str
             Experimental Ki value ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar or "0.5 * unit.nanomolar"
-        uncertainty: Quantity | str
+        uncertainty: openff.units.Quantity | str
             Uncertainty of the experimental value default is zero if no uncertainty is provided (0 * unit.nanomolar)
         source: str, default ""
             Source of experimental measurement, by default an empty string.
-        temperature: Quantity | str, default 298.15 * unit.kelvin
+        temperature: openff.units.Quantity | str, default 298.15 * unit.kelvin
             Temperature in K at which the experimental measurement was carried out.
         """
         # check for units

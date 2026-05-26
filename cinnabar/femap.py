@@ -36,7 +36,7 @@ def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> dict[str,
     ----------
     filepath: pathlib.Path
         The path to the csv file.
-    units : Quantity, default None
+    units : openff.units.Quantity, default None
         The units to use for values in the file, defaults to kcal/mol
 
     Returns
@@ -209,7 +209,7 @@ class FEMap:
         ----------
         filename : pathlib.Path
             The path to the csv file.
-        units : Quantity, default None
+        units : openff.units.Quantity, default None
             The units to use for values in the file, defaults to kcal/mol.
         """
         data = read_csv(filename, units=units)
@@ -262,14 +262,14 @@ class FEMap:
         ----------
         label: str | Hashable
             The ligand being measured
-        value : Quantity
+        value : openff.units.Quantity
             The measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
             of input is determined by the units of the input.
-        uncertainty : Quantity
+        uncertainty : openff.units.Quantity
             The uncertainty in the measurement
         source : str, default ""
             An identifier for the source of the data, by default this is an empty string.
-        temperature : Quantity, default 298.15 * unit.kelvin
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
             The temperature the measurement was taken at.
         """
         if not isinstance(value, Quantity):
@@ -307,13 +307,13 @@ class FEMap:
         labelA, labelB: str | Hashable
             The ligands being measured.  The measurement is taken from ligandA to ligandB, i.e. ligandA is the "old"
             or lambda=0.0 state, and ligandB is the "new" or lambda=1.0 state.
-        value : Quantity
+        value : openff.units.Quantity
             The measured DDG value, as kcal/mol, or kJ/mol.
-        uncertainty : Quantity
+        uncertainty : openff.units.Quantity
             The uncertainty in the measurement.
         source : str, default ""
             An identifier for the source of the data, by default this is an empty string.
-        temperature : Quantity, default 298.15 * unit.kelvin
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
             The temperature the measurement was taken at.
         """
         self.add_measurement(
@@ -343,13 +343,13 @@ class FEMap:
         ----------
         label: str | Hashable
             The ligand being measured.
-        value : Quantity
+        value : openff.units.Quantity
             The measured value, as kcal/mol, or kJ/mol.
-        uncertainty : Quantity
+        uncertainty : openff.units.Quantity
             The uncertainty in the measurement
         source : str, default ""
             An identifier for the source of the data, by default this is an empty string.
-        temperature : Quantity, default 298.15 * unit.kelvin
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
             The temperature the measurement was taken at.
         """
         m = Measurement(

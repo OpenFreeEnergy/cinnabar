@@ -25,15 +25,15 @@ def convert_observable(
 
     Parameters
     ----------
-    value : Quantity
+    value : openff.units.Quantity
         Numerical value of the original observable with units.
     original_type : str
         Code for the original observable. Can be `dg`, `ki`, `ic50`, `pic50`.
     final_type : str
         Code for the desired derived quantity. Can be `dg`, `ki`, `ic50`, `pic50`.
-    uncertainty : Quantity, default None
+    uncertainty : openff.units.Quantity, default None
         The uncertainty/error in the original observable with units, should always be positive.
-    temperature : Quantity, default 298.15 * unit.kelvin
+    temperature : openff.units.Quantity, default 298.15 * unit.kelvin
         Temperature in kelvin for conversions involving dG.
 
 
@@ -51,9 +51,9 @@ def convert_observable(
 
     Returns
     -------
-    converted_value : Quantity
+    converted_value : openff.units.Quantity
         The converted value in the desired units.
-    converted_error : Quantity or None
+    converted_error : openff.units.Quantity or None
         The propagated error in the converted value, or None if no error was provided.
 
     Examples
