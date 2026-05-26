@@ -672,5 +672,5 @@ class FEMap:
         if filename is None:
             plt.show()
         else:
-            fig.savefig(filename, bbox_inches="tight", dpi=150)
+            fig.savefig(filename, bbox_inches="tight", dpi=300)
         plt.close(fig)
