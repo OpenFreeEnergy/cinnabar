@@ -26,7 +26,7 @@ def _master_plot(
     guidelines: bool = True,
     origins: bool = True,
     color: str | None = None,
-    statistics: list[Literal['RMSE', 'NRMSE', 'MUE', 'RAE', 'R2', 'rho', 'KTAU', 'PI']] | None = None,
+    statistics: list[Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU", "PI"]] | None = None,
     filename: str | None = None,
     centralizing: bool = True,
     shift: float = 0.0,

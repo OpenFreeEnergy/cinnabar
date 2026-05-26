@@ -34,9 +34,7 @@ class CSVData(TypedDict):
     Calculated: list[Measurement]
 
 
-def read_csv(
-    filepath: pathlib.Path, units: Quantity | None = None
-) -> CSVData:
+def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> CSVData:
     """Read a legacy format csv file
 
     Parameters
