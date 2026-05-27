@@ -293,10 +293,30 @@ def test_plot_ecdf_ddgs_invalid_source(fe_map):
         plotting.ecdf_plot_DDGs(fe_map, sources=["nonexistent"])
 
 
-def test_plot_ecdf_ddgs_mismatched_sources_labels(fe_map):
+@pytest.mark.parametrize("plot_func", [
+    pytest.param(plotting.ecdf_plot_DDGs, id="ecdf_plot_DDGs"),
+    pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+    pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+])
+def test_plot_ecdf_mismatched_sources_labels(fe_map, plot_func):
     """Test that mismatched sources/labels lengths raise a clear error."""
     with pytest.raises(ValueError, match="must have the same length"):
-        plotting.ecdf_plot_DDGs(fe_map, sources=[""], labels=["A", "B"])
+        # required for the DG and all-to-all DDG plots
+        fe_map.generate_absolute_values()
+        plot_func(fe_map, sources=[""], labels=["A", "B"])
+
+
+def test_plot_ecdf_ddgs_inconsistent_sources(fe_map):
+    """Test that inconsistent results across sources raise a clear error."""
+    fe_map.add_relative_calculation(
+        labelA="CAT-13b",
+        labelB="CAT-17g",
+        value=-2.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="Method B",
+    )
+    with pytest.raises(ValueError, match="Inconsistent number of computational edges across sources"):
+        plotting.ecdf_plot_DDGs(fe_map)
 
 
 def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
@@ -332,10 +352,48 @@ def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     assert output_file.exists()
 
 
-def test_plot_ecdf_all_ddgs_no_absolute_values(fe_map):
+@pytest.mark.parametrize("plot_func", [
+    pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+    pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+])
+def test_plot_ecdf_no_absolute_values(fe_map, plot_func):
     """Test that calling ecdf_plot_all_DDGs without generating absolute values raises a clear error."""
     with pytest.raises(ValueError, match="generate_absolute_values"):
-        plotting.ecdf_plot_all_DDGs(fe_map)
+        plot_func(fe_map)
+
+
+@pytest.mark.parametrize("plot_func, expected", [
+    pytest.param(plotting.ecdf_plot_DGs, "No computed absolute values found for source 'Method C'.", id="ecdf_plot_DGs"),
+    pytest.param(plotting.ecdf_plot_all_DDGs, "No computational edges found for source 'Method C'.", id="ecdf_plot_all_DDGs"),
+])
+def test_plot_ecdf_missing_absolute_values(fe_map, plot_func, expected):
+    """Test that the DG and all-to-all DDG plots raise a clear error with missing absolute values."""
+    fe_map.generate_absolute_values()
+    with pytest.raises(ValueError, match=expected):
+        plot_func(fe_map, sources=["Method C"])
+
+
+@pytest.mark.parametrize("plot_func", [
+    pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+    pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+])
+def test_plot_ecdf_inconsistent_sources(fe_map, plot_func):
+    """Test that inconsistent results across sources raise a clear error for the DG and all-to-all DDG plots."""
+    fe_map.generate_absolute_values()
+    fe_map.add_absolute_calculation(
+        label="CAT-13b",
+        value=-8 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="Method C",
+    )
+    fe_map.add_absolute_calculation(
+        label="CAT-17g",
+        value=-9 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="Method C",
+    )
+    with pytest.raises(ValueError, match="Inconsistent number of computational"):
+        plot_func(fe_map)
 
 
 @pytest.mark.parametrize("centralising, xlim", [(True, (2.1, 2.2)), (False, (11.5, 11.6))])
@@ -353,12 +411,6 @@ def test_plot_ecdf_dgs(fe_map, tmp_path, centralising, xlim):
     assert xlim[0] <= axes.get_xlim()[1] <= xlim[1]
     # make sure the file was created
     assert output_file.exists()
-
-
-def test_plot_ecdf_dgs_no_absolute_values(fe_map):
-    """Test that calling ecdf_plot_DGs without generating absolute values raises a clear error."""
-    with pytest.raises(ValueError, match="generate_absolute_values"):
-        plotting.ecdf_plot_DGs(fe_map)
 
 
 def test_plot_ecdf_ddgs_multiple_sources(fe_map, tmp_path):
