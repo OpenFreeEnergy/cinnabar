@@ -230,7 +230,6 @@ class MLEEstimator(Estimator):
             Contains :attr:`~MLEEstimatorResult.covariance_matrix` and
             :attr:`~MLEEstimatorResult.ligand_order`.
         """
-        # TODO: replace stats.mle call with a self-contained implementation
         g, u = _build_graph_from_measurements(measurements)
 
         f_i_calc, C_calc = self.mle(g, factor="calc_DDG")
