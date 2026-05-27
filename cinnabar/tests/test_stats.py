@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from cinnabar import stats
+from cinnabar.estimators import MLEEstimator
 from cinnabar.stats import bootstrap_statistic
 
 
@@ -24,7 +25,7 @@ def test_mle_easy():
         diff = input_absolutes[node2] - input_absolutes[node1] + noise
         graph.add_edge(node1, node2, f_ij=diff, f_dij=0.5 + np.abs(noise))
 
-    output_absolutes, covar = stats.mle(graph, factor="f_ij", node_factor="f_i")
+    output_absolutes, covar = MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
 
     for i, _ in enumerate(graph.nodes(data=True)):
         diff = np.abs(output_absolutes[i] - input_absolutes[i])
@@ -52,7 +53,7 @@ def test_mle_easy_self_edge():
         diff = input_absolutes[node2] - input_absolutes[node1] + noise
         graph.add_edge(node1, node2, f_ij=diff, f_dij=0.5 + np.abs(noise))
 
-    output_absolutes, covar = stats.mle(graph, factor="f_ij", node_factor="f_i")
+    output_absolutes, covar = MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
 
     for i, _ in enumerate(graph.nodes(data=True)):
         diff = np.abs(output_absolutes[i] - input_absolutes[i])
@@ -84,7 +85,7 @@ def test_mle_hard():
         diff = input_absolutes[node2] - input_absolutes[node1] + noise
         graph.add_edge(node1, node2, f_ij=diff, f_dij=0.5 + np.abs(noise))
 
-    output_absolutes, covar = stats.mle(graph, factor="f_ij", node_factor="f_i")
+    output_absolutes, covar = MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
 
     for i, _ in enumerate(graph.nodes(data=True)):
         diff = np.abs(output_absolutes[i] - input_absolutes[i])
@@ -109,7 +110,7 @@ def test_mle_relative():
         diff = input_absolutes[node2] - input_absolutes[node1] + noise
         graph.add_edge(node1, node2, f_ij=diff, f_dij=0.5 + np.abs(noise))
 
-    output_absolutes, _ = stats.mle(graph, factor="f_ij", node_factor="f_i")
+    output_absolutes, _ = MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
 
     pairs = itertools.combinations(range(len(input_absolutes)), 2)
 
@@ -131,7 +132,7 @@ def test_mle_bidirectional_edges():
     graph.add_edge(1, 0, f_ij=-2.0, f_dij=0.5)  # repeated edge
 
     with pytest.raises(ValueError, match="Multiple edges detected between nodes 1 and 0."):
-        stats.mle(graph, factor="f_ij", node_factor="f_i")
+        MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
 
 
 def test_mle_zero_uncertainty():
@@ -146,7 +147,7 @@ def test_mle_zero_uncertainty():
     with pytest.raises(
         ValueError, match="MLE solver will fail with zero reported uncertainty for calculated differences."
     ):
-        _, _ = stats.mle(graph, factor="f_ij", node_factor="f_i")
+        _, _ = MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
 
 
 def test_correlation_positive(example_data_mle):

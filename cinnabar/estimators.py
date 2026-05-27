@@ -10,7 +10,7 @@ measurements stored in an FEMap.
 import abc
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Union
 
 import networkx as nx
 import numpy as np
@@ -233,7 +233,7 @@ class MLEEstimator(Estimator):
         # TODO: replace stats.mle call with a self-contained implementation
         g, u = _build_graph_from_measurements(measurements)
 
-        f_i_calc, C_calc = stats.mle(g, factor="calc_DDG")
+        f_i_calc, C_calc = self.mle(g, factor="calc_DDG")
         variance = np.diagonal(C_calc) ** 0.5
 
         ref = ReferenceState(label=source)
@@ -268,6 +268,116 @@ class MLEEstimator(Estimator):
             covariance_matrix=C_calc,
             ligand_order=ligand_order,
         )
+
+    @staticmethod
+    def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None) -> (np.ndarray, np.ndarray):
+        """
+        Compute maximum likelihood estimate of free energies and covariance in their estimates.
+        The number 'factor' is the node attribute on which the MLE will be calculated,
+        where d'factor' will be used as the standard error of the factor
+
+        Reference : https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528
+        Xu, Huafeng. "Optimal measurement network of pairwise differences."
+        Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
+
+        NOTE: Self-edges (edges that connect a node to itself) will be ignored.
+
+        Parameters
+        ----------
+        graph :nx.Graph
+            The graph for which an estimate is to be computed
+            Each edge must have attributes 'f_ij' and 'df_ij' for the free energy and uncertainty
+            estimate
+            Will have 'bayesian_f_ij' and 'bayesian_df_ij' added to each edge
+            and 'bayesian_f_i' and 'bayesian_df_i' added to each node.
+        factor : string, default = 'f_ij'
+            node attribute of nx.Graph that will be used for MLE
+        node_factor : string, default = None
+            optional - provide if there is node data (i.e. absolute values) 'f_i' or 'exp_DG' to
+            include will expect a corresponding uncertainty 'f_di' or 'exp_dDG'
+        Returns
+        -------
+        f_i : np.array with shape (n_ligands,)
+            f_i[i] is the absolute free energy of ligand i in kcal/mol
+
+        C : np.array with shape (n_ligands, n_ligands)
+            C[i,j] is the covariance of the free energy estimates of i and j
+
+        """
+        # if we have bidirectional edge results we need to raise an error as they can not be used with MLE
+        # track the edges we have seen
+        edges = []
+        for a, b in graph.edges:
+            edge_name = tuple(sorted([a, b]))
+            if edge_name in edges:
+                raise ValueError(
+                    f"Multiple edges detected between nodes {a} and {b}. MLE cannot be performed on graphs with multiple "
+                    f"edges between the same nodes. The results should be combined into a single estimate and uncertainty "
+                    f"before performing MLE. See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html#limitations for more details."
+                )
+            edges.append(edge_name)
+
+        N = graph.number_of_nodes()
+        if node_factor is None:
+            f_ij = stats.form_edge_matrix(graph, factor, action="antisymmetrize")
+            df_ij = stats.form_edge_matrix(graph, factor.replace("_", "_d"), action="symmetrize")
+        else:
+            f_ij = stats.form_edge_matrix(graph, factor, action="antisymmetrize", node_label=node_factor)
+            df_ij = stats.form_edge_matrix(
+                graph,
+                factor.replace("_", "_d"),
+                action="symmetrize",
+                node_label=node_factor.replace("_", "_d"),
+            )
+
+        node_name_to_index = {}
+        for i, name in enumerate(graph.nodes()):
+            node_name_to_index[name] = i
+
+        # Form F matrix (Eq 4)
+        F_matrix = np.zeros([N, N])
+        for a, b in graph.edges:
+            i = node_name_to_index[a]
+            j = node_name_to_index[b]
+            if i == j:
+                # The MLE solver will fail if we include self-edges, so we need to omit these
+                continue
+            # check if the uncertainty is zero and raise an error if it is, since this will cause the MLE solver to fail
+            if df_ij[i, j] == 0.0:
+                raise ValueError(
+                    f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs."
+                )
+            F_matrix[i, j] = -(df_ij[i, j] ** (-2))
+            F_matrix[j, i] = -(df_ij[i, j] ** (-2))
+        for n in graph.nodes:
+            i = node_name_to_index[n]
+            if df_ij[i, i] == 0.0:
+                F_matrix[i, i] = -np.sum(F_matrix[i, :])
+            else:
+                F_matrix[i, i] = df_ij[i, i] ** (-2) - np.sum(F_matrix[i, :])
+
+        # Form z vector (Eq 3)
+        z = np.zeros([N])
+        for n in graph.nodes:
+            i = node_name_to_index[n]
+            if df_ij[i, i] != 0.0:
+                z[i] = f_ij[i, i] * df_ij[i, i] ** (-2)
+        for a, b in graph.edges:
+            i = node_name_to_index[a]
+            j = node_name_to_index[b]
+            if i == j:
+                # The MLE solver will fail if we include self-edges, so we need to omit these
+                continue
+            z[i] += f_ij[i, j] * df_ij[i, j] ** (-2)
+            z[j] += f_ij[j, i] * df_ij[j, i] ** (-2)
+
+        # Compute MLE estimate (Eq 2)
+        Finv = np.linalg.pinv(F_matrix)
+        f_i = np.matmul(Finv, z)
+
+        # Compute uncertainty
+        C = Finv
+        return f_i, C
 
 
 def _build_graph_from_measurements(
