@@ -21,57 +21,58 @@ def show_called(monkeypatch):
 
 def test_plot_ddgs_to_file(tmp_path, fe_map):
     output_file = tmp_path / "ddg_plot.png"
-    _ = plotting.plot_DDGs(fe_map.to_legacy_graph(), filename=output_file)
+    _ = plotting.plot_DDGs(fe_map, source="", filename=output_file)
     assert output_file.exists()
 
 
 def test_plot_ddgs_show(fe_map, show_called):
-    _ = plotting.plot_DDGs(fe_map.to_legacy_graph(), filename=None)
+    _ = plotting.plot_DDGs(fe_map, source="", filename=None)
     assert "show" in show_called
 
 
 def test_plot_dgs_to_file(tmp_path, fe_map):
     output_file = tmp_path / "dg_plot.png"
-    _ = plotting.plot_DGs(fe_map.to_legacy_graph(), filename=output_file)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_DGs(fe_map, source="MLE", filename=output_file)
     assert output_file.exists()
 
 
 def test_plot_dgs_show(fe_map, show_called):
-    _ = plotting.plot_DGs(fe_map.to_legacy_graph(), filename=None)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_DGs(fe_map, source="MLE", filename=None)
     assert "show" in show_called
 
 
 def test_plot_all_ddgs_to_file(tmp_path, fe_map):
     output_file = tmp_path / "all_ddg_plot.png"
-    _ = plotting.plot_all_DDGs(fe_map.to_legacy_graph(), filename=output_file)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_all_DDGs(fe_map, source="MLE", filename=output_file)
     assert output_file.exists()
 
 
 def test_plot_all_ddgs_show(fe_map, show_called):
-    _ = plotting.plot_all_DDGs(fe_map.to_legacy_graph(), filename=None)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_all_DDGs(fe_map, source="MLE", filename=None)
     assert "show" in show_called
 
 
 def test_plot_ddgs_symm_and_map(fe_map):
     """Test that plotting DDGs with both symmetrise and map raises an error."""
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(AssertionError):
-        _ = plotting.plot_DDGs(graph, symmetrise=True, map_positive=True)
+        _ = plotting.plot_DDGs(fe_map, source="", symmetrise=True, map_positive=True)
 
 
 def test_plot_ddgs_data_labels_and_plotly(fe_map):
     """Test that data labels and plotly backend raise an error."""
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(AssertionError):
-        _ = plotting.plot_DDGs(graph, plotly=True, data_label_type="small-molecule")
+        _ = plotting.plot_DDGs(fe_map, source="", plotly=True, data_label_type="small-molecule")
 
 
 @pytest.mark.parametrize("data_label_type", ["small-molecule", "protein-mutation"])
 def test_plot_ddgs_data_labels(fe_map, data_label_type, show_called):
     """Test that data labels can be set."""
 
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, data_label_type=data_label_type)
+    _ = plotting.plot_DDGs(fe_map, source="", data_label_type=data_label_type)
     assert "show" in show_called
 
 
@@ -85,19 +86,21 @@ def test_plot_ddgs_negative_data_labels(show_called, data_label_type):
         labelB="-ligand2",
         value=2.5 * unit.kilocalorie_per_mole,
         uncertainty=0.5 * unit.kilocalorie_per_mole,
+        source="test"
     )
     fe_map.add_experimental_measurement(
         label="-ligand1",
         value=-1.0 * unit.kilocalorie_per_mole,
         uncertainty=0.2 * unit.kilocalorie_per_mole,
+        source="test"
     )
     fe_map.add_experimental_measurement(
         label="-ligand2",
         value=1.5 * unit.kilocalorie_per_mole,
         uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="test"
     )
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, data_label_type=data_label_type, map_positive=False)
+    _ = plotting.plot_DDGs(fe_map, source="test", data_label_type=data_label_type, map_positive=False)
     assert "show" in show_called
 
 
@@ -120,39 +123,32 @@ def test_plot_ddgs_negative_bad_labels():
         value=1.5 * unit.kilocalorie_per_mole,
         uncertainty=0.3 * unit.kilocalorie_per_mole,
     )
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(ValueError, match="data_label_type unsupported. supported types:"):
-        _ = plotting.plot_DDGs(graph, data_label_type="invalid-label-type")
+        _ = plotting.plot_DDGs(fe_map, source="", data_label_type="invalid-label-type")
 
 
 def test_plot_ddgs_bad_labels(fe_map):
     """Test that bad data labels raise an error."""
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(ValueError, match="data_label_type unsupported. supported types:"):
-        _ = plotting.plot_DDGs(graph, data_label_type="invalid-label-type")
+        _ = plotting.plot_DDGs(fe_map, source="", data_label_type="invalid-label-type")
 
 
 def test_plot_ddgs_symmetrise(fe_map, show_called):
     """Test that symmetrise option works."""
-
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, symmetrise=True)
+    _ = plotting.plot_DDGs(fe_map, source="", symmetrise=True)
     assert "show" in show_called
 
 
 def test_plot_ddgs_map_positive(fe_map, show_called):
     """Test that map_positive option works."""
-
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, map_positive=True)
+    _ = plotting.plot_DDGs(fe_map, source="", map_positive=True)
     assert "show" in show_called
 
 
 def test_plot_dgs_centralising(fe_map, show_called):
     """Test that centralising option works."""
-
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DGs(graph, centralizing=True)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_DGs(fe_map, source="MLE", centralizing=True)
     assert "show" in show_called
 
 
