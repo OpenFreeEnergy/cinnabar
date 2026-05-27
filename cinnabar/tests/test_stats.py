@@ -8,7 +8,6 @@ from cinnabar.estimators import MLEEstimator
 from cinnabar.stats import bootstrap_statistic
 
 
-
 def test_correlation_positive(example_data_mle):
     """
     Test that the absolute DG plots have the correct signs,

@@ -156,4 +156,3 @@ def test_mle_zero_uncertainty():
         ValueError, match="MLE solver will fail with zero reported uncertainty for calculated differences."
     ):
         _, _ = MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
-

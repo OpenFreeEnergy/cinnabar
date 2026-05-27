@@ -428,6 +428,7 @@ class MLEEstimator(Estimator):
 
         return matrix
 
+
 def _build_graph_from_measurements(
     measurements: List[Measurement],
 ) -> tuple[nx.DiGraph, object]:
