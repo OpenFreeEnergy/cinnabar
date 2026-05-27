@@ -65,19 +65,14 @@ def _convert_dg_df_to_pic50(
     """
     missing = [c for c in (value_col, uncertainty_col) if c not in df.columns]
     if missing:
-        raise ValueError(
-            f"Column(s) {missing} not found in dataframe. "
-            f"Available columns: {list(df.columns)}"
-        )
+        raise ValueError(f"Column(s) {missing} not found in dataframe. Available columns: {list(df.columns)}")
     # default units should always be kcal/mol in the FEMap
     values = df[value_col].to_numpy() * _kcalpm
     uncertainties = df[uncertainty_col].to_numpy() * _kcalpm
     converted_values, converted_uncertainties = convert_observable(values, "dg", "pic50", uncertainties, temperature)
     # make sure we do not change the column order the dataframe should feel the same
     col_order = [
-        new_value_col if c == value_col
-        else (new_uncertainty_col if c == uncertainty_col else c)
-        for c in df.columns
+        new_value_col if c == value_col else (new_uncertainty_col if c == uncertainty_col else c) for c in df.columns
     ]
     return df.drop(columns=[value_col, uncertainty_col]).assign(
         **{new_value_col: converted_values.m, new_uncertainty_col: converted_uncertainties.m}

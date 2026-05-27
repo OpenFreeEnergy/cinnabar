@@ -1,5 +1,5 @@
-import re
 import json
+import re
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -550,10 +550,13 @@ def test_all_to_all_pairwise_df_absolute(example_map):
     )
 
 
-@pytest.mark.parametrize("observable, value, uncertainty", [
-    pytest.param("dg", "DDG (kcal/mol)", "uncertainty (kcal/mol)", id="dg"),
-    pytest.param("pic50", "DpIC50", "uncertainty (unitless)", id="pic50"),
-])
+@pytest.mark.parametrize(
+    "observable, value, uncertainty",
+    [
+        pytest.param("dg", "DDG (kcal/mol)", "uncertainty (kcal/mol)", id="dg"),
+        pytest.param("pic50", "DpIC50", "uncertainty (unitless)", id="pic50"),
+    ],
+)
 def test_all_to_all_pairwise_df_no_data(observable, value, uncertainty):
     """Test that we can generate the all-to-all pairwise dataframe with no data without error."""
     fe_map = femap.FEMap()
