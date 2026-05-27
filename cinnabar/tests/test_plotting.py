@@ -293,11 +293,14 @@ def test_plot_ecdf_ddgs_invalid_source(fe_map):
         plotting.ecdf_plot_DDGs(fe_map, sources=["nonexistent"])
 
 
-@pytest.mark.parametrize("plot_func", [
-    pytest.param(plotting.ecdf_plot_DDGs, id="ecdf_plot_DDGs"),
-    pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
-    pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
-])
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.ecdf_plot_DDGs, id="ecdf_plot_DDGs"),
+        pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+        pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+    ],
+)
 def test_plot_ecdf_mismatched_sources_labels(fe_map, plot_func):
     """Test that mismatched sources/labels lengths raise a clear error."""
     with pytest.raises(ValueError, match="must have the same length"):
@@ -352,20 +355,30 @@ def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     assert output_file.exists()
 
 
-@pytest.mark.parametrize("plot_func", [
-    pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
-    pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
-])
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+        pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+    ],
+)
 def test_plot_ecdf_no_absolute_values(fe_map, plot_func):
     """Test that calling ecdf_plot_all_DDGs without generating absolute values raises a clear error."""
     with pytest.raises(ValueError, match="generate_absolute_values"):
         plot_func(fe_map)
 
 
-@pytest.mark.parametrize("plot_func, expected", [
-    pytest.param(plotting.ecdf_plot_DGs, "No computed absolute values found for source 'Method C'.", id="ecdf_plot_DGs"),
-    pytest.param(plotting.ecdf_plot_all_DDGs, "No computational edges found for source 'Method C'.", id="ecdf_plot_all_DDGs"),
-])
+@pytest.mark.parametrize(
+    "plot_func, expected",
+    [
+        pytest.param(
+            plotting.ecdf_plot_DGs, "No computed absolute values found for source 'Method C'.", id="ecdf_plot_DGs"
+        ),
+        pytest.param(
+            plotting.ecdf_plot_all_DDGs, "No computational edges found for source 'Method C'.", id="ecdf_plot_all_DDGs"
+        ),
+    ],
+)
 def test_plot_ecdf_missing_absolute_values(fe_map, plot_func, expected):
     """Test that the DG and all-to-all DDG plots raise a clear error with missing absolute values."""
     fe_map.generate_absolute_values()
@@ -373,10 +386,13 @@ def test_plot_ecdf_missing_absolute_values(fe_map, plot_func, expected):
         plot_func(fe_map, sources=["Method C"])
 
 
-@pytest.mark.parametrize("plot_func", [
-    pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
-    pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
-])
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+        pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+    ],
+)
 def test_plot_ecdf_inconsistent_sources(fe_map, plot_func):
     """Test that inconsistent results across sources raise a clear error for the DG and all-to-all DDG plots."""
     fe_map.generate_absolute_values()
