@@ -319,11 +319,11 @@ class MLEEstimator(Estimator):
 
         N = graph.number_of_nodes()
         if node_factor is None:
-            f_ij = stats.form_edge_matrix(graph, factor, action="antisymmetrize")
-            df_ij = stats.form_edge_matrix(graph, factor.replace("_", "_d"), action="symmetrize")
+            f_ij = MLEEstimator.form_edge_matrix(graph, factor, action="antisymmetrize")
+            df_ij = MLEEstimator.form_edge_matrix(graph, factor.replace("_", "_d"), action="symmetrize")
         else:
-            f_ij = stats.form_edge_matrix(graph, factor, action="antisymmetrize", node_label=node_factor)
-            df_ij = stats.form_edge_matrix(
+            f_ij = MLEEstimator.form_edge_matrix(graph, factor, action="antisymmetrize", node_label=node_factor)
+            df_ij = MLEEstimator.form_edge_matrix(
                 graph,
                 factor.replace("_", "_d"),
                 action="symmetrize",
@@ -379,6 +379,54 @@ class MLEEstimator(Estimator):
         C = Finv
         return f_i, C
 
+    @staticmethod
+    def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_label=None) -> np.ndarray:
+        """
+        Extract the labeled property from edges into a matrix.
+
+        Parameters
+        ----------
+        graph : nx.Graph
+            The graph to extract data from
+        label : str
+            The label to use for extracting edge properties
+        action : str, optional, default=None
+            If 'symmetrize', returns a symmetric matrix A[i,j] = A[j,i]
+            If 'antisymmetrize', returns an antisymmetric matrix A[i,j] = -A[j,i]
+        node_label : sr, optional, default=None
+            Diagonal will be occupied with absolute values, where labelled
+
+        Returns
+        ----------
+        matrix
+        """
+        N = len(graph.nodes)
+        matrix = np.zeros([N, N])
+
+        node_name_to_index = {}
+        for i, name in enumerate(graph.nodes()):
+            node_name_to_index[name] = i
+
+        for a, b in graph.edges:
+            i = node_name_to_index[a]
+            j = node_name_to_index[b]
+            matrix[j, i] = graph.edges[a, b][label]
+            if action == "symmetrize":
+                matrix[i, j] = matrix[j, i]
+            elif action == "antisymmetrize":
+                matrix[i, j] = -matrix[j, i]
+            elif action is None:
+                pass
+            else:
+                raise ValueError(f'action "{action}" unknown.')
+
+        if node_label is not None:
+            for n in graph.nodes(data=True):
+                i = node_name_to_index[n[0]]
+                if node_label in n[1]:
+                    matrix[i, i] = n[1][node_label]
+
+        return matrix
 
 def _build_graph_from_measurements(
     measurements: List[Measurement],
