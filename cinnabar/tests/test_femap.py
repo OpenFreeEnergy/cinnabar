@@ -1,3 +1,4 @@
+import re
 import json
 
 import matplotlib.pyplot as plt
@@ -372,8 +373,8 @@ def test_to_relative_dataframe_pic50(example_map, dataframe_func):
     assert rel_pci50.columns.tolist() == [
         "labelA",
         "labelB",
-        "ΔpIC50",
-        "uncertainty (ΔpIC50)",
+        "DpIC50",
+        "uncertainty (unitless)",
         "source",
         "computational",
     ]
@@ -383,13 +384,31 @@ def test_to_relative_dataframe_pic50(example_map, dataframe_func):
     exp_ddg = rel_dg[rel_dg["computational"] == False]["DDG (kcal/mol)"].values
     rmse_dg = stats.calculate_rmse(exp_ddg, calc_ddg)
     # same again for pic50
-    calc_dpic50 = rel_pci50[rel_pci50["computational"] == True]["ΔpIC50"].values
-    exp_dpic50 = rel_pci50[rel_pci50["computational"] == False]["ΔpIC50"].values
+    calc_dpic50 = rel_pci50[rel_pci50["computational"] == True]["DpIC50"].values
+    exp_dpic50 = rel_pci50[rel_pci50["computational"] == False]["DpIC50"].values
     rmse_pic50 = stats.calculate_rmse(exp_dpic50, calc_dpic50)
     # convert the error back
     rmse_pic50, _ = conversion.convert_observable(rmse_pic50, "pic50", "dg")
     # we need to use the abs value due to the conversion
     assert rmse_dg == pytest.approx(abs(rmse_pic50), abs=0.01)
+
+
+@pytest.mark.parametrize(
+    "dataframe_func",
+    [
+        pytest.param(lambda fe, observable: fe.get_relative_dataframe(observable_type=observable), id="relative"),
+        pytest.param(lambda fe, observable: fe.get_absolute_dataframe(observable_type=observable), id="absolute"),
+        pytest.param(
+            lambda fe, observable: fe.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable),
+            id="all-to-all",
+        ),
+    ],
+)
+def test_to_dataframe_bad_observable(example_map, dataframe_func):
+    """Make sure an error is raised if we request the dataframe in an unsupported observable type."""
+    example_map.generate_absolute_values()
+    with pytest.raises(ValueError, match="Unknown observable_type: 'unsupported'"):
+        dataframe_func(example_map, "unsupported")
 
 
 def test_to_absolute_dataframe_regression(example_map):
@@ -416,7 +435,7 @@ def test_to_absolute_dataframe_pic50(example_map):
     assert abs_dg.shape == abs_pci50.shape
 
     # make sure the column order is the same but the names have been updated
-    assert abs_pci50.columns.tolist() == ["label", "pIC50", "uncertainty (pIC50)", "source", "computational"]
+    assert abs_pci50.columns.tolist() == ["label", "pIC50", "uncertainty (unitless)", "source", "computational"]
 
     # as dg to pic50 is linear check the RMSE also converts
     calc_ddg = abs_dg[abs_dg["computational"] == True]["DG (kcal/mol)"].values
@@ -531,20 +550,39 @@ def test_all_to_all_pairwise_df_absolute(example_map):
     )
 
 
-def test_all_to_all_pairwise_df_no_data():
+@pytest.mark.parametrize("observable, value, uncertainty", [
+    pytest.param("dg", "DDG (kcal/mol)", "uncertainty (kcal/mol)", id="dg"),
+    pytest.param("pic50", "DpIC50", "uncertainty (unitless)", id="pic50"),
+])
+def test_all_to_all_pairwise_df_no_data(observable, value, uncertainty):
     """Test that we can generate the all-to-all pairwise dataframe with no data without error."""
     fe_map = femap.FEMap()
-    df = fe_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    df = fe_map.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable)
     assert len(df) == 0
     # make sure the columns are still correct though
     assert df.columns.tolist() == [
         "labelA",
         "labelB",
-        "DDG (kcal/mol)",
-        "uncertainty (kcal/mol)",
+        value,
+        uncertainty,
         "source",
         "computational",
     ]
+
+
+def test_missing_column_names_when_converting(example_map):
+    """Make sure a clear error is raised if we try and convert to a dataframe but the column names are missing."""
+    # try and convert the wrong dataframe
+    rel_df = example_map.get_relative_dataframe()
+    with pytest.raises(ValueError, match=re.escape("Column(s) ['DG (kcal/mol)'] not found in dataframe.")):
+        femap._convert_dg_df_to_pic50(
+            df=rel_df,
+            value_col="DG (kcal/mol)",
+            uncertainty_col="uncertainty (kcal/mol)",
+            new_value_col="pIC50",
+            new_uncertainty_col="uncertainty (unitless)",
+            temperature=298.15 * unit.kelvin,
+        )
 
 
 def test_to_all_pairwise_df_uses_covariance_matrix():

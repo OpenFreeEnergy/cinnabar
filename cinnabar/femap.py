@@ -63,13 +63,21 @@ def _convert_dg_df_to_pic50(
         Copy of the dataframe with ``value_col`` / ``uncertainty_col`` dropped and the two
         new columns in their place.
     """
+    missing = [c for c in (value_col, uncertainty_col) if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Column(s) {missing} not found in dataframe. "
+            f"Available columns: {list(df.columns)}"
+        )
     # default units should always be kcal/mol in the FEMap
     values = df[value_col].to_numpy() * _kcalpm
     uncertainties = df[uncertainty_col].to_numpy() * _kcalpm
     converted_values, converted_uncertainties = convert_observable(values, "dg", "pic50", uncertainties, temperature)
     # make sure we do not change the column order the dataframe should feel the same
     col_order = [
-        new_value_col if c == value_col else (new_uncertainty_col if c == uncertainty_col else c) for c in df.columns
+        new_value_col if c == value_col
+        else (new_uncertainty_col if c == uncertainty_col else c)
+        for c in df.columns
     ]
     return df.drop(columns=[value_col, uncertainty_col]).assign(
         **{new_value_col: converted_values.m, new_uncertainty_col: converted_uncertainties.m}
@@ -401,9 +409,9 @@ class FEMap:
 
         Parameters
         ----------
-        observable_type : ANALYSIS_UNITS, optional
+        observable_type : {"dg", "pic50"}, default "dg"
             The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-            Use ``pic50`` to report ΔpIC50 values.
+            Use ``pic50`` to report DpIC50 values.
         temperature : Quantity, optional
             Temperature used for the unit conversion.  Defaults to 298.15 K.
 
@@ -411,12 +419,12 @@ class FEMap:
         ----
         The pandas DataFrame will have the following columns:
 
-        - labelA
-        - labelB
-        - ``DDG (kcal/mol)`` / ``ΔpIC50`` — depending on ``observable_type``
-        - ``uncertainty (kcal/mol)`` / ``uncertainty (ΔpIC50)``
-        - source
-        - computational
+        - ``labelA``
+        - ``labelB``
+        - ``DDG (kcal/mol)`` / ``DpIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (unitless)``
+        - ``source``
+        - ``computational``
 
         Only simulated relative results are included for the computational results.
         The dataframe is sorted by source, computational, labelA, and labelB to ensure consistent ordering of results between sources.
@@ -464,8 +472,10 @@ class FEMap:
         # convert if required
         if observable_type.lower() == "pic50":
             df = _convert_dg_df_to_pic50(
-                df, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "ΔpIC50", "uncertainty (ΔpIC50)", temperature
+                df, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "DpIC50", "uncertainty (unitless)", temperature
             )
+        elif observable_type.lower() != "dg":
+            raise ValueError(f"Unknown observable_type: '{observable_type}'")
 
         return df.sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
 
@@ -478,9 +488,9 @@ class FEMap:
 
         Parameters
         ----------
-        observable_type : ANALYSIS_UNITS, optional
+        observable_type : {"dg", "pic50"}, default "dg"
             The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-            Use ``pic50`` to report ΔpIC50 values.
+            Use ``pic50`` to report DpIC50 values.
         temperature : Quantity, optional
             Temperature used for the unit conversion.  Defaults to 298.15 K.
 
@@ -488,11 +498,11 @@ class FEMap:
         ----
         The dataframe will have the following columns:
 
-        - label
+        - ``label``
         - ``DG (kcal/mol)`` / ``pIC50`` — depending on ``observable_type``
-        - ``uncertainty (kcal/mol)`` / ``uncertainty (pIC50)``
-        - source
-        - computational
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (unitless)``
+        - ``source``
+        - ``computational``
 
         The dataframe will be sorted by source, computational, and label to ensure consistent ordering of results between sources.
         """
@@ -514,8 +524,10 @@ class FEMap:
 
         if observable_type.lower() == "pic50":
             df = _convert_dg_df_to_pic50(
-                df, "DG (kcal/mol)", "uncertainty (kcal/mol)", "pIC50", "uncertainty (pIC50)", temperature
+                df, "DG (kcal/mol)", "uncertainty (kcal/mol)", "pIC50", "uncertainty (unitless)", temperature
             )
+        elif observable_type.lower() != "dg":
+            raise ValueError(f"Unknown observable_type: '{observable_type}'")
 
         return df.sort_values(by=["source", "computational", "label"]).reset_index(drop=True)
 
@@ -531,9 +543,9 @@ class FEMap:
         ----------
         symmetrical : bool, optional
             If True, include both directions of each pairwise comparison. If False, include only one direction (default is True).
-        observable_type : ANALYSIS_UNITS, optional
+        observable_type : {"dg", "pic50"}, default "dg"
             The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-            Use ``pic50`` to report ΔpIC50 values.
+            Use ``pic50`` to report DpIC50 values.
         temperature : Quantity, optional
             Temperature used for the unit conversion.  Defaults to 298.15 K.
 
@@ -546,17 +558,17 @@ class FEMap:
         ----
         The dataframe will have the following columns:
 
-        - labelA
-        - labelB
-        - ``DDG (kcal/mol)`` / ``ΔpIC50`` — depending on ``observable_type``
-        - ``uncertainty (kcal/mol)`` / ``uncertainty (ΔpIC50)``
-        - source
-        - computational
+        - ``labelA``
+        - ``labelB``
+        - ``DDG (kcal/mol)`` / ``DpIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (unitless)``
+        - ``source``
+        - ``computational``
 
         The dataframe will be sorted by source, computational, labelA, and labelB to ensure that pairing order is consistent.
-        If `symmetrical` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
+        If ``symmetrical`` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
         If an estimator is used to generate the absolute binding affinities from relative results this function attempts
-        to use the covariance_matrix in the uncertainty if available, if not the covariance is set to zero.
+        to use the ``covariance_matrix`` in the uncertainty if available, if not the covariance is set to zero.
         """
         # we need to group by the source and computational labels and then compute the pairwise differences within each group, then concatenate the results together
         df = self.get_absolute_dataframe()
@@ -611,20 +623,22 @@ class FEMap:
             pairwise_dfs.append(pairwise_df)
 
         if not pairwise_dfs:
-            return pd.DataFrame(
+            result = pd.DataFrame(
                 columns=["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
             )
-
-        result = (
-            pd.concat(pairwise_dfs)
-            .sort_values(by=["source", "computational", "labelA", "labelB"])
-            .reset_index(drop=True)
-        )
+        else:
+            result = (
+                pd.concat(pairwise_dfs)
+                .sort_values(by=["source", "computational", "labelA", "labelB"])
+                .reset_index(drop=True)
+            )
 
         if observable_type.lower() == "pic50":
             result = _convert_dg_df_to_pic50(
-                result, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "ΔpIC50", "uncertainty (ΔpIC50)", temperature
+                result, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "DpIC50", "uncertainty (unitless)", temperature
             )
+        elif observable_type.lower() != "dg":
+            raise ValueError(f"Unknown observable_type: '{observable_type}'")
 
         return result
 
