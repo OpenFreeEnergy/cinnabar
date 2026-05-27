@@ -313,7 +313,9 @@ def plot_DDGs(
     # get the comp data from the computational source
     comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
     # get the experimental data
-    exp_data = rel_df[~comp_mask].rename(columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"})
+    exp_data = rel_df[~comp_mask].rename(
+        columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"}
+    )
 
     # merge to align the data and drop any values missing an experimental data point
     merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
@@ -453,8 +455,10 @@ def plot_DGs(
     all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
 
     if not all_comp_sources:
-        raise ValueError(f"The FEMap contains no computed absolute values. "
-            "Call generate_absolute_values() first or add calculated absolute measurements directly.")
+        raise ValueError(
+            f"The FEMap contains no computed absolute values. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
 
     if source not in all_comp_sources:
         raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
@@ -571,8 +575,10 @@ def plot_all_DDGs(
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
     if not all_comp_sources:
-        raise ValueError(f"The FEMap contains no computed absolute values. "
-            "Call generate_absolute_values() first or add calculated absolute measurements directly.")
+        raise ValueError(
+            f"The FEMap contains no computed absolute values. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
 
     if source not in all_comp_sources:
         raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
@@ -580,7 +586,9 @@ def plot_all_DDGs(
     # get the comp data from the computational source
     comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
     # get the experimental data
-    exp_data = rel_df[~comp_mask].rename(columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"})
+    exp_data = rel_df[~comp_mask].rename(
+        columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"}
+    )
 
     # merge to align the data and drop any values missing an experimental data point
     merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])

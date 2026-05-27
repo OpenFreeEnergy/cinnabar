@@ -86,19 +86,19 @@ def test_plot_ddgs_negative_data_labels(show_called, data_label_type):
         labelB="-ligand2",
         value=2.5 * unit.kilocalorie_per_mole,
         uncertainty=0.5 * unit.kilocalorie_per_mole,
-        source="test"
+        source="test",
     )
     fe_map.add_experimental_measurement(
         label="-ligand1",
         value=-1.0 * unit.kilocalorie_per_mole,
         uncertainty=0.2 * unit.kilocalorie_per_mole,
-        source="test"
+        source="test",
     )
     fe_map.add_experimental_measurement(
         label="-ligand2",
         value=1.5 * unit.kilocalorie_per_mole,
         uncertainty=0.3 * unit.kilocalorie_per_mole,
-        source="test"
+        source="test",
     )
     _ = plotting.plot_DDGs(fe_map, source="test", data_label_type=data_label_type, map_positive=False)
     assert "show" in show_called
