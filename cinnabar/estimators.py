@@ -17,10 +17,17 @@ import numpy as np
 
 from cinnabar import stats
 from cinnabar.measurements import Measurement, ReferenceState
+from cinnabar._due import Doi, due
 
 if TYPE_CHECKING:
     from cinnabar.femap import FEMap  # pragma: no cover
 
+due.cite(
+    Doi("10.1021/acs.jcim.9b00528"),
+    description="Compute maximum likelihood estimate of free energies and covariance in their estimates",
+    path="cinnabar.estimators.MLEEstimator.mle",
+    cite_module=True,
+)
 
 @dataclass
 class EstimatorResult:
