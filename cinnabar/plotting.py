@@ -898,7 +898,7 @@ def ecdf_plot_DGs(
 
     if len(set([len(v) for v in datasets.values()])) != 1:
         raise ValueError(
-            "Inconsistent number of computational edges across sources, make sure all edges has a result for each source."
+            "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
         )
 
     return ecdf_plot(
