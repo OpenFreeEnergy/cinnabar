@@ -343,7 +343,7 @@ def plot_DDGs(
             if data_label_type == "small-molecule":
                 data_labels.append(f"{prefix}({node_a_name}→{node_b_name})")
             elif data_label_type == "protein-mutation":
-                data_labels.append(f"{prefix}({node_b_name}{node_b_name[0]})")
+                data_labels.append(f"{prefix}({node_a_name}{node_b_name[0]})")
             else:
                 raise ValueError(
                     "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
