@@ -12,7 +12,7 @@ import itertools
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Hashable, Literal, Optional, TypedDict
+from typing import TYPE_CHECKING, Hashable, Literal, Optional, TypedDict, cast
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -69,10 +69,13 @@ def _convert_dg_df_to_pic50(
     values = df[value_col].to_numpy() * _kcalpm
     uncertainties = df[uncertainty_col].to_numpy() * _kcalpm
     converted_values, converted_uncertainties = convert_observable(values, "dg", "pic50", uncertainties, temperature)
+    # update the type of the converted_uncertainties to be a Quantity as we always use non-zero computational uncertainties
+    converted_uncertainties = cast(Quantity, converted_uncertainties)
+
     # make sure we do not change the column order the dataframe should feel the same
-    col_order = [
-        new_value_col if c == value_col else (new_uncertainty_col if c == uncertainty_col else c) for c in df.columns
-    ]
+    col_rename = {value_col: new_value_col, uncertainty_col: new_uncertainty_col}
+    col_order = [col_rename.get(c, c) for c in df.columns]
+
     return df.drop(columns=[value_col, uncertainty_col]).assign(
         **{new_value_col: converted_values.m, new_uncertainty_col: converted_uncertainties.m}
     )[col_order]
