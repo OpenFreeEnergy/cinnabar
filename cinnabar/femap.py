@@ -895,7 +895,13 @@ class FEMap:
         """
         plt.figure(figsize=(10, 10))
 
-        graph = self.to_networkx()
+        graph = nx.DiGraph()
+        for m in self:
+            if not m.computational:
+                continue
+            if isinstance(m.labelA, ReferenceState):  # skip absolute measurements
+                continue
+            graph.add_edge(m.labelA, m.labelB)
 
         labels = {n: n for n in graph.nodes}
 
