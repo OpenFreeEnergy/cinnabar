@@ -12,12 +12,11 @@ import itertools
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Hashable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Hashable, Literal, Optional, TypedDict
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import openff.units
 import pandas as pd
 from openff.units import Quantity, unit
 
@@ -79,27 +78,33 @@ def _convert_dg_df_to_pic50(
     )[col_order]
 
 
-def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
+class CSVData(TypedDict):
+    Experimental: dict[Hashable, Measurement]
+    Calculated: list[Measurement]
+
+
+def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> CSVData:
     """Read a legacy format csv file
 
     Parameters
     ----------
-    filepath
-      path to the csv file
-    units : openff.units.Quantity, optional
-      the units to use for values in the file, defaults to kcal/mol
+    filepath: pathlib.Path
+        The path to the csv file.
+    units : openff.units.Quantity, default None
+        The units to use for values in the file, defaults to kcal/mol
 
     Returns
     -------
-    raw_results : dict
-      a dict with Experimental and Calculated keys
+    raw_results : CSVData
+        A dict with Experimental and Calculated keys.
     """
     if units is None:
         warnings.warn("Assuming kcal/mol units on measurements")
         units = _kcalpm
 
     path_obj = pathlib.Path(filepath)
-    raw_results = {"Experimental": {}, "Calculated": []}
+    experimental_results: dict[Hashable, Measurement] = {}
+    calculated_results: list[Measurement] = []
     expt_block = False
     calc_block = False
 
@@ -117,23 +122,23 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
                 expt = Measurement(
                     labelA=ground,
                     labelB=ligand,
-                    DG=float(DG) * units,
-                    uncertainty=float(dDG) * units,
+                    DG=Quantity(float(DG), units=units),
+                    uncertainty=Quantity(float(dDG), units=units),
                     computational=False,
                 )
-                raw_results["Experimental"][expt.labelB] = expt
+                experimental_results[expt.labelB] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
                 ligA, ligB, calc_DDG, mbar_err, other_err = line.split(",")
 
                 calc = Measurement(
                     labelA=ligA.strip(),
                     labelB=ligB.strip(),
-                    DG=float(calc_DDG) * units,
-                    uncertainty=(float(mbar_err) + float(other_err)) * units,
+                    DG=Quantity(float(calc_DDG), units=units),
+                    uncertainty=Quantity(float(mbar_err) + float(other_err), units=units),
                     computational=True,
                 )
-                raw_results["Calculated"].append(calc)
-    return raw_results
+                calculated_results.append(calc)
+    return {"Experimental": experimental_results, "Calculated": calculated_results}
 
 
 class FEMap:
@@ -236,6 +241,11 @@ class FEMap:
     def from_networkx(cls, graph: nx.MultiDiGraph):
         """Create FEMap from network representation
 
+        Parameters
+        ----------
+        graph : nx.MultiDiGraph
+            The networkx representation of the FEMap.
+
         Note
         ----
         Currently absolutely no validation of the input is done.
@@ -246,8 +256,16 @@ class FEMap:
         return m
 
     @classmethod
-    def from_csv(cls, filename, units: Optional[Quantity] = None):
-        """Construct from legacy csv format"""
+    def from_csv(cls, filename: pathlib.Path, units: Quantity | None = None):
+        """Construct from legacy csv format
+
+        Parameters
+        ----------
+        filename : pathlib.Path
+            The path to the csv file.
+        units : openff.units.Quantity, default None
+            The units to use for values in the file, defaults to kcal/mol.
+        """
         data = read_csv(filename, units=units)
 
         # unpack data dictionary
@@ -263,6 +281,11 @@ class FEMap:
         """Add new observation to FEMap, modifies the FEMap in-place
 
         Any other attributes on the measurement are used as annotations
+
+        Parameters
+        ----------
+        measurement : Measurement
+            The measurement to add.
 
         Raises
         ------
@@ -280,9 +303,9 @@ class FEMap:
 
     def add_experimental_measurement(
         self,
-        label: Union[str, Hashable],
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        label: str | Hashable,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -291,19 +314,19 @@ class FEMap:
 
         Parameters
         ----------
-        label
-          the ligand being measured
+        label: str | Hashable
+            The ligand being measured
         value : openff.units.Quantity
-          the measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
-          of input is determined by the units of the input.
+            The measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
+            of input is determined by the units of the input.
         uncertainty : openff.units.Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
-        if not isinstance(value, openff.units.Quantity):
+        if not isinstance(value, Quantity):
             raise ValueError("Must include units with values, e.g. openff.units.unit.kilocalorie_per_mole")
 
         if value.is_compatible_with("molar"):
@@ -323,10 +346,10 @@ class FEMap:
 
     def add_relative_calculation(
         self,
-        labelA: Union[str, Hashable],
-        labelB: Union[str, Hashable],
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        labelA: str | Hashable,
+        labelB: str | Hashable,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -335,18 +358,17 @@ class FEMap:
 
         Parameters
         ----------
-        labelA, labelB
-          the ligands being measured.  The measurement is taken from ligandA
-          to ligandB, i.e. ligandA is the "old" or lambda=0.0 state, and ligandB
-          is the "new" or lambda=1.0 state.
+        labelA, labelB: str | Hashable
+            The ligands being measured.  The measurement is taken from ligandA to ligandB, i.e. ligandA is the "old"
+            or lambda=0.0 state, and ligandB is the "new" or lambda=1.0 state.
         value : openff.units.Quantity
-          the measured DDG value, as kcal/mol, or kJ/mol.
+            The measured DDG value, as kcal/mol, or kJ/mol.
         uncertainty : openff.units.Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement.
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
         self.add_measurement(
             Measurement(
@@ -363,8 +385,8 @@ class FEMap:
     def add_absolute_calculation(
         self,
         label,
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -373,16 +395,16 @@ class FEMap:
 
         Parameters
         ----------
-        label
-          the ligand being measured
+        label: str | Hashable
+            The ligand being measured.
         value : openff.units.Quantity
-          the measured value, as kcal/mol, or kJ/mol.
+            The measured value, as kcal/mol, or kJ/mol.
         uncertainty : openff.units.Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
         m = Measurement(
             labelA=ReferenceState(),
@@ -407,8 +429,8 @@ class FEMap:
         observable_type : {"dg", "pic50"}, default "dg"
             The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
             Use ``pic50`` to report DpIC50 values.
-        temperature : Quantity, optional
-            Temperature used for the unit conversion.  Defaults to 298.15 K.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            Temperature used for the unit conversion.
 
         Note
         ----
@@ -486,8 +508,8 @@ class FEMap:
         observable_type : {"dg", "pic50"}, default "dg"
             The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
             Use ``pic50`` to report DpIC50 values.
-        temperature : Quantity, optional
-            Temperature used for the unit conversion.  Defaults to 298.15 K.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            Temperature used for the unit conversion.
 
         Note
         ----
@@ -536,13 +558,13 @@ class FEMap:
 
         Parameters
         ----------
-        symmetrical : bool, optional
-            If True, include both directions of each pairwise comparison. If False, include only one direction (default is True).
+        symmetrical : bool, default True
+            If True, include both directions of each pairwise comparison. If False, include only one direction.
         observable_type : {"dg", "pic50"}, default "dg"
             The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
             Use ``pic50`` to report DpIC50 values.
-        temperature : Quantity, optional
-            Temperature used for the unit conversion.  Defaults to 298.15 K.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            Temperature used for the unit conversion.
 
         Returns
         -------
@@ -700,7 +722,7 @@ class FEMap:
 
         Parameters
         ----------
-        estimator : Estimator, optional
+        estimator : Estimator, default None
             The estimator to use.  Defaults to
             the MLEEstimator.
 
@@ -842,15 +864,15 @@ class FEMap:
 
         return g
 
-    def draw_graph(self, title: str = "", filename: Union[str, None] = None):
+    def draw_graph(self, title: str = "", filename: str | None = None):
         """
         Draw the graph using matplotlib.
 
         Parameters
         ----------
-        title : str, optional
-            Title for the graph.
-        filename : str or None, optional
+        title : str, default ""
+            Title for the graph, by default an empty string.
+        filename : str or None, default None
             If provided, the graph will be saved to this file. If None, the graph will be displayed.
         """
         plt.figure(figsize=(10, 10))
