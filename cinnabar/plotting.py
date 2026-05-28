@@ -161,9 +161,9 @@ def pair_plot(
 
     # plots x=y line
     plt.plot(scale, scale, "k:")
-    if guidelines is not False and guidelines != ():
+    if guidelines is not False and guidelines is not None and guidelines != ():
         # get the distances to use
-        if guidelines is True:
+        if isinstance(guidelines, bool):
             distances = (0.5, 1.0)
         else:
             distances = tuple(guidelines)
