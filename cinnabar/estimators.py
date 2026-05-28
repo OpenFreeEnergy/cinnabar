@@ -16,8 +16,8 @@ import networkx as nx
 import numpy as np
 
 from cinnabar import stats
-from cinnabar.measurements import Measurement, ReferenceState
 from cinnabar._due import Doi, due
+from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
     from cinnabar.femap import FEMap  # pragma: no cover
@@ -28,6 +28,7 @@ due.cite(
     path="cinnabar.estimators.MLEEstimator.mle",
     cite_module=True,
 )
+
 
 @dataclass
 class EstimatorResult:
