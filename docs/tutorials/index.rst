@@ -14,3 +14,4 @@ API Tutorials
     :maxdepth: 1
 
     cinnabar-api
+    ecdf-plots
