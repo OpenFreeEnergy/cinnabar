@@ -237,22 +237,22 @@ class MLEEstimator(Estimator):
             Contains :attr:`~MLEEstimatorResult.covariance_matrix` and
             :attr:`~MLEEstimatorResult.ligand_order`.
         """
-        g, u = _build_graph_from_measurements(measurements)
+        graph, unit = self._build_graph_from_measurements(measurements)
 
-        f_i_calc, C_calc = self.mle(g, factor="calc_DDG")
+        f_i_calc, C_calc = self.mle(graph, factor="calc_DDG")
         variance = np.diagonal(C_calc) ** 0.5
 
         ref = ReferenceState(label=source)
-        ligand_order = list(g.nodes)
+        ligand_order = list(graph.nodes)
 
         out_measurements: List[Measurement] = []
-        for n, f_i, df_i in zip(ligand_order, f_i_calc, variance):
+        for label, f_i, df_i in zip(ligand_order, f_i_calc, variance):
             out_measurements.append(
                 Measurement(
                     labelA=ref,
-                    labelB=n,
-                    DG=f_i * u,
-                    uncertainty=df_i * u,
+                    labelB=label,
+                    DG=f_i * unit,
+                    uncertainty=df_i * unit,
                     computational=True,
                     source=source,
                 )
@@ -263,8 +263,8 @@ class MLEEstimator(Estimator):
             Measurement(
                 labelA=ReferenceState(),
                 labelB=ref,
-                DG=0.1 * u,
-                uncertainty=0.0 * u,
+                DG=0.1 * unit,
+                uncertainty=0.0 * unit,
                 computational=True,
                 source=source,
             )
@@ -434,88 +434,77 @@ class MLEEstimator(Estimator):
 
         return matrix
 
+    @staticmethod
+    def _build_graph_from_measurements(
+        measurements: List[Measurement],
+    ) -> tuple[nx.DiGraph, object]:
+        """Build a legacy graph from the list of measurements for use in the MLE method, this is copied over from the
+        to_legacy_graph method of FEMap.
 
-def _build_graph_from_measurements(
-    measurements: List[Measurement],
-) -> tuple[nx.DiGraph, object]:
-    """Build a legacy graph from the list of measurements for use in the MLE method, this is copied over from the
-    to_legacy_graph method of FEMap.
+        Parameters
+        ----------
+        measurements : list[Measurement]
+            Mix of relative computational and absolute experimental measurements.
 
-    Parameters
-    ----------
-    measurements : list[Measurement]
-        Mix of relative computational and absolute experimental measurements.
+        Returns
+        -------
+        graph : nx.DiGraph
+            Input graph ready for stats.mle
+        unit : unit
+            The unit shared by all measurements (validated to be consistent).
 
-    Returns
-    -------
-    g : nx.DiGraph
-        Input graph ready for stats.mle
-    u : unit
-        The unit shared by all measurements (validated to be consistent).
+        Raises
+        ------
+        ValueError
+            If measurements have mixed units or duplicate computational edges
+            exist between the same pair of nodes.
+        """
+        if not measurements:
+            raise ValueError("No measurements provided")
 
-    Raises
-    ------
-    ValueError
-        If measurements have mixed units or duplicate computational edges
-        exist between the same pair of nodes.
-    """
-    if not measurements:
-        raise ValueError("No measurements provided")
+        if len(units := {m.DG.u for m in measurements}) > 1:
+            raise ValueError(f"All measurements must share the same units before running an estimator. Found: {units}")
+        unit = units.pop()
 
-    units = {m.DG.u for m in measurements}
-    if len(units) > 1:
-        raise ValueError(f"All measurements must share the same units before running an estimator. Found: {units}")
-    u = next(iter(units))
+        graph = nx.DiGraph()
+        edges_seen: List[tuple] = []
 
-    g = nx.DiGraph()
-    edges_seen: List[tuple] = []
-
-    for m in measurements:
-        if not m.computational:
-            continue
-        if isinstance(m.labelA, ReferenceState):
-            continue
-        edge_name = tuple(sorted([m.labelA, m.labelB]))
-        if edge_name in edges_seen:
-            raise ValueError(
-                f"Multiple edges detected between nodes {m.labelA} and {m.labelB}. "
-                "MLE cannot be performed on graphs with multiple edges between the "
-                "same nodes. The results should be combined into a single estimate "
-                "and uncertainty before performing MLE. "
-                "See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html"
-                "#limitations for more details."
+        # populate the edges of the graph along with their computational binding free energies
+        for m in filter(lambda m: m.computational, measurements):
+            if isinstance(m.labelA, ReferenceState):
+                # TODO this is never hit in the tests and should be supported behavior
+                continue
+            edge_name = (m.labelA, m.labelB) if str(m.labelA) < str(m.labelB) else (m.labelB, m.labelA)
+            if edge_name in edges_seen:
+                # TODO this is a limitation of the software, not the method. Support for multiple edges should be a priority
+                raise ValueError(
+                    f"Multiple edges detected between nodes {m.labelA} and {m.labelB}. "
+                    "MLE cannot be performed on graphs with multiple edges between the "
+                    "same nodes. The results should be combined into a single estimate "
+                    "and uncertainty before performing MLE. "
+                    "See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html"
+                    "#limitations for more details."
+                )
+            graph.add_edge(
+                m.labelA,
+                m.labelB,
+                calc_DDG=m.DG.magnitude,
+                calc_dDDG=m.uncertainty.magnitude,
             )
-        g.add_edge(
-            m.labelA,
-            m.labelB,
-            calc_DDG=m.DG.magnitude,
-            calc_dDDG=m.uncertainty.magnitude,
-        )
-        edges_seen.append(edge_name)
+            edges_seen.append(edge_name)
 
-    # annotate nodes with experimental absolute values
-    for m in measurements:
-        if m.computational:
-            continue
-        if not isinstance(m.labelA, ReferenceState):
-            continue
-        node = m.labelB
-        if node not in g.nodes:
-            continue
-        g.nodes[node]["exp_DG"] = m.DG.magnitude
-        g.nodes[node]["exp_dDG"] = m.uncertainty.magnitude
-        g.nodes[node]["name"] = node
+        # annotate nodes with experimental absolute values, this doesn't add edges
+        for m in filter(lambda m: not m.computational, measurements):
+            # labelA must always be a reference state, otherwise it is ignored
+            if not isinstance(m.labelA, ReferenceState):
+                # TODO this is never hit in the tests
+                continue
+            # TODO to support experimental values, we need this to not be true
+            # do not include experimental information if no computation data is already present
+            if (node := m.labelB) not in graph.nodes:
+                continue
+            graph.nodes[node]["exp_DG"] = m.DG.magnitude
+            graph.nodes[node]["exp_dDG"] = m.uncertainty.magnitude
+            graph.nodes[node]["name"] = node
 
-    # infer experimental DDG for edges where both endpoints have absolute data
-    for A, B, d in g.edges(data=True):
-        try:
-            DG_A = g.nodes[A]["exp_DG"]
-            dDG_A = g.nodes[A]["exp_dDG"]
-            DG_B = g.nodes[B]["exp_DG"]
-            dDG_B = g.nodes[B]["exp_dDG"]
-        except KeyError:
-            continue
-        d["exp_DDG"] = DG_B - DG_A
-        d["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
-
-    return g, u
+        return graph, unit
