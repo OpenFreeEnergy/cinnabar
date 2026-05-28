@@ -896,9 +896,9 @@ def ecdf_plot_DGs(
             y = y - y.mean()
         datasets[label] = np.abs(y - x)
 
-    if len(set([len(v) for v in datasets.values()])) != 1:
+    if len({len(v) for v in datasets.values()}) != 1:
         raise ValueError(
-            "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
+            "Inconsistent number of computational nodes across sources, make sure all nodes have a result for each source."
         )
 
     return ecdf_plot(
@@ -962,7 +962,8 @@ def ecdf_plot_all_DDGs(
 
     if not all_comp_sources:
         raise ValueError(
-            "The FEMap contains no computed absolute values. Call femap.generate_absolute_values() first or add calculated absolute measurements directly."
+            "The FEMap contains no computed absolute values which are need to obtain the all-to-all pairwise DDGs. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
         )
 
     if sources is None:
@@ -991,7 +992,7 @@ def ecdf_plot_all_DDGs(
         datasets[label] = np.abs(merged["DDG (kcal/mol)"] - merged["DDG_exp"]).values
 
     # finally check all datasets are the same length
-    if len(set([len(v) for v in datasets.values()])) != 1:
+    if len({len(v) for v in datasets.values()}) != 1:
         raise ValueError(
             "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
         )
