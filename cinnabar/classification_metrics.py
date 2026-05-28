@@ -31,7 +31,7 @@ def _create_2d_histogram(y_true: Iterable[float], y_pred: Iterable[float]) -> tu
     Raises
     ------
     ValueError
-        If `y_true` and `y_pred` have different lengths.
+        If ``y_true`` and ``y_pred`` have different lengths.
     """
 
     y_true = np.asarray(y_true)
@@ -74,7 +74,7 @@ def _compute_overlap_coefficient(histogram: NDArray, ranking: int) -> float:
     Raises
     ------
     ValueError
-        If `top_n_ligands` is greater than the number of ligands in the histogram.
+        If ``top_n_ligands`` is greater than the number of ligands in the histogram.
     """
     if ranking < 1:
         raise ValueError("Ranking must be greater than 0.")
@@ -100,8 +100,8 @@ def compute_fraction_best_ligands(y_true: Iterable[float], y_pred: Iterable[floa
         The true values.
     y_pred : array-like
         The predicted values.
-    fraction : float
-        The fraction of ligands to consider as the best (default is 0.5).
+    fraction : float, default 0.5
+        The fraction of ligands to consider as the best.
 
     Returns
     -------
@@ -111,7 +111,7 @@ def compute_fraction_best_ligands(y_true: Iterable[float], y_pred: Iterable[floa
     Raises
     ------
     ValueError
-        If `fraction` is not between 0 and 1.
+        If ``fraction`` is not between 0 and 1.
     """
 
     if not (0 <= fraction <= 1):
