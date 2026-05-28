@@ -6,6 +6,7 @@ API Documentation
 
    cinnabar.classification_metrics
    cinnabar.cli
+   cinnabar.compare
    cinnabar.conversion
    cinnabar.estimators
    cinnabar.femap
