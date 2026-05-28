@@ -152,11 +152,14 @@ def test_plot_ddgs_no_results():
         plotting.plot_DDGs(fe_map, source="")
 
 
-@pytest.mark.parametrize("plot_func", [
-    pytest.param(plotting.plot_DDGs, id="plot_DDGs"),
-    pytest.param(plotting.plot_DGs, id="plot_DGs"),
-    pytest.param(plotting.plot_all_DDGs, id="plot_all_DDGs"),
-])
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.plot_DDGs, id="plot_DDGs"),
+        pytest.param(plotting.plot_DGs, id="plot_DGs"),
+        pytest.param(plotting.plot_all_DDGs, id="plot_all_DDGs"),
+    ],
+)
 def test_pair_plot_bad_source(fe_map, plot_func):
     """Test that trying to plot with a bad source raises an error."""
     fe_map.generate_absolute_values()
@@ -164,10 +167,13 @@ def test_pair_plot_bad_source(fe_map, plot_func):
         plot_func(fe_map, source="bad_source")
 
 
-@pytest.mark.parametrize("plot_func", [
-    pytest.param(plotting.plot_all_DDGs, id="plot_all_DDGs"),
-    pytest.param(plotting.plot_DGs, id="plot_DGs"),
-])
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.plot_all_DDGs, id="plot_all_DDGs"),
+        pytest.param(plotting.plot_DGs, id="plot_DGs"),
+    ],
+)
 def test_pair_plots_no_absolute_values(fe_map, plot_func):
     """Test that trying to plot without absolute values raises an error for DG and pairwise DDG plots."""
     with pytest.raises(ValueError, match="The FEMap contains no computed absolute values"):
