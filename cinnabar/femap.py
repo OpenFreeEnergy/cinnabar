@@ -13,16 +13,16 @@ import itertools
 import pathlib
 import warnings
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Hashable, Literal, Optional, TypedDict, cast
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import openff.units
 import pandas as pd
 from openff.units import Quantity, unit
 
 from cinnabar import stats
+from cinnabar.conversion import convert_observable
 from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
@@ -30,28 +30,85 @@ if TYPE_CHECKING:
 
 _kcalpm = unit.kilocalorie_per_mole
 
+# Reusable typing alias for unit conversions
+ANALYSIS_UNITS = Literal["dg", "pic50"]
 
-def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = None) -> dict:
+
+def _convert_dg_df_to_pic50(
+    df: pd.DataFrame,
+    value_col: str,
+    uncertainty_col: str,
+    new_value_col: str,
+    new_uncertainty_col: str,
+    temperature: Quantity,
+) -> pd.DataFrame:
+    """Return a copy of the dataframe with the kcal/mol columns replaced by pIC50 columns using the convert_observable function.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input dataframe.  ``value_col`` and ``uncertainty_col`` must be present and
+        contain plain floats in kcal/mol.
+    value_col, uncertainty_col : str
+        Names of the columns to convert.
+    new_value_col, new_uncertainty_col : str
+        Column names to use in the returned dataframe.
+    temperature : Quantity
+        Temperature for the conversion (passed to
+        :func:`~cinnabar.conversion.convert_observable`).
+
+    Returns
+    -------
+    pd.DataFrame
+        Copy of the dataframe with ``value_col`` / ``uncertainty_col`` dropped and the two
+        new columns in their place.
+    """
+    missing = [c for c in (value_col, uncertainty_col) if c not in df.columns]
+    if missing:
+        raise ValueError(f"Column(s) {missing} not found in dataframe. Available columns: {list(df.columns)}")
+    # default units should always be kcal/mol in the FEMap
+    values = df[value_col].to_numpy() * _kcalpm
+    uncertainties = df[uncertainty_col].to_numpy() * _kcalpm
+    converted_values, converted_uncertainties = convert_observable(values, "dg", "pic50", uncertainties, temperature)
+    # update the type of the converted_uncertainties to be a Quantity as we always use non-zero computational uncertainties
+    converted_uncertainties = cast(Quantity, converted_uncertainties)
+
+    # make sure we do not change the column order the dataframe should feel the same
+    col_rename = {value_col: new_value_col, uncertainty_col: new_uncertainty_col}
+    col_order = [col_rename.get(c, c) for c in df.columns]
+
+    return df.drop(columns=[value_col, uncertainty_col]).assign(
+        **{new_value_col: converted_values.m, new_uncertainty_col: converted_uncertainties.m}
+    )[col_order]
+
+
+class CSVData(TypedDict):
+    Experimental: dict[Hashable, Measurement]
+    Calculated: list[Measurement]
+
+
+def read_csv(filepath: pathlib.Path, units: Quantity | None = None) -> CSVData:
     """Read a legacy format csv file
 
     Parameters
     ----------
-    filepath
-      path to the csv file
-    units : openff.units.Quantity, optional
-      the units to use for values in the file, defaults to kcal/mol
+    filepath: pathlib.Path
+        The path to the csv file.
+    units : openff.units.Quantity, default None
+        The units to use for values in the file, defaults to kcal/mol
 
     Returns
     -------
-    raw_results : dict
-      a dict with Experimental and Calculated keys
+    raw_results : CSVData
+        A dict with Experimental and Calculated keys.
     """
     if units is None:
         warnings.warn("Assuming kcal/mol units on measurements")
         units = _kcalpm
 
     path_obj = pathlib.Path(filepath)
-    raw_results = {"Experimental": {}, "Calculated": []}
+    experimental_results: dict[Hashable, Measurement] = {}
+    calculated_results: list[Measurement] = []
     expt_block = False
     calc_block = False
 
@@ -69,23 +126,23 @@ def read_csv(filepath: pathlib.Path, units: Optional[openff.units.Quantity] = No
                 expt = Measurement(
                     labelA=ground,
                     labelB=ligand,
-                    DG=float(DG) * units,
-                    uncertainty=float(dDG) * units,
+                    DG=Quantity(float(DG), units=units),
+                    uncertainty=Quantity(float(dDG), units=units),
                     computational=False,
                 )
-                raw_results["Experimental"][expt.labelB] = expt
+                experimental_results[expt.labelB] = expt
             if calc_block and len(line.split(",")) == 5 and line[0] != "#":
                 ligA, ligB, calc_DDG, mbar_err, other_err = line.split(",")
 
                 calc = Measurement(
                     labelA=ligA.strip(),
                     labelB=ligB.strip(),
-                    DG=float(calc_DDG) * units,
-                    uncertainty=(float(mbar_err) + float(other_err)) * units,
+                    DG=Quantity(float(calc_DDG), units=units),
+                    uncertainty=Quantity(float(mbar_err) + float(other_err), units=units),
                     computational=True,
                 )
-                raw_results["Calculated"].append(calc)
-    return raw_results
+                calculated_results.append(calc)
+    return {"Experimental": experimental_results, "Calculated": calculated_results}
 
 
 class FEMap:
@@ -188,6 +245,11 @@ class FEMap:
     def from_networkx(cls, graph: nx.MultiDiGraph):
         """Create FEMap from network representation
 
+        Parameters
+        ----------
+        graph : nx.MultiDiGraph
+            The networkx representation of the FEMap.
+
         Note
         ----
         Currently absolutely no validation of the input is done.
@@ -198,8 +260,16 @@ class FEMap:
         return m
 
     @classmethod
-    def from_csv(cls, filename, units: Optional[Quantity] = None):
-        """Construct from legacy csv format"""
+    def from_csv(cls, filename: pathlib.Path, units: Quantity | None = None):
+        """Construct from legacy csv format
+
+        Parameters
+        ----------
+        filename : pathlib.Path
+            The path to the csv file.
+        units : openff.units.Quantity, default None
+            The units to use for values in the file, defaults to kcal/mol.
+        """
         data = read_csv(filename, units=units)
 
         # unpack data dictionary
@@ -215,6 +285,11 @@ class FEMap:
         """Add new observation to FEMap, modifies the FEMap in-place
 
         Any other attributes on the measurement are used as annotations
+
+        Parameters
+        ----------
+        measurement : Measurement
+            The measurement to add.
 
         Raises
         ------
@@ -232,9 +307,9 @@ class FEMap:
 
     def add_experimental_measurement(
         self,
-        label: Union[str, Hashable],
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        label: str | Hashable,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -243,19 +318,19 @@ class FEMap:
 
         Parameters
         ----------
-        label
-          the ligand being measured
+        label: str | Hashable
+            The ligand being measured
         value : openff.units.Quantity
-          the measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
-          of input is determined by the units of the input.
+            The measured value, as either Ki, IC50, kcal/mol, or kJ/mol.  The type
+            of input is determined by the units of the input.
         uncertainty : openff.units.Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
-        if not isinstance(value, openff.units.Quantity):
+        if not isinstance(value, Quantity):
             raise ValueError("Must include units with values, e.g. openff.units.unit.kilocalorie_per_mole")
 
         if value.is_compatible_with("molar"):
@@ -275,10 +350,10 @@ class FEMap:
 
     def add_relative_calculation(
         self,
-        labelA: Union[str, Hashable],
-        labelB: Union[str, Hashable],
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        labelA: str | Hashable,
+        labelB: str | Hashable,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -287,18 +362,17 @@ class FEMap:
 
         Parameters
         ----------
-        labelA, labelB
-          the ligands being measured.  The measurement is taken from ligandA
-          to ligandB, i.e. ligandA is the "old" or lambda=0.0 state, and ligandB
-          is the "new" or lambda=1.0 state.
+        labelA, labelB: str | Hashable
+            The ligands being measured.  The measurement is taken from ligandA to ligandB, i.e. ligandA is the "old"
+            or lambda=0.0 state, and ligandB is the "new" or lambda=1.0 state.
         value : openff.units.Quantity
-          the measured DDG value, as kcal/mol, or kJ/mol.
+            The measured DDG value, as kcal/mol, or kJ/mol.
         uncertainty : openff.units.Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement.
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
         self.add_measurement(
             Measurement(
@@ -315,8 +389,8 @@ class FEMap:
     def add_absolute_calculation(
         self,
         label,
-        value: openff.units.Quantity,
-        uncertainty: openff.units.Quantity,
+        value: Quantity,
+        uncertainty: Quantity,
         *,
         source: str = "",
         temperature=298.15 * unit.kelvin,
@@ -325,16 +399,16 @@ class FEMap:
 
         Parameters
         ----------
-        label
-          the ligand being measured
+        label: str | Hashable
+            The ligand being measured.
         value : openff.units.Quantity
-          the measured value, as kcal/mol, or kJ/mol.
+            The measured value, as kcal/mol, or kJ/mol.
         uncertainty : openff.units.Quantity
-          the uncertainty in the measurement
-        source : str, optional
-          an identifier for the source of the data
-        temperature : openff.units.Quantity, optional
-          the temperature the measurement was taken at, defaults to 298.15 K
+            The uncertainty in the measurement
+        source : str, default ""
+            An identifier for the source of the data, by default this is an empty string.
+        temperature : openff.units.Quantity, default 298.15 * unit.kelvin
+            The temperature the measurement was taken at.
         """
         m = Measurement(
             labelA=ReferenceState(),
@@ -347,20 +421,34 @@ class FEMap:
         )
         self.add_measurement(m)
 
-    def get_relative_dataframe(self) -> pd.DataFrame:
+    def get_relative_dataframe(
+        self,
+        observable_type: ANALYSIS_UNITS = "dg",
+        temperature: Quantity = 298.15 * unit.kelvin,
+    ) -> pd.DataFrame:
         """Get a dataframe of all relative results for all sources including experimental and computational.
+
+        Parameters
+        ----------
+        observable_type : {"dg", "pic50"}, default "dg"
+            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+            Use ``pic50`` to report DpIC50 values.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            Temperature used for the unit conversion.
 
         Note
         ----
         The pandas DataFrame will have the following columns:
-        - labelA
-        - labelB
-        - DDG (kcal/mol)
-        - uncertainty (kcal/mol)
-        - source
-        - computational
-        Only simulated relative results are included for the computational results
-        The dataframe will be sorted by source, computational, labelA, and labelB to ensure consistent ordering of results between sources.
+
+        - ``labelA``
+        - ``labelB``
+        - ``DDG (kcal/mol)`` / ``DpIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (unitless)``
+        - ``source``
+        - ``computational``
+
+        Only simulated relative results are included for the computational results.
+        The dataframe is sorted by source, computational, labelA, and labelB to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
         data = []
@@ -369,16 +457,24 @@ class FEMap:
         for l1, l2, d in self._graph.edges(data=True):
             if d["source"] == "reverse":
                 continue
-            if isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState) and not d["computational"]:
+            # grab only the experimental non-computational results
+            if (isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState)) and not d["computational"]:
                 label = l2 if isinstance(l1, ReferenceState) else l1
                 non_comp_results[label] = d
+                continue
+            # if this is a computational reference state from MLE or ABFE skip it
+            elif (isinstance(l1, ReferenceState) or isinstance(l2, ReferenceState)) and d["computational"]:
                 continue
 
             data.append((l1, l2, d["DG"].to(kcpm).m, d["uncertainty"].to(kcpm).m, d["source"], d["computational"]))
 
         # for each computational result add the experimental result for the same edge if it exists
         comp_data = []
+        # track the experimental edges added we only want one experimental value per-edge
+        seen_edges = set()
         for l1, l2, *_ in data:
+            if (l1, l2) in seen_edges:
+                continue
             exp_1 = non_comp_results.get(l1, None)
             exp_2 = non_comp_results.get(l2, None)
             if exp_1 is not None and exp_2 is not None:
@@ -386,6 +482,7 @@ class FEMap:
                 exp_ddg = exp_2["DG"].to(kcpm).m - exp_1["DG"].to(kcpm).m
                 exp_uncertainty = (exp_1["uncertainty"].to(kcpm).m ** 2 + exp_2["uncertainty"].to(kcpm).m ** 2) ** 0.5
                 comp_data.append((l1, l2, exp_ddg, exp_uncertainty, "experimental", False))
+                seen_edges.add((l1, l2))
 
         cols = ["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
@@ -393,19 +490,41 @@ class FEMap:
             data=data + comp_data,
             columns=cols,
         )
+        # convert if required
+        if observable_type.lower() == "pic50":
+            df = _convert_dg_df_to_pic50(
+                df, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "DpIC50", "uncertainty (unitless)", temperature
+            )
+        elif observable_type.lower() != "dg":
+            raise ValueError(f"Unknown observable_type: '{observable_type}'")
+
         return df.sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
 
-    def get_absolute_dataframe(self) -> pd.DataFrame:
+    def get_absolute_dataframe(
+        self,
+        observable_type: ANALYSIS_UNITS = "dg",
+        temperature: Quantity = 298.15 * unit.kelvin,
+    ) -> pd.DataFrame:
         """Get a dataframe of all absolute results from all sources.
+
+        Parameters
+        ----------
+        observable_type : {"dg", "pic50"}, default "dg"
+            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+            Use ``pic50`` to report DpIC50 values.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            Temperature used for the unit conversion.
 
         Note
         ----
         The dataframe will have the following columns:
-        - label
-        - DG (kcal/mol)
-        - uncertainty (kcal/mol)
-        - source
-        - computational
+
+        - ``label``
+        - ``DG (kcal/mol)`` / ``pIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (unitless)``
+        - ``source``
+        - ``computational``
+
         The dataframe will be sorted by source, computational, and label to ensure consistent ordering of results between sources.
         """
         kcpm = unit.kilocalorie_per_mole
@@ -422,19 +541,34 @@ class FEMap:
 
         cols = ["label", "DG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
 
-        df = pd.DataFrame(
-            data=data,
-            columns=cols,
-        )
+        df = pd.DataFrame(data=data, columns=cols)
+
+        if observable_type.lower() == "pic50":
+            df = _convert_dg_df_to_pic50(
+                df, "DG (kcal/mol)", "uncertainty (kcal/mol)", "pIC50", "uncertainty (unitless)", temperature
+            )
+        elif observable_type.lower() != "dg":
+            raise ValueError(f"Unknown observable_type: '{observable_type}'")
+
         return df.sort_values(by=["source", "computational", "label"]).reset_index(drop=True)
 
-    def get_all_to_all_relative_dataframe(self, symmetrical: bool = True) -> pd.DataFrame:
+    def get_all_to_all_relative_dataframe(
+        self,
+        symmetrical: bool = True,
+        observable_type: ANALYSIS_UNITS = "dg",
+        temperature: Quantity = 298.15 * unit.kelvin,
+    ) -> pd.DataFrame:
         """Get a dataframe of the all-to-all pairwise relative results using the absolute DG values.
 
         Parameters
         ----------
-        symmetrical : bool, optional
-            If True, include both directions of each pairwise comparison. If False, include only one direction (default is True).
+        symmetrical : bool, default True
+            If True, include both directions of each pairwise comparison. If False, include only one direction.
+        observable_type : {"dg", "pic50"}, default "dg"
+            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+            Use ``pic50`` to report DpIC50 values.
+        temperature : Quantity, default 298.15 * unit.kelvin
+            Temperature used for the unit conversion.
 
         Returns
         -------
@@ -444,16 +578,18 @@ class FEMap:
         Note
         ----
         The dataframe will have the following columns:
-        - labelA
-        - labelB
-        - DDG (kcal/mol)
-        - uncertainty (kcal/mol)
-        - source
-        - computational
+
+        - ``labelA``
+        - ``labelB``
+        - ``DDG (kcal/mol)`` / ``DpIC50`` — depending on ``observable_type``
+        - ``uncertainty (kcal/mol)`` / ``uncertainty (unitless)``
+        - ``source``
+        - ``computational``
+
         The dataframe will be sorted by source, computational, labelA, and labelB to ensure that pairing order is consistent.
-        If `symmetrical` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
+        If ``symmetrical`` is True, the dataframe will include both (labelA, labelB) and (labelB, labelA) for each pair of labels, with opposite signs for DDG and the same uncertainty.
         If an estimator is used to generate the absolute binding affinities from relative results this function attempts
-        to use the covariance_matrix in the uncertainty if available, if not the covariance is set to zero.
+        to use the ``covariance_matrix`` in the uncertainty if available, if not the covariance is set to zero.
         """
         # we need to group by the source and computational labels and then compute the pairwise differences within each group, then concatenate the results together
         df = self.get_absolute_dataframe()
@@ -508,14 +644,24 @@ class FEMap:
             pairwise_dfs.append(pairwise_df)
 
         if not pairwise_dfs:
-            return pd.DataFrame(
+            result = pd.DataFrame(
                 columns=["labelA", "labelB", "DDG (kcal/mol)", "uncertainty (kcal/mol)", "source", "computational"]
             )
-        return (
-            pd.concat(pairwise_dfs)
-            .sort_values(by=["source", "computational", "labelA", "labelB"])
-            .reset_index(drop=True)
-        )
+        else:
+            result = (
+                pd.concat(pairwise_dfs)
+                .sort_values(by=["source", "computational", "labelA", "labelB"])
+                .reset_index(drop=True)
+            )
+
+        if observable_type.lower() == "pic50":
+            result = _convert_dg_df_to_pic50(
+                result, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "DpIC50", "uncertainty (unitless)", temperature
+            )
+        elif observable_type.lower() != "dg":
+            raise ValueError(f"Unknown observable_type: '{observable_type}'")
+
+        return result
 
     @property
     def n_measurements(self) -> int:
@@ -580,7 +726,7 @@ class FEMap:
 
         Parameters
         ----------
-        estimator : Estimator, optional
+        estimator : Estimator, default None
             The estimator to use.  Defaults to
             the MLEEstimator.
 
@@ -722,15 +868,15 @@ class FEMap:
 
         return g
 
-    def draw_graph(self, title: str = "", filename: Union[str, None] = None):
+    def draw_graph(self, title: str = "", filename: str | None = None):
         """
         Draw the graph using matplotlib.
 
         Parameters
         ----------
-        title : str, optional
-            Title for the graph.
-        filename : str or None, optional
+        title : str, default ""
+            Title for the graph, by default an empty string.
+        filename : str or None, default None
             If provided, the graph will be saved to this file. If None, the graph will be displayed.
         """
         plt.figure(figsize=(10, 10))

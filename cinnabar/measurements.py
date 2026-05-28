@@ -8,9 +8,9 @@ as well as the :class:`ReferenceState` class which denotes the end point for abs
 """
 
 from dataclasses import dataclass
-from typing import Hashable, Union
+from typing import Hashable, cast
 
-from openff.units import unit
+from openff.units import Quantity, unit
 
 from cinnabar.conversion import convert_observable
 
@@ -30,9 +30,9 @@ class ReferenceState:
         """
         Parameters
         ----------
-        label: str, optional
-          label for this reference point.  If no label is given, an empty string
-          is used, signifying the "true zero" reference point.
+        label: str, default ""
+            Label for this reference point.  If no label is given, an empty string
+            is used, signifying the "true zero" reference point.
         """
         self.label = label
 
@@ -89,29 +89,44 @@ class Measurement:
     """Label of state A, e.g. a ligand name or any hashable Python object"""
     labelB: Hashable
     """Label of state B"""
-    DG: unit.Quantity
+    DG: Quantity
     """The free energy difference of moving from A to B in kcal/mol"""
-    uncertainty: unit.Quantity
+    uncertainty: Quantity
     """The uncertainty of the DG measurement in kcal/mol"""
     computational: bool
     """If this measurement is computationally based (or experimental)"""
     source: str = ""
     """An arbitrary label to group measurements from a common source"""
-    temperature: unit.Quantity = 298.15 * unit.kelvin
+    temperature: Quantity = 298.15 * unit.kelvin
     """Temperature that the measurement was taken at in K. By default: 298 K (298.15 * unit.kelvin)"""
 
     def __init__(
         self,
         labelA: Hashable,
         labelB: Hashable,
-        DG: unit.Quantity | str,
-        uncertainty: unit.Quantity | str,
+        DG: Quantity | str,
+        uncertainty: Quantity | str,
         computational: bool,
         source: str = "",
-        temperature: unit.Quantity | str = 298.15 * unit.kelvin,
+        temperature: Quantity | str = 298.15 * unit.kelvin,
     ):
         """
         Initialize a Measurement object converting all quantities to the correct default units.
+
+        Parameters
+        ----------
+        labelA, labelB: Hashable
+            Label of the A/B state e.g. a ligand name.
+        DG: openff.units.Quantity | str
+            The free energy difference of moving from A to B in units compatible with kcal/mol.
+        uncertainty: openff.units.Quantity | str
+            The uncertainty of the DG measurement in units compatible with kcal/mol.
+        computational: bool
+            If this measurement is computationally based ``True`` (or experimental ``False``).
+        source: str, default ""
+            An arbitrary label to group measurements from a common source, by default an empty string.
+        temperature: openff.units.Quantity | str, default 298.15 * unit.kelvin
+            Temperature that the measurement was taken at in K.
         """
         # This dataclass used to be based on pydantic and could automatically convert units from strings
         # we now do this manually to avoid the dependency and not break old behavior.
@@ -119,12 +134,12 @@ class Measurement:
         for i in range(len(unit_values)):
             if isinstance(unit_values[i], str):
                 # convert inplace to a quantity with units
-                unit_values[i] = unit.Quantity(unit_values[i])
+                unit_values[i] = Quantity(unit_values[i])
 
             elif isinstance(unit_values[i], (float, int)):
                 raise ValueError("DG, uncertainty, and temperature values must have units. Check input.")
-        # unpack the converted values
-        DG, uncertainty, temperature = unit_values
+        # unpack the converted values, cast to make mypy happy
+        DG, uncertainty, temperature = (cast(Quantity, v) for v in unit_values)
         object.__setattr__(self, "labelA", labelA)
         object.__setattr__(self, "labelB", labelB)
         object.__setattr__(self, "DG", DG.to(unit.kilocalorie_per_mole))
@@ -136,12 +151,12 @@ class Measurement:
     @classmethod
     def from_experiment(
         cls,
-        label: Union[str, Hashable],
-        Ki: unit.Quantity | str,
-        uncertainty: unit.Quantity | str = 0 * unit.nanomolar,
+        label: str | Hashable,
+        Ki: Quantity | str,
+        uncertainty: Quantity | str = 0 * unit.nanomolar,
         *,
         source: str = "",
-        temperature: unit.Quantity | str = 298.15 * unit.kelvin,
+        temperature: Quantity | str = 298.15 * unit.kelvin,
     ):
         """Shortcut to create a Measurement from experimental data
 
@@ -150,30 +165,27 @@ class Measurement:
         Parameters
         ----------
         label: str | Hashable
-            label for this data point.
-        Ki: unit.Quantity | str
-            experimental Ki value
-            ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar or "0.5 * unit.nanomolar"
-        uncertainty: unit.Quantity | str
-            uncertainty of the experimental value
-            default is zero if no uncertainty is provided (0 * unit.nanomolar)
-        source: str, optional
-            source of experimental measurement
-        temperature: unit.Quantity | str, optional
-            temperature in K at which the experimental measurement was carried out.
-            By default: 298 K (298.15 * unit.kelvin)
+            Label for this data point.
+        Ki: openff.units.Quantity | str
+            Experimental Ki value ex.: 500 * unit.nanomolar OR 0.5 * unit.micromolar or "0.5 * unit.nanomolar"
+        uncertainty: openff.units.Quantity | str
+            Uncertainty of the experimental value default is zero if no uncertainty is provided (0 * unit.nanomolar)
+        source: str, default ""
+            Source of experimental measurement, by default an empty string.
+        temperature: openff.units.Quantity | str, default 298.15 * unit.kelvin
+            Temperature in K at which the experimental measurement was carried out.
         """
         # check for units
         unit_values = [Ki, uncertainty, temperature]
         for i in range(len(unit_values)):
             if isinstance(unit_values[i], str):
                 # try to convert inplace to a quantity with units where possible
-                unit_values[i] = unit.Quantity(unit_values[i])
+                unit_values[i] = Quantity(unit_values[i])
 
             elif isinstance(unit_values[i], (float, int)):
                 raise ValueError("Ki, uncertainty, and temperature values must have units. Check input.")
-        # unpack with units again
-        Ki, uncertainty, temperature = unit_values
+        # unpack with units again, cast to make mypy happy
+        Ki, uncertainty, temperature = (cast(Quantity, v) for v in unit_values)
         if Ki > 0 * unit.molar:
             if uncertainty >= 0 * unit.molar:
                 DG, uncertainty_DG = convert_observable(
@@ -188,7 +200,7 @@ class Measurement:
             labelA=ReferenceState(),
             labelB=label,
             DG=DG,
-            uncertainty=uncertainty_DG,
+            uncertainty=uncertainty_DG,  # type: ignore[arg-type]
             computational=False,
             source=source,
             temperature=temperature,
