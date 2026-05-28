@@ -601,7 +601,7 @@ def plot_all_DDGs(
 def ecdf_plot(
     datasets: dict[str, np.ndarray],
     title: str | None = "ECDF of Absolute Errors",
-    xlabel: str = "Pairwise",
+    xlabel: str = "Edgewise",
     quantity: str = r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
     ylabel: str = "Cumulative Probability",
@@ -621,7 +621,7 @@ def ecdf_plot(
         A dictionary where keys are dataset labels and values are the data arrays.
     title: str | None, default "ECDF of Absolute Errors"
         Title for the plot. If None, no title is set.
-    xlabel : str, default "Absolute Error"
+    xlabel : str, default "Edgewise"
         Label for the x-axis.
     quantity : str, default r"$\Delta\Delta$G"
         Metric that is being plotted.
@@ -718,23 +718,32 @@ def ecdf_plot(
 
 
 def ecdf_plot_DDGs(
-    graphs: list[FEMap | nx.MultiDiGraph],
-    labels: list[str],
+    femap: FEMap,
+    sources: list[str] | None = None,
+    labels: list[str] | None = None,
     title: str | None = "ECDF of Edgewise Absolute Errors",
     filename: str | None = None,
     **kwargs,
 ) -> plt.Figure:
     """
-    Plot ECDF of absolute errors for edgewise relative free energies in a graph.
+    Plot ECDF of absolute errors for edgewise relative free energies from multiple sources within a single FEMap.
+
+    Each computational source in the FEMap (i.e. each distinct ``source`` tag on
+    the relative calculations) is plotted as a separate ECDF curve.
 
     Parameters
     ----------
-    graphs: list[FEMap | nx.MultiDiGraph]
-        A list of graph objects with relative free energy edges.
-    labels: list[str]
-        A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default "ECDF of Absolute Errors"
-        Title for the plot. If None, no title is set.
+    femap : FEMap
+        A single FEMap containing one or more computational sources together
+        with experimental absolute measurements.
+    sources : list[str] | None, default None
+        Computational source names to include in the plot.  If ``None``, all
+        computational sources are used.
+    labels : list[str] | None, default None
+        Display labels for the legend, one per source.  If ``None``, the source
+        names are used directly, this should be used with ``sources`` to ensure the correct label is applied to the corresponding source.
+    title : str | None, default "ECDF of Edgewise Absolute Errors"
+        Title for the plot. If ``None``, no title is set.
     filename : str | None, default None
         If provided, the plot will be saved to this filename.
     **kwargs
@@ -747,65 +756,88 @@ def ecdf_plot_DDGs(
 
     Notes
     -----
-    We assume that the graphs have edges with 'calc_DDG' and 'exp_DDG' attributes. If any edges are missing an experimental value,
-    they will be skipped in the absolute error calculation.
+    If any edges are missing an experimental value, they will be skipped in the absolute error calculation.
 
     Raises
     ------
     ValueError
-        If any edges are missing a calculated DDG value.
+        If any edges are missing a calculated DDG value, if the number of sources and labels do not match or if no
+        computational results are in the graph.
     """
-    # extract the edgewise absolute errors for each graph
+    rel_df = femap.get_relative_dataframe()
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError("The FEMap contains no computational edges.")
+
+    if sources is None:
+        sources = all_comp_sources
+    if labels is None:
+        labels = list(sources)
+
+    if len(sources) != len(labels):
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
+
+    # get the experimental data
+    exp_df = (
+        rel_df[~comp_mask]
+        .set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
+        .rename(columns={"DDG (kcal/mol)": "DDG_exp"})
+    )
+
     datasets = {}
-    for graph, label in zip(graphs, labels):
-        # handle the case where a FEMap is provided
-        if isinstance(graph, FEMap):
-            graph = graph.to_legacy_graph()
+    for source, label in zip(sources, labels):
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
+        if src_df.empty:
+            raise ValueError(f"No computational edges found for source '{source}'.")
 
-        # if the experimental value is missing, add a nan so we can filter it out
-        x = np.array([x[2].get("exp_DDG", np.nan) for x in graph.edges(data=True)])
-        y = np.array([x[2].get("calc_DDG", np.nan) for x in graph.edges(data=True)])
-        # if any calculated values are missing raise an error
-        if np.any(np.isnan(y)) or y.size == 0:
-            raise ValueError(
-                f"Graph with label {label} has edges with missing calculated DDG values, which should be stored as `calc_DDG`."
-            )
-        # filter out edges with missing experimental values
-        mask = ~np.isnan(x)
-        x = x[mask]
-        y = y[mask]
-        abs_errors = np.abs(y - x)
-        datasets[label] = abs_errors
+        merged = src_df.join(exp_df, how="left")
+        # skip edges without an experimental reference DDG
+        merged = merged.dropna(subset=["DDG_exp"])
+        datasets[label] = np.abs(merged["DDG (kcal/mol)"] - merged["DDG_exp"]).values
 
-    fig = ecdf_plot(
+    # finally check all datasets are the same length
+    if len({len(v) for v in datasets.values()}) != 1:
+        raise ValueError(
+            "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
+        )
+
+    return ecdf_plot(
         datasets,
         title=title,
         filename=filename,
         xlabel="Edgewise",
         **kwargs,
     )
-    return fig
 
 
 def ecdf_plot_DGs(
-    graphs: list[FEMap | nx.MultiDiGraph],
-    labels: list[str],
+    femap: FEMap,
+    sources: list[str] | None = None,
+    labels: list[str] | None = None,
     title: str | None = "ECDF of Nodewise Absolute Errors",
     filename: str | None = None,
     centralizing: bool = True,
     **kwargs,
 ) -> plt.Figure:
     """
-    Plot ECDF of absolute errors for nodewise absolute free energies in a graph.
+    Plot ECDF of absolute errors for nodewise absolute free energies from multiple sources within a single FEMap.
+
+    Each computational source in the FEMap is plotted as a separate ECDF curve.
 
     Parameters
     ----------
-    graphs: list[FEMap | nx.MultiDiGraph]
-        A list of graph objects with relative free energy edges.
-    labels: list[str]
-        A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default "ECDF of Absolute Errors"
-        Title for the plot. If None, no title is set.
+    femap : FEMap
+        A single FEMap containing one or more computational absolute sources together with experimental absolute measurements.
+    sources : list[str] | None, default None
+        Computational source names to include in the plot.
+        If ``None``, all computational sources are used.
+    labels : list[str] | None, default None
+        Display labels for the legend, one per source.  If ``None``, the source
+        names are used directly, this should be used with ``sources`` to ensure the correct label is applied to the corresponding source.
+    title : str | None, default "ECDF of Nodewise Absolute Errors"
+        Title for the plot.
     filename : str | None, default None
         If provided, the plot will be saved to this filename.
     centralizing : bool, default True
@@ -818,43 +850,58 @@ def ecdf_plot_DGs(
     plt.Figure
         The matplotlib Figure object containing the ECDF plot which can be edited further.
 
-    Notes
-    -----
-    We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. The absolute errors are calculated after centering both
-    calculated and experimental values around zero.
-
     Raises
     ------
     ValueError
-        If any nodes are missing a calculated DG value.
+        If any ligands are missing a calculated DG value, if the number of sources and labels do not match or if no
+        computational results are in the graph.
     """
-    # extract the nodewise absolute errors for each graph
+    df = femap.get_absolute_dataframe()
+    comp_mask = df["computational"]
+    all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
+
+    if sources is None:
+        sources = all_comp_sources
+    if labels is None:
+        labels = list(sources)
+
+    if len(sources) != len(labels):
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
+
+    exp_df = (
+        df[~comp_mask]
+        .drop_duplicates(subset=["label"])
+        .set_index("label")[["DG (kcal/mol)"]]
+        .rename(columns={"DG (kcal/mol)": "DG_exp"})
+    )
+
     datasets = {}
-    for graph, label in zip(graphs, labels):
-        # handle the case where a FEMap is provided
-        if isinstance(graph, FEMap):
-            graph = graph.to_legacy_graph()
+    for source, label in zip(sources, labels):
+        src_df = df[comp_mask & (df["source"] == source)].set_index("label")[["DG (kcal/mol)"]]
+        if src_df.empty:
+            raise ValueError(f"No computed absolute values found for source '{source}'.")
 
-        # if the experimental value is missing, add a nan so we can filter it out
-        x = np.array([node[1].get("exp_DG", np.nan) for node in graph.nodes(data=True)])
-        y = np.array([node[1].get("calc_DG", np.nan) for node in graph.nodes(data=True)])
-        # if any nodes are missing calculated values raise an error
-        if np.any(np.isnan(y)) or y.size == 0:
-            raise ValueError(
-                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
-            )
-        # filter out nodes with missing experimental values
-        mask = ~np.isnan(x)
-        x = x[mask]
-        y = y[mask]
-        # we need to shift the arrays to both be centered around zero if requested
+        merged = src_df.join(exp_df, how="left")
+        merged = merged.dropna(subset=["DG_exp"])
+        x = merged["DG_exp"].values
+        y = merged["DG (kcal/mol)"].values
         if centralizing:
-            x -= np.mean(x)
-            y -= np.mean(y)
-        abs_errors = np.abs(y - x)
-        datasets[label] = abs_errors
+            x = x - x.mean()
+            y = y - y.mean()
+        datasets[label] = np.abs(y - x)
 
-    fig = ecdf_plot(
+    if len({len(v) for v in datasets.values()}) != 1:
+        raise ValueError(
+            "Inconsistent number of computational nodes across sources, make sure all nodes have a result for each source."
+        )
+
+    return ecdf_plot(
         datasets,
         title=title,
         xlabel="Nodewise",
@@ -862,12 +909,12 @@ def ecdf_plot_DGs(
         filename=filename,
         **kwargs,
     )
-    return fig
 
 
 def ecdf_plot_all_DDGs(
-    graphs: list[FEMap | nx.MultiDiGraph],
-    labels: list[str],
+    femap: FEMap,
+    sources: list[str] | None = None,
+    labels: list[str] | None = None,
     title: str | None = "ECDF of Pairwise (all-to-all) Absolute Errors",
     filename: str | None = None,
     **kwargs,
@@ -877,12 +924,15 @@ def ecdf_plot_all_DDGs(
 
     Parameters
     ----------
-    graphs: list[FEMap | nx.MultiDiGraph]
-        A list of graph objects with relative free energy edges.
-    labels: list[str]
-        A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default "ECDF of Absolute Errors"
-        Title for the plot. If None, no title is set.
+    femap : FEMap
+        A single FEMap containing one or more computational absolute sources together with experimental absolute measurements.
+    sources : list[str] | None, default None
+        Computational source names to include.  If ``None``, all computational
+        sources in the absolute dataframe are used.
+    labels : list[str] | None, default None
+        Display labels for the legend.  Defaults to the source names.
+    title : str | None, default "ECDF of Pairwise (all-to-all) Absolute Errors"
+        Title for the plot.
     filename : str | None, default None
         If provided, the plot will be saved to this filename.
     **kwargs
@@ -893,52 +943,64 @@ def ecdf_plot_all_DDGs(
     plt.Figure
         The matplotlib Figure object containing the ECDF plot which can be edited further.
 
-    Notes
-    -----
-    We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. If any nodes are missing an experimental value,
-    they will be skipped in the absolute error calculation.
-
     Raises
     ------
     ValueError
-        If any nodes are missing a calculated DG value.
+        If the FEMap contains no computed absolute values, if a requested
+        source cannot be found, or if ``sources`` and ``labels`` differ in
+        length.
+
+    Notes
+    -----
+    Ligands without experimental absolute values are excluded before computing
+    pairwise combinations. Only unique (unordered) pairs are included, so N
+    ligands contribute N*(N-1)/2 data points.
     """
-    # extract the all-to-all absolute errors for each graph
+    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=False)
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values which are need to obtain the all-to-all pairwise DDGs. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
+
+    if sources is None:
+        sources = all_comp_sources
+    if labels is None:
+        labels = list(sources)
+
+    if len(sources) != len(labels):
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
+
+    exp_df = (
+        rel_df[~comp_mask]
+        .set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
+        .rename(columns={"DDG (kcal/mol)": "DDG_exp"})
+    )
+
     datasets = {}
-    for graph, label in zip(graphs, labels):
-        # handle the case where a FEMap is provided
-        if isinstance(graph, FEMap):
-            graph = graph.to_legacy_graph()
+    for source, label in zip(sources, labels):
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
+        if src_df.empty:
+            raise ValueError(f"No computational edges found for source '{source}'.")
 
-        nodes = graph.nodes(data=True)
+        merged = src_df.join(exp_df, how="left")
+        # skip edges without an experimental reference DDG
+        merged = merged.dropna(subset=["DDG_exp"])
+        datasets[label] = np.abs(merged["DDG (kcal/mol)"] - merged["DDG_exp"]).values
 
-        # if the experimental value is missing, add a nan so we can filter it out
-        exp = np.array([node[1].get("exp_DG", np.nan) for node in nodes])
-        calc = np.array([node[1].get("calc_DG", np.nan) for node in nodes])
-        # if any nodes are missing calculated values raise an error
-        if np.any(np.isnan(calc)) or calc.size == 0:
-            raise ValueError(
-                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
-            )
-        # filter out nodes with missing experimental values
-        mask = ~np.isnan(exp)
-        exp = exp[mask]
-        calc = calc[mask]
-        # do all to plot_all we are taking the abs error so we only need the error once per pair
-        errors = []
-        for a, b in itertools.combinations(range(len(calc)), 2):
-            # transform a -> b has a DDG of calc[b] - calc[a]
-            calc_ddg = calc[b] - calc[a]
-            exp_ddg = exp[b] - exp[a]
-            errors.append(calc_ddg - exp_ddg)
+    # finally check all datasets are the same length
+    if len({len(v) for v in datasets.values()}) != 1:
+        raise ValueError(
+            "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
+        )
 
-        datasets[label] = np.abs(errors)
-
-    fig = ecdf_plot(
+    return ecdf_plot(
         datasets,
         title=title,
         xlabel="Pairwise",
         filename=filename,
         **kwargs,
     )
-    return fig

@@ -474,6 +474,18 @@ def test_to_dataframe(example_map):
     assert abs_df2.loc[~abs_df2.computational].shape == (36, 5)
 
 
+def test_relative_dataframe_after_absolute(example_map):
+    """Test that the relative dataframe is not changed by the generation of absolute values."""
+    rel_df = example_map.get_relative_dataframe()
+    example_map.generate_absolute_values()
+    rel_df2 = example_map.get_relative_dataframe()
+    # every row should be the same and in the same order
+    assert rel_df.shape == (116, 6)
+    assert rel_df2.shape == (116, 6)
+    for col in rel_df.columns:
+        assert np.array_equal(rel_df[col].values, rel_df2[col].values)
+
+
 def test_to_all_pairwise_df_symmetry(example_map):
     """Test generating the all-to-all pairwise dataframe with the symmetry option."""
     # Generate using only the experimental data
