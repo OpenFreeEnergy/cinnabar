@@ -330,7 +330,7 @@ def plot_DDGs(
     # labels
     data_labels = []
     if data_label_type:
-        for _, row in comp_data.iterrows():
+        for _, row in merged.iterrows():
             node_a_name = row["labelA"]
             node_b_name = row["labelB"]
             if node_a_name.startswith("-") and node_b_name.startswith("-"):
