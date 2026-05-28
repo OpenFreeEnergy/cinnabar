@@ -798,7 +798,7 @@ def ecdf_plot_DDGs(
         datasets[label] = np.abs(merged["DDG (kcal/mol)"] - merged["DDG_exp"]).values
 
     # finally check all datasets are the same length
-    if len(set([len(v) for v in datasets.values()])) != 1:
+    if len({len(v) for v in datasets.values()}) != 1:
         raise ValueError(
             "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
         )
