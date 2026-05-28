@@ -993,7 +993,7 @@ def ecdf_plot_all_DDGs(
     # finally check all datasets are the same length
     if len(set([len(v) for v in datasets.values()])) != 1:
         raise ValueError(
-            "Inconsistent number of computational edges across sources, make sure all edges has a result for each source."
+            "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
         )
 
     return ecdf_plot(
