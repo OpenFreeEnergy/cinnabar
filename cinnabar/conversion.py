@@ -6,35 +6,35 @@ Conversion functions taken from
 from typing import Literal, get_args
 
 import numpy as np
-from openff.units import unit
+from openff.units import Quantity, unit
 
 # Single source of truth for the observable types we support
 OBSERVABLE_TYPES = Literal["dg", "ki", "ic50", "pic50"]
 
 
 def convert_observable(
-    value: unit.Quantity,
+    value: Quantity,
     original_type: OBSERVABLE_TYPES,
     final_type: OBSERVABLE_TYPES,
-    uncertainty: unit.Quantity | None = None,
-    temperature: unit.Quantity = 298.15 * unit.kelvin,
-) -> tuple[unit.Quantity, unit.Quantity | None]:
+    uncertainty: Quantity | None = None,
+    temperature: Quantity = 298.15 * unit.kelvin,
+) -> tuple[Quantity, Quantity | None]:
     """
     Converts an affinity value into another derived quantity,
     including automatic error propagation if error is provided.
 
     Parameters
     ----------
-    value : unit.Quantity
+    value : openff.units.Quantity
         Numerical value of the original observable with units.
     original_type : str
         Code for the original observable. Can be `dg`, `ki`, `ic50`, `pic50`.
     final_type : str
         Code for the desired derived quantity. Can be `dg`, `ki`, `ic50`, `pic50`.
-    uncertainty : unit.Quantity, optional
+    uncertainty : openff.units.Quantity, default None
         The uncertainty/error in the original observable with units, should always be positive.
-    temperature : unit.Quantity, optional
-        Temperature in kelvin for conversions involving dG. Default is 298.15 K.
+    temperature : openff.units.Quantity, default 298.15 * unit.kelvin
+        Temperature in kelvin for conversions involving dG.
 
 
     Notes
@@ -42,18 +42,18 @@ def convert_observable(
     - The function uses the molar gas constant (R) and the provided temperature to perform conversions involving dG.
     - If the original value is below a threshold (e.g., 1e-15 M for Ki/IC50), the function will return a default value to avoid numerical issues.
     - The function rounds the converted value and uncertainty to 2 decimal places if the type changes to reflect the typical precision of such measurements.
-    - The following default units are used for the output based on the final_type:
-        - `dg`: kilocalories per mole
-        - `ki`: nanomolar
-        - `ic50`: nanomolar
-        - `pic50`: unitless (logarithmic scale)
+    - The following default units are used for the output based on the ``final_type``:
+        - ``dg``: kilocalories per mole
+        - ``ki``: nanomolar
+        - ``ic50``: nanomolar
+        - ``pic50``: unitless (logarithmic scale)
 
 
     Returns
     -------
-    converted_value : unit.Quantity
+    converted_value : openff.units.Quantity
         The converted value in the desired units.
-    converted_error : unit.Quantity or None
+    converted_error : openff.units.Quantity or None
         The propagated error in the converted value, or None if no error was provided.
 
     Examples
@@ -70,7 +70,7 @@ def convert_observable(
     Raises
     ------
     ValueError
-        If the original_type or final_type is not recognized or if the uncertainty is negative.
+        If the ``original_type`` or ``final_type`` is not recognized or if the ``uncertainty`` is negative.
     """
     # calculate kT for the given temperature, this will be used in the conversions involving dG
     k_bt = unit.molar_gas_constant * temperature
@@ -82,7 +82,8 @@ def convert_observable(
     if final_type not in valid_types:
         raise ValueError(f"Unknown final_type: {final_type}. Must be one of: {', '.join(valid_types)}")
     # validate that uncertainty is non-negative if provided
-    if uncertainty is not None and uncertainty < 0:
+    # use np.any so the check works for both scalar and array Quantity inputs
+    if uncertainty is not None and np.any(uncertainty.m < 0):
         raise ValueError("Uncertainty must be positive")
 
     # store the conversion functions by (original_type, final_type) in a dictionary for easy lookup
@@ -112,21 +113,15 @@ def convert_observable(
     # get the converter function based on the original and final types
     converter = converters[(original_type, final_type)]
 
-    # if the input is in pic50, add dimensionless units for consistent conversions
-    if original_type == "pic50":
-        value = value * unit("")
-        if uncertainty is not None:
-            uncertainty = uncertainty * unit("")
-
     # do the conversion and error propagation
     converted_value, converted_uncertainty = converter(value, uncertainty)
 
     # get the units for the output type and convert the value and uncertainty to those units
     default_units = {
-        "dg": unit("kilocalories / mole"),
-        "ki": unit("nanomolar"),
-        "ic50": unit("nanomolar"),
-        "pic50": unit(""),
+        "dg": unit.kilocalorie_per_mole,
+        "ki": unit.nanomolar,
+        "ic50": unit.nanomolar,
+        "pic50": unit.dimensionless,
     }
     out_unit = default_units[final_type]
     converted_value = converted_value.to(out_unit)
