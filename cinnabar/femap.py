@@ -814,10 +814,8 @@ class FEMap:
 
     def get_cc_based_edge_statistics(self, max_cycle_length: int = 5) -> pd.DataFrame:
         """
-        For each edge, report how many cycles it appears in and
-        the mean and max cycle closure error of those cycles.
-        Edges with high mean closure error across many cycles are
-        likely candidates for re-simulation.
+        For each simulated edge, report how many cycles it appears in and
+        the mean and max cycle closure error of those cycles per source.
 
         Parameters
         ----------
