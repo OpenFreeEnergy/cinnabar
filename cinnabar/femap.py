@@ -891,12 +891,6 @@ class FEMap:
             for color, edges in highlight_edges.items():
                 for edge in edges:
                     canonical = tuple(sorted(edge))
-
-                    if canonical in edge_to_color:
-                        raise ValueError(
-                            f"Edge {canonical} assigned multiple colors."
-                        )
-
                     edge_to_color[canonical] = color
 
         fig, ax = plt.subplots(figsize=(10, 10))

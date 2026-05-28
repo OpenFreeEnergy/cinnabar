@@ -755,7 +755,7 @@ def test_draw_graph_show(fe_map, monkeypatch):
 def test_highlight_edges_reverse_direction(fe_map, tmp_path):
     filepath = tmp_path / "femap_graph.png"
     a, b = list(fe_map.to_legacy_graph().edges())[0]
-    fe_map.draw_graph(title="test", filename=filepath, highlight_edges=[(b, a)])
+    fe_map.draw_graph(title="test", filename=filepath, highlight_edges={"red": [(b, a)]})
 
     assert filepath.exists()
 
