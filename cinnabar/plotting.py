@@ -953,7 +953,7 @@ def ecdf_plot_all_DDGs(
     Notes
     -----
     Ligands without experimental absolute values are excluded before computing
-    pairwise combinations.  Only unique (unordered) pairs are included, so N
+    pairwise combinations. Only unique (unordered) pairs are included, so N
     ligands contribute N*(N-1)/2 data points.
     """
     rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=False)
