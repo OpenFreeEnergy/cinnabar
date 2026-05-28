@@ -314,8 +314,8 @@ class MLEEstimator(Estimator):
         # track the edges we have seen
         edges = []
         for a, b in graph.edges:
-            edge_name = tuple(sorted([a, b]))
-            if edge_name in edges:
+            if (edge_name := (a, b) if str(a) < str(b) else (b, a)) in edges:
+                # TODO this should be supported behavior
                 raise ValueError(
                     f"Multiple edges detected between nodes {a} and {b}. MLE cannot be performed on graphs with multiple "
                     f"edges between the same nodes. The results should be combined into a single estimate and uncertainty "
@@ -323,67 +323,45 @@ class MLEEstimator(Estimator):
                 )
             edges.append(edge_name)
 
-        N = graph.number_of_nodes()
-        if node_factor is None:
-            f_ij = MLEEstimator.form_edge_matrix(graph, factor, action="antisymmetrize")
-            df_ij = MLEEstimator.form_edge_matrix(graph, factor.replace("_", "_d"), action="symmetrize")
-        else:
-            f_ij = MLEEstimator.form_edge_matrix(graph, factor, action="antisymmetrize", node_label=node_factor)
-            df_ij = MLEEstimator.form_edge_matrix(
-                graph,
-                factor.replace("_", "_d"),
-                action="symmetrize",
-                node_label=node_factor.replace("_", "_d"),
-            )
+        n_nodes = graph.number_of_nodes()
 
-        node_name_to_index = {}
-        for i, name in enumerate(graph.nodes()):
-            node_name_to_index[name] = i
+        node_label = None if node_factor is None else node_factor.replace("_", "_d")
+        node_name_to_index = {name: i for i, name in enumerate(graph.nodes())}
+        # Adapted from the multibind implementation (Kenney IM & Beckstein O, 2023)
+        # https://github.com/Becksteinlab/multibind/blob/7c93f605d99ff67d9adef890c9302bccd2caa1b5/multibind/multibind.py#L319
+        # to support harmonic wells around individual states
+        z = np.zeros((n_nodes,))
+        F_matrix = np.zeros((n_nodes, n_nodes))
 
-        # Form F matrix (Eq 4)
-        F_matrix = np.zeros([N, N])
-        for a, b in graph.edges:
+        for n, data in graph.nodes(data=True):
+            if node_label in data:
+                i = node_name_to_index[n]
+                z[i] = data[node_factor] / (data[node_label] ** 2)
+                F_matrix[i,i] = 1 / (data[node_label] ** 2)
+
+        for a, b, data in graph.edges(data=True):
+
+            if a == b:
+                continue
+
             i = node_name_to_index[a]
             j = node_name_to_index[b]
-            if i == j:
-                # The MLE solver will fail if we include self-edges, so we need to omit these
-                continue
-            # check if the uncertainty is zero and raise an error if it is, since this will cause the MLE solver to fail
-            if df_ij[i, j] == 0.0:
-                raise ValueError(
-                    f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs."
-                )
-            F_matrix[i, j] = -(df_ij[i, j] ** (-2))
-            F_matrix[j, i] = -(df_ij[i, j] ** (-2))
-        for n in graph.nodes:
-            i = node_name_to_index[n]
-            if df_ij[i, i] == 0.0:
-                F_matrix[i, i] = -np.sum(F_matrix[i, :])
-            else:
-                F_matrix[i, i] = df_ij[i, i] ** (-2) - np.sum(F_matrix[i, :])
 
-        # Form z vector (Eq 3)
-        z = np.zeros([N])
-        for n in graph.nodes:
-            i = node_name_to_index[n]
-            if df_ij[i, i] != 0.0:
-                z[i] = f_ij[i, i] * df_ij[i, i] ** (-2)
-        for a, b in graph.edges:
-            i = node_name_to_index[a]
-            j = node_name_to_index[b]
-            if i == j:
-                # The MLE solver will fail if we include self-edges, so we need to omit these
-                continue
-            z[i] += f_ij[i, j] * df_ij[i, j] ** (-2)
-            z[j] += f_ij[j, i] * df_ij[j, i] ** (-2)
+            deltaij = data[factor]
+            if (varij := data[factor.replace("_", "_d")] ** 2) == 0:
+                raise ValueError(f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs.")
 
-        # Compute MLE estimate (Eq 2)
-        Finv = np.linalg.pinv(F_matrix)
+            z[i] += -deltaij / varij
+            z[j] += deltaij / varij
+
+            F_matrix[i, i] += 1 / varij
+            F_matrix[j, j] += 1 / varij
+            F_matrix[i, j] += -1 / varij
+            F_matrix[j, i] += -1 / varij
+
+        Finv = np.linalg.pinv(F_matrix, hermitian=True)
         f_i = np.matmul(Finv, z)
-
-        # Compute uncertainty
-        C = Finv
-        return f_i, C
+        return f_i, Finv
 
     @staticmethod
     def form_edge_matrix(graph: nx.Graph, label: str, step=None, action=None, node_label=None) -> np.ndarray:
