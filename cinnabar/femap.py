@@ -6,7 +6,6 @@ The workhorse of cinnabar, a :class:`FEMap` contains many measurements of free e
 both relative and absolute,
 which form an interconnected "network" of values.
 """
-
 import copy
 import pathlib
 import warnings
@@ -631,7 +630,12 @@ class FEMap:
 
         return g
 
-    def draw_graph(self, title: str = "", filename: Union[str, None] = None, highlight_edges=None):
+    def draw_graph(
+            self,
+            title: str = "",
+            filename: str | PathLike | None = None,
+            highlight_edges: dict[str, list[tuple[str, str]]] | None = None,
+    ):
         """
         Draw the FEMap network graph.
 
@@ -639,23 +643,33 @@ class FEMap:
         ----------
         title : str, optional
             Title for the plot.
-        filename : str, optional
-            Path to save the figure to. If None, the graph will be displayed.
-        highlight_edges : list of (str, str) tuples, optional
-            Edges to highlight in red.
+        filename : str or PathLike, optional
+            Path to save the figure to. If None, the graph is displayed.
+        highlight_edges : dict[str, list[tuple[str, str]]], optional
+            Mapping of color -> list of edges to draw in that color.
+            Edges not included are drawn in grey.
         """
+        edge_to_color: dict[tuple[str, str], str] = {}
+
+        if highlight_edges:
+            for color, edges in highlight_edges.items():
+                for edge in edges:
+                    canonical = tuple(sorted(edge))
+
+                    if canonical in edge_to_color:
+                        raise ValueError(
+                            f"Edge {canonical} assigned multiple colors."
+                        )
+
+                    edge_to_color[canonical] = color
+
         fig, ax = plt.subplots(figsize=(10, 10))
         graph = self.to_legacy_graph()
         labels = {n: n for n in graph.nodes}
 
-        highlight_set = set()
-        if highlight_edges:
-            for a, b in highlight_edges:
-                highlight_set.add((a, b))
-                highlight_set.add((b, a))
-
-        edge_colors = ["red" if (a, b) in highlight_set else "grey" for a, b in graph.edges()]
-        edge_widths = [2.5 if (a, b) in highlight_set else 1.0 for a, b in graph.edges()]
+        graph_edges = [tuple(sorted(edge)) for edge in graph.edges()]
+        edge_colors = [edge_to_color.get(edge, "grey") for edge in graph_edges]
+        edge_widths = [2.5 if edge in edge_to_color else 1.0 for edge in graph_edges]
 
         nx.draw_circular(
             graph,
@@ -666,6 +680,7 @@ class FEMap:
             width=edge_widths,
             ax=ax,
         )
+
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
         ax.set_title(long_title)
 
