@@ -6,6 +6,7 @@ The workhorse of cinnabar, a :class:`FEMap` contains many measurements of free e
 both relative and absolute,
 which form an interconnected "network" of values.
 """
+
 import copy
 import itertools
 import pathlib
@@ -873,7 +874,7 @@ class FEMap:
         highlight_edges: dict[str, list[tuple[str, str]]] | None = None,
     ):
         """
-        Draw the FEMap network graph.
+        Draw the graph using matplotlib.
 
         Parameters
         ----------
