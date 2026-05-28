@@ -593,7 +593,7 @@ def plot_all_DDGs(
 
     if not all_comp_sources:
         raise ValueError(
-            f"The FEMap contains no computed absolute values. "
+            f"The FEMap contains no computed absolute values which are need to obtain the all-to-all pairwise DDGs. "
             "Call generate_absolute_values() first or add calculated absolute measurements directly."
         )
 

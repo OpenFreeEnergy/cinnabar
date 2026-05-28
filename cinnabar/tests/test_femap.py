@@ -193,6 +193,11 @@ def test_to_legacy(example_map, ref_legacy):
     assert s == ref_legacy
 
 
+def test_to_legacy_deprecated(fe_map):
+    with pytest.warns(DeprecationWarning, match=re.escape("to_legacy_graph() is deprecated")):
+        _ = fe_map.to_legacy_graph()
+
+
 def test_generate_absolute_values(example_map, ref_mle_results):
     example_map.generate_absolute_values()
 
@@ -722,6 +727,13 @@ def test_add_wrong_type():
 
 def test_draw_graph_to_file(fe_map, tmp_path):
     filepath = tmp_path / "femap_graph.png"
+    # add a fake abs calculation which should be skipped
+    fe_map.add_absolute_calculation(
+        label="c1",
+        value=-10.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.2 * unit.kilocalorie_per_mole,
+        source="test-ABFE",
+    )
     fe_map.draw_graph(title="test", filename=filepath)
 
     assert filepath.exists()
