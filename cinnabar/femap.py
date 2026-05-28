@@ -891,14 +891,13 @@ class FEMap:
         if highlight_edges:
             for color, edges in highlight_edges.items():
                 for edge in edges:
-                    canonical = tuple(sorted(edge))
-                    edge_to_color[canonical] = color
+                    edge_to_color[sorted(edge)] = color
 
         fig, ax = plt.subplots(figsize=(10, 10))
         graph = self.to_legacy_graph()
         labels = {n: n for n in graph.nodes}
 
-        graph_edges = [tuple(sorted(edge)) for edge in graph.edges()]
+        graph_edges = [sorted(edge) for edge in graph.edges()]
         edge_colors = [edge_to_color.get(edge, "grey") for edge in graph_edges]
         edge_widths = [2.5 if edge in edge_to_color else 1.0 for edge in graph_edges]
 
