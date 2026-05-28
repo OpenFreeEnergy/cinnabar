@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -10,13 +8,13 @@ from cinnabar import stats
 
 def plot_bar(
     df: pd.DataFrame,
-    ddg_cols: str,
-    error_cols: str,
+    ddg_cols: list[str],
+    error_cols: list[str],
     exp_col: str = "exp",
     exp_error_col: str = "dexp",
     name_col: str = "edge",
     title: str = "",
-    filename: Optional[str] = None,
+    filename: str | None = None,
 ):
     """
     Creates a plotly barplot. It takes a pandas.Dataframe df as input and plots
@@ -148,15 +146,15 @@ def _master_plot(
     x: np.ndarray,
     y: np.ndarray,
     title: str = "",
-    xerr: Optional[np.ndarray] = None,
-    yerr: Optional[np.ndarray] = None,
+    xerr: np.ndarray | None = None,
+    yerr: np.ndarray | None = None,
     method_name: str = "",
     target_name: str = "",
     plot_type: str = "",
     guidelines: bool = True,
     origins: bool = True,
     statistics: list = ["RMSE", "MUE"],
-    filename: Optional[str] = None,
+    filename: str | None = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: str = "mle",
