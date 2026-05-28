@@ -807,7 +807,22 @@ class FEMap:
         This matches the legacy format of this object, notably:
         - drops multi edge capability
         - removes units from values
+
+        .. deprecated::
+            ``to_legacy_graph`` is deprecated and will be removed in a future release.
+            Use ``get_relative_dataframe`` and ``get_absolute_dataframe`` to access
+            the underlying data, or ``generate_absolute_values`` to run MLE explicitly.
+            The plot functions ``plot_DDGs``, ``plot_DGs``, and ``plot_all_DDGs`` now accept
+            a ``FEMap`` directly and no longer require a legacy graph.
         """
+        warnings.warn(
+            "to_legacy_graph() is deprecated and will be removed in a future release. "
+            "Use get_relative_dataframe() and get_absolute_dataframe() to access the underlying data, "
+            "or generate_absolute_values() to run MLE explicitly. "
+            "The plot functions plot_DDGs, plot_DGs, and plot_all_DDGs now accept a FEMap directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # reduces to nx.DiGraph
         g = nx.DiGraph()
         # the MLE method can only use a single result per edge, we need to raise and error if we have repeats or bidirectional results
@@ -875,12 +890,12 @@ class FEMap:
         ----------
         title : str, default ""
             Title for the graph, by default an empty string.
-        filename : str or None, default None
+        filename : str | None, default None
             If provided, the graph will be saved to this file. If None, the graph will be displayed.
         """
         plt.figure(figsize=(10, 10))
 
-        graph = self.to_legacy_graph()
+        graph = self.to_networkx()
 
         labels = {n: n for n in graph.nodes}
 

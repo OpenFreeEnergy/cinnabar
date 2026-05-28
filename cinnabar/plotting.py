@@ -263,7 +263,10 @@ def plot_DDGs(
     femap : FEMap
         FEMap object with relative and absolute free energy edges
     source : str
-        The source of the relative data which should be plotted against the experimental values.
+        The source label of the computational relative free energies to plot against experiment.
+        This must match the ``source`` field used when the calculations were added to the
+        ``FEMap``.  For data loaded via ``FEMap.from_csv``
+        (or added without an explicit source), pass ``source=""``.
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
     target_name : string, default ""
@@ -344,7 +347,7 @@ def plot_DDGs(
     # labels
     data_labels: list[str] = []
     if data_label_type:
-        for _, row in comp_data.iterrows():
+        for _, row in merged.iterrows():
             node_a_name = row["labelA"]
             node_b_name = row["labelB"]
             if node_a_name.startswith("-") and node_b_name.startswith("-"):
@@ -443,7 +446,7 @@ def plot_DGs(
     femap : FEMap
         FEMap object with absolute free energies to plot.
     source : str
-        The name of the source to plot.
+        The name of the source label of the computational absolute values, if absolute values are generated with the MLE estimator this should be "MLE".
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
     target_name : string, default ""
@@ -559,7 +562,7 @@ def plot_all_DDGs(
     femap : FEMap
         FEMap object with absolute free energies to plot.
     source : str
-        The name of the source to plot.
+        The name of the source label of the computational absolute values, if absolute values are generated with the MLE estimator this should be "MLE".
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
     target_name : string, default ""
