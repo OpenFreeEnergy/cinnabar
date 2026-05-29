@@ -948,7 +948,7 @@ class FEMap:
             fig.savefig(filename, bbox_inches="tight", dpi=300)
         plt.close(fig)
 
-    def get_cycle_closure_dataframe(self, max_cycle_length: int = 5) -> list[tuple[str, float]]:
+    def get_cycle_closure_dataframe(self, max_cycle_length: int = 5) -> pd.DataFrame:
         """
         Calculate cycle closure errors for all cycles in the network.
 
