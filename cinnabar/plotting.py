@@ -9,8 +9,7 @@ from adjustText import adjust_text
 from openff.units import Quantity, unit
 
 from cinnabar import plotlying, stats
-from cinnabar.femap import FEMap, ANALYSIS_UNITS
-
+from cinnabar.femap import ANALYSIS_UNITS, FEMap
 
 # Map the observable type to expected dataframe column names and the units for the plot
 _OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
@@ -47,6 +46,7 @@ _OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
         },
     },
 }
+
 
 def _master_plot(
     x: np.ndarray,
@@ -362,7 +362,7 @@ def plot_DDGs(
 
     # load the data using the internal dataframes
     rel_df = femap.get_relative_dataframe(observable_type=observable_type, temperature=temperature)
-    plot_meta = _OBSERVABLE_METADATA[observable_type][ "relative"]
+    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
     value_col = plot_meta["value_col"]
     uncertainty_col = plot_meta["uncertainty_col"]
     comp_mask = rel_df["computational"]
@@ -377,9 +377,7 @@ def plot_DDGs(
     # get the comp data from the computational source
     comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
     # get the experimental data
-    exp_data = rel_df[~comp_mask].rename(
-        columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"}
-    )
+    exp_data = rel_df[~comp_mask].rename(columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"})
 
     # merge to align the data and drop any values missing an experimental data point
     merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
@@ -661,7 +659,9 @@ def plot_all_DDGs(
 
     """
     # use the internal dataframes to get the pairwise differences
-    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=True, observable_type=observable_type, temperature=temperature)
+    rel_df = femap.get_all_to_all_relative_dataframe(
+        symmetrical=True, observable_type=observable_type, temperature=temperature
+    )
     plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
     value_col = plot_meta["value_col"]
     uncertainty_col = plot_meta["uncertainty_col"]
@@ -681,9 +681,7 @@ def plot_all_DDGs(
     # get the comp data from the computational source
     comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
     # get the experimental data
-    exp_data = rel_df[~comp_mask].rename(
-        columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"}
-    )
+    exp_data = rel_df[~comp_mask].rename(columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"})
 
     # merge to align the data and drop any values missing an experimental data point
     merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
@@ -926,11 +924,7 @@ def ecdf_plot_DDGs(
         raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
 
     # get the experimental data
-    exp_df = (
-        rel_df[~comp_mask]
-        .set_index(["labelA", "labelB"])[[value_col]]
-        .rename(columns={value_col: "value_exp"})
-    )
+    exp_df = rel_df[~comp_mask].set_index(["labelA", "labelB"])[[value_col]].rename(columns={value_col: "value_exp"})
 
     datasets = {}
     for source, label in zip(sources, labels):
@@ -1127,7 +1121,9 @@ def ecdf_plot_all_DDGs(
     pairwise combinations. Only unique (unordered) pairs are included, so N
     ligands contribute N*(N-1)/2 data points.
     """
-    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable_type, temperature=temperature)
+    rel_df = femap.get_all_to_all_relative_dataframe(
+        symmetrical=False, observable_type=observable_type, temperature=temperature
+    )
     plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
     value_col = plot_meta["value_col"]
     comp_mask = rel_df["computational"]
@@ -1147,11 +1143,7 @@ def ecdf_plot_all_DDGs(
     if len(sources) != len(labels):
         raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
 
-    exp_df = (
-        rel_df[~comp_mask]
-        .set_index(["labelA", "labelB"])[[value_col]]
-        .rename(columns={value_col: "value_exp"})
-    )
+    exp_df = rel_df[~comp_mask].set_index(["labelA", "labelB"])[[value_col]].rename(columns={value_col: "value_exp"})
 
     datasets = {}
     for source, label in zip(sources, labels):

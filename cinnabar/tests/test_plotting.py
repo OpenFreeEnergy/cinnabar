@@ -19,10 +19,13 @@ def show_called(monkeypatch):
     return called
 
 
-@pytest.mark.parametrize("observable_type", [
-    pytest.param("dg", id="dg"),
-    pytest.param("pic50", id="pic50"),
-])
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
 def test_plot_ddgs_to_file(tmp_path, fe_map, observable_type):
     output_file = tmp_path / "ddg_plot.png"
     _ = plotting.plot_DDGs(fe_map, source="", filename=output_file, observable_type=observable_type)
@@ -34,10 +37,13 @@ def test_plot_ddgs_show(fe_map, show_called):
     assert "show" in show_called
 
 
-@pytest.mark.parametrize("observable_type", [
-    pytest.param("dg", id="dg"),
-    pytest.param("pic50", id="pic50"),
-])
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
 def test_plot_dgs_to_file(tmp_path, fe_map, observable_type):
     output_file = tmp_path / "dg_plot.png"
     fe_map.generate_absolute_values()
@@ -51,10 +57,13 @@ def test_plot_dgs_show(fe_map, show_called):
     assert "show" in show_called
 
 
-@pytest.mark.parametrize("observable_type", [
-    pytest.param("dg", id="dg"),
-    pytest.param("pic50", id="pic50"),
-])
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
 def test_plot_all_ddgs_to_file(tmp_path, fe_map, observable_type):
     output_file = tmp_path / "all_ddg_plot.png"
     fe_map.generate_absolute_values()
@@ -287,10 +296,13 @@ def test_master_plot_clashing_scatter_kwargs(example_data_mle, show_called):
     assert "show" in show_called
 
 
-@pytest.mark.parametrize("observable_type", [
-    pytest.param("dg",  id="dg"),
-    pytest.param("pic50", id="pic50"),
-])
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
 def test_plot_ecdf_ddgs(fe_map, tmp_path, observable_type):
     """Test ECDF DDG plotting function."""
     output_file = tmp_path / "test_ecdf_ddgs.png"
@@ -300,9 +312,7 @@ def test_plot_ecdf_ddgs(fe_map, tmp_path, observable_type):
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
     expected_labels = plotting._OBSERVABLE_METADATA[observable_type]["relative"]
-    assert (
-        axes.get_xlabel() == f"Edgewise {expected_labels["ecdf_quantity"]} ({expected_labels["units"]})"
-    )
+    assert axes.get_xlabel() == f"Edgewise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Edgewise Absolute Errors"
     # make sure the file was created
     assert output_file.exists()
@@ -370,10 +380,13 @@ def test_plot_ecdf_ddgs_inconsistent_sources(fe_map):
         plotting.ecdf_plot_DDGs(fe_map)
 
 
-@pytest.mark.parametrize("observable_type", [
-    pytest.param("dg",  id="dg"),
-    pytest.param("pic50", id="pic50"),
-])
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
 def test_plot_ecdf_all_ddgs(fe_map, tmp_path, observable_type):
     """Test ECDF All DDG plotting function."""
     output_file = tmp_path / "test_ecdf_all_ddgs.png"
@@ -384,9 +397,7 @@ def test_plot_ecdf_all_ddgs(fe_map, tmp_path, observable_type):
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
     expected_labels = plotting._OBSERVABLE_METADATA[observable_type]["relative"]
-    assert (
-            axes.get_xlabel() == f"Pairwise {expected_labels["ecdf_quantity"]} ({expected_labels["units"]})"
-    )
+    assert axes.get_xlabel() == f"Pairwise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Pairwise (all-to-all) Absolute Errors"
     # make sure the file was created
     assert output_file.exists()
@@ -482,10 +493,13 @@ def test_plot_ecdf_dgs(fe_map, tmp_path, centralising, xlim):
     assert output_file.exists()
 
 
-@pytest.mark.parametrize("observable_type", [
-    pytest.param("dg",  id="dg"),
-    pytest.param("pic50", id="pic50"),
-])
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
 def test_plot_ecdf_dgs_units(fe_map, tmp_path, observable_type):
     """Test ECDF DG plotting function with different units"""
     fe_map.generate_absolute_values()
@@ -496,7 +510,7 @@ def test_plot_ecdf_dgs_units(fe_map, tmp_path, observable_type):
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
     expected_labels = plotting._OBSERVABLE_METADATA[observable_type]["absolute"]
-    assert axes.get_xlabel() == f"Nodewise {expected_labels["ecdf_quantity"]} ({expected_labels["units"]})"
+    assert axes.get_xlabel() == f"Nodewise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Nodewise Absolute Errors"
     # make sure the file was created
     assert output_file.exists()
