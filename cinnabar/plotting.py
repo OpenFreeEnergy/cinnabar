@@ -1065,6 +1065,7 @@ def plot_cycle_closure(
     filename: Optional[str] = None,
     max_cycle_length: int = 5,
     sources: Optional[list[str]] = None,
+    bin_width: float = 0.5,
 ) -> plt.Figure:
     """
     Plot a histogram of cycle closure errors.
@@ -1080,6 +1081,8 @@ def plot_cycle_closure(
         The matplotlib Figure object, which can be edited further.
     sources : list[str], optional
         List of sources to plot. If None, all sources are plotted.
+    bin_width : float, optional
+        Width of histogram bins in kcal/mol. Default: 0.5
     """
     df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
 
@@ -1098,9 +1101,12 @@ def plot_cycle_closure(
 
     fig, ax = plt.subplots(figsize=(5, 4))
 
+    max_val = df["cc (kcal/mol)"].max()
+    bins = np.arange(0, max_val + bin_width, bin_width)
+
     for source in unique_sources:
         source_df = df[df["source"] == source]
-        ax.hist(source_df["cc (kcal/mol)"], bins="auto", alpha=0.6, label=source)
+        ax.hist(source_df["cc (kcal/mol)"], bins=bins, alpha=0.6, label=source)
 
     ax.set_xlabel(r"Cycle closure (kcal mol$^{-1}$)")
     ax.set_ylabel("Count")
