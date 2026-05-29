@@ -1067,7 +1067,7 @@ def plot_cycle_closure(
     max_cycle_length: int = 5,
     sources: Optional[list[str]] = None,
     bin_width: float = 0.5,
-) -> plt.Figure:
+) -> plt.Figure | None:
     """
     Plot a histogram of cycle closure errors.
 
