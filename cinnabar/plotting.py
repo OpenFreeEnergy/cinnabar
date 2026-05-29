@@ -1089,20 +1089,21 @@ def plot_cycle_closure(
 
     if df.empty:
         warnings.warn("No cycles found; skipping plot.")
-        return
+        return None
 
     if sources is not None:
         df = df[df["source"].isin(sources)]
         if df.empty:
-            warnings.warn(f"No cycles found for sources {sources}; skipping plot.")
-            return
+            warnings.warn(
+                f"No cycles found for sources {sources}; skipping plot.")
+            return None
 
     unique_sources = df["source"].unique()
 
     fig, ax = plt.subplots(figsize=(5, 4))
 
     max_val = df["cc (kcal/mol)"].max()
-    bins = np.arange(0, max_val + bin_width, bin_width)
+    bins = np.arange(0, max_val + bin_width, bin_width).tolist()
 
     for source in unique_sources:
         source_df = df[df["source"] == source]
