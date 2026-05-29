@@ -6,10 +6,47 @@ import networkx as nx
 import numpy as np
 import seaborn as sns
 from adjustText import adjust_text
+from openff.units import Quantity, unit
 
 from cinnabar import plotlying, stats
-from cinnabar.femap import FEMap
+from cinnabar.femap import FEMap, ANALYSIS_UNITS
 
+
+# Map the observable type to expected dataframe column names and the units for the plot
+_OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
+    "dg": {
+        "relative": {
+            "value_col": "DDG (kcal/mol)",
+            "uncertainty_col": "uncertainty (kcal/mol)",
+            "quantity": r"$\Delta\Delta$G",
+            "units": r"$\mathrm{kcal\,mol^{-1}}$",
+            "ecdf_quantity": r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
+        },
+        "absolute": {
+            "value_col": "DG (kcal/mol)",
+            "uncertainty_col": "uncertainty (kcal/mol)",
+            "quantity": r"$\Delta$G",
+            "units": r"$\mathrm{kcal\,mol^{-1}}$",
+            "ecdf_quantity": r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
+        },
+    },
+    "pic50": {
+        "relative": {
+            "value_col": "DpIC50",
+            "uncertainty_col": "uncertainty (unitless)",
+            "quantity": r"$\Delta\mathrm{pIC50}$",
+            "units": "unitless",
+            "ecdf_quantity": r"$|\Delta$pIC50$_{calc}$ - $\Delta$pIC50$_{exp}|$",
+        },
+        "absolute": {
+            "value_col": "pIC50",
+            "uncertainty_col": "uncertainty (unitless)",
+            "quantity": "pIC50",
+            "units": "unitless",
+            "ecdf_quantity": r"$|$pIC50$_{calc}$ - pIC50$_{exp}|$",
+        },
+    },
+}
 
 def _master_plot(
     x: np.ndarray,
@@ -254,6 +291,8 @@ def plot_DDGs(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: Literal["mle", "mean"] = "mle",
+    observable_type: ANALYSIS_UNITS = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
     """Function to plot relative free energies
@@ -305,6 +344,11 @@ def plot_DDGs(
         Whether to account for uncertainty in y when bootstrapping.
     statistic_type : {"mle", "mean"}, default "mle"
         The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
 
     Returns
     -------
@@ -317,7 +361,10 @@ def plot_DDGs(
         assert not plotly, "We currently do not support data labeling for plotly-generated plots"
 
     # load the data using the internal dataframes
-    rel_df = femap.get_relative_dataframe()
+    rel_df = femap.get_relative_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type][ "relative"]
+    value_col = plot_meta["value_col"]
+    uncertainty_col = plot_meta["uncertainty_col"]
     comp_mask = rel_df["computational"]
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
@@ -331,18 +378,18 @@ def plot_DDGs(
     comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
     # get the experimental data
     exp_data = rel_df[~comp_mask].rename(
-        columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"}
+        columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"}
     )
 
     # merge to align the data and drop any values missing an experimental data point
     merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
-    merged = merged.dropna(subset=["DDG_exp"])
+    merged = merged.dropna(subset=["value_exp"])
 
     # extract the required data
-    x = merged["DDG_exp"].to_numpy(copy=True)
-    y = merged["DDG (kcal/mol)"].to_numpy(copy=True)
+    x = merged["value_exp"].to_numpy(copy=True)
+    y = merged[value_col].to_numpy(copy=True)
     xerr = merged["uncertainty_exp"].to_numpy(copy=True)
-    yerr = merged["uncertainty (kcal/mol)"].to_numpy(copy=True)
+    yerr = merged[uncertainty_col].to_numpy(copy=True)
 
     # labels
     data_labels: list[str] = []
@@ -407,6 +454,9 @@ def plot_DDGs(
             **kwargs,
         )
     else:
+        # allow callers to override quantity/units via kwargs
+        quantity = kwargs.pop("quantity", plot_meta["quantity"])
+        units = kwargs.pop("units", plot_meta["units"])
         _master_plot(
             x_data,
             y_data,
@@ -416,6 +466,8 @@ def plot_DDGs(
             title=title,
             method_name=method_name,
             target_name=target_name,
+            quantity=quantity,
+            units=units,
             data_labels=data_labels,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
@@ -437,6 +489,8 @@ def plot_DGs(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: Literal["mle", "mean"] = "mle",
+    observable_type: ANALYSIS_UNITS = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
     """Function to plot absolute free energies.
@@ -461,6 +515,11 @@ def plot_DGs(
         Whether to account for uncertainty in y when bootstrapping.
     statistic_type : {"mle", "mean"}, default "mle"
         The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
 
     Returns
     -------
@@ -468,7 +527,11 @@ def plot_DGs(
     """
 
     # extract the data from the internal dataframes
-    df = femap.get_absolute_dataframe()
+    df = femap.get_absolute_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type]["absolute"]
+    value_col = plot_meta["value_col"]
+    uncertainty_col = plot_meta["uncertainty_col"]
+
     comp_mask = df["computational"]
     all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
 
@@ -484,17 +547,17 @@ def plot_DGs(
     # get the comp data from the computational source
     comp_data = df[comp_mask & (df["source"] == source)]
     # get the experimental data
-    exp_data = df[~comp_mask].rename(columns={"DG (kcal/mol)": "DG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"})
+    exp_data = df[~comp_mask].rename(columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"})
 
     # merge to align the data and drop any values missing an experimental data point
     merged = comp_data.merge(exp_data, how="left", on=["label"])
-    merged = merged.dropna(subset=["DG_exp"])
+    merged = merged.dropna(subset=["value_exp"])
 
     # extract the required data
-    x_data = merged["DG_exp"].to_numpy(copy=True)
-    y_data = merged["DG (kcal/mol)"].to_numpy(copy=True)
+    x_data = merged["value_exp"].to_numpy(copy=True)
+    y_data = merged[value_col].to_numpy(copy=True)
     xerr = merged["uncertainty_exp"].to_numpy(copy=True)
-    yerr = merged["uncertainty (kcal/mol)"].to_numpy(copy=True)
+    yerr = merged[uncertainty_col].to_numpy(copy=True)
 
     # centralising
     # this should be replaced by providing one experimental result
@@ -521,6 +584,9 @@ def plot_DGs(
             **kwargs,
         )
     else:
+        # allow callers to override quantity/units via kwargs
+        quantity = kwargs.pop("quantity", plot_meta["quantity"])
+        units = kwargs.pop("units", plot_meta["units"])
         _master_plot(
             x_data,
             y_data,
@@ -528,7 +594,8 @@ def plot_DGs(
             yerr=yerr,
             origins=False,
             statistics=["RMSE", "MUE", "R2", "rho"],
-            quantity=r"$\Delta$G",
+            quantity=quantity,
+            units=units,
             title=title,
             method_name=method_name,
             target_name=target_name,
@@ -552,6 +619,8 @@ def plot_all_DDGs(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: Literal["mle", "mean"] = "mle",
+    observable_type: ANALYSIS_UNITS = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from
@@ -581,13 +650,22 @@ def plot_all_DDGs(
         Whether to account for uncertainty in y when bootstrapping.
     statistic_type : {"mle", "mean"}, default "mle"
         The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
 
     Returns
     -------
 
     """
     # use the internal dataframes to get the pairwise differences
-    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=True)
+    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=True, observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
+    value_col = plot_meta["value_col"]
+    uncertainty_col = plot_meta["uncertainty_col"]
+
     comp_mask = rel_df["computational"]
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
@@ -604,18 +682,18 @@ def plot_all_DDGs(
     comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
     # get the experimental data
     exp_data = rel_df[~comp_mask].rename(
-        columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"}
+        columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"}
     )
 
     # merge to align the data and drop any values missing an experimental data point
     merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
-    merged = merged.dropna(subset=["DDG_exp"])
+    merged = merged.dropna(subset=["value_exp"])
 
     # extract the required data
-    x_data = merged["DDG_exp"].to_numpy(copy=True)
-    y_data = merged["DDG (kcal/mol)"].to_numpy(copy=True)
+    x_data = merged["value_exp"].to_numpy(copy=True)
+    y_data = merged[value_col].to_numpy(copy=True)
     xerr = merged["uncertainty_exp"].to_numpy(copy=True)
-    yerr = merged["uncertainty (kcal/mol)"].to_numpy(copy=True)
+    yerr = merged[uncertainty_col].to_numpy(copy=True)
 
     if plotly:
         plotlying._master_plot(
@@ -635,6 +713,9 @@ def plot_all_DDGs(
         )
 
     else:
+        # allow callers to override quantity/units via kwargs
+        quantity = kwargs.pop("quantity", plot_meta["quantity"])
+        units = kwargs.pop("units", plot_meta["units"])
         _master_plot(
             x_data,
             y_data,
@@ -644,6 +725,8 @@ def plot_all_DDGs(
             method_name=method_name,
             filename=filename,
             target_name=target_name,
+            quantity=quantity,
+            units=units,
             shift=shift,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
@@ -777,6 +860,8 @@ def ecdf_plot_DDGs(
     labels: list[str] | None = None,
     title: str | None = "ECDF of Edgewise Absolute Errors",
     filename: str | None = None,
+    observable_type: ANALYSIS_UNITS = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
     """
@@ -800,6 +885,11 @@ def ecdf_plot_DDGs(
         Title for the plot. If ``None``, no title is set.
     filename : str | None, default None
         If provided, the plot will be saved to this filename.
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -818,7 +908,9 @@ def ecdf_plot_DDGs(
         If any edges are missing a calculated DDG value, if the number of sources and labels do not match or if no
         computational results are in the graph.
     """
-    rel_df = femap.get_relative_dataframe()
+    rel_df = femap.get_relative_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
+    value_col = plot_meta["value_col"]
     comp_mask = rel_df["computational"]
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
@@ -836,20 +928,20 @@ def ecdf_plot_DDGs(
     # get the experimental data
     exp_df = (
         rel_df[~comp_mask]
-        .set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
-        .rename(columns={"DDG (kcal/mol)": "DDG_exp"})
+        .set_index(["labelA", "labelB"])[[value_col]]
+        .rename(columns={value_col: "value_exp"})
     )
 
     datasets = {}
     for source, label in zip(sources, labels):
-        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[[value_col]]
         if src_df.empty:
             raise ValueError(f"No computational edges found for source '{source}'.")
 
         merged = src_df.join(exp_df, how="left")
         # skip edges without an experimental reference DDG
-        merged = merged.dropna(subset=["DDG_exp"])
-        datasets[label] = np.abs(merged["DDG (kcal/mol)"] - merged["DDG_exp"]).values
+        merged = merged.dropna(subset=["value_exp"])
+        datasets[label] = np.abs(merged[value_col] - merged["value_exp"]).values
 
     # finally check all datasets are the same length
     if len({len(v) for v in datasets.values()}) != 1:
@@ -857,11 +949,16 @@ def ecdf_plot_DDGs(
             "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
         )
 
+    # allow callers to override quantity/units via kwargs
+    quantity = kwargs.pop("quantity", plot_meta["ecdf_quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
     return ecdf_plot(
         datasets,
         title=title,
         filename=filename,
         xlabel="Edgewise",
+        quantity=quantity,
+        units=units,
         **kwargs,
     )
 
@@ -873,6 +970,8 @@ def ecdf_plot_DGs(
     title: str | None = "ECDF of Nodewise Absolute Errors",
     filename: str | None = None,
     centralizing: bool = True,
+    observable_type: ANALYSIS_UNITS = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
     """
@@ -896,6 +995,11 @@ def ecdf_plot_DGs(
         If provided, the plot will be saved to this filename.
     centralizing : bool, default True
         whether to center both calculated and experimental values around zero before calculating absolute errors.
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -910,7 +1014,9 @@ def ecdf_plot_DGs(
         If any ligands are missing a calculated DG value, if the number of sources and labels do not match or if no
         computational results are in the graph.
     """
-    df = femap.get_absolute_dataframe()
+    df = femap.get_absolute_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type]["absolute"]
+    value_col = plot_meta["value_col"]
     comp_mask = df["computational"]
     all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
 
@@ -931,20 +1037,20 @@ def ecdf_plot_DGs(
     exp_df = (
         df[~comp_mask]
         .drop_duplicates(subset=["label"])
-        .set_index("label")[["DG (kcal/mol)"]]
-        .rename(columns={"DG (kcal/mol)": "DG_exp"})
+        .set_index("label")[[value_col]]
+        .rename(columns={value_col: "value_exp"})
     )
 
     datasets = {}
     for source, label in zip(sources, labels):
-        src_df = df[comp_mask & (df["source"] == source)].set_index("label")[["DG (kcal/mol)"]]
+        src_df = df[comp_mask & (df["source"] == source)].set_index("label")[[value_col]]
         if src_df.empty:
             raise ValueError(f"No computed absolute values found for source '{source}'.")
 
         merged = src_df.join(exp_df, how="left")
-        merged = merged.dropna(subset=["DG_exp"])
-        x = merged["DG_exp"].values
-        y = merged["DG (kcal/mol)"].values
+        merged = merged.dropna(subset=["value_exp"])
+        x = merged["value_exp"].values
+        y = merged[value_col].values
         if centralizing:
             x = x - x.mean()
             y = y - y.mean()
@@ -955,11 +1061,15 @@ def ecdf_plot_DGs(
             "Inconsistent number of computational nodes across sources, make sure all nodes have a result for each source."
         )
 
+    # allow callers to override quantity/units via kwargs
+    quantity = kwargs.pop("quantity", plot_meta["ecdf_quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
     return ecdf_plot(
         datasets,
         title=title,
         xlabel="Nodewise",
-        quantity=r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
+        quantity=quantity,
+        units=units,
         filename=filename,
         **kwargs,
     )
@@ -971,6 +1081,8 @@ def ecdf_plot_all_DDGs(
     labels: list[str] | None = None,
     title: str | None = "ECDF of Pairwise (all-to-all) Absolute Errors",
     filename: str | None = None,
+    observable_type: ANALYSIS_UNITS = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
     """
@@ -989,6 +1101,11 @@ def ecdf_plot_all_DDGs(
         Title for the plot.
     filename : str | None, default None
         If provided, the plot will be saved to this filename.
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -1010,7 +1127,9 @@ def ecdf_plot_all_DDGs(
     pairwise combinations. Only unique (unordered) pairs are included, so N
     ligands contribute N*(N-1)/2 data points.
     """
-    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=False)
+    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
+    value_col = plot_meta["value_col"]
     comp_mask = rel_df["computational"]
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
@@ -1030,20 +1149,20 @@ def ecdf_plot_all_DDGs(
 
     exp_df = (
         rel_df[~comp_mask]
-        .set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
-        .rename(columns={"DDG (kcal/mol)": "DDG_exp"})
+        .set_index(["labelA", "labelB"])[[value_col]]
+        .rename(columns={value_col: "value_exp"})
     )
 
     datasets = {}
     for source, label in zip(sources, labels):
-        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[["DDG (kcal/mol)"]]
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[[value_col]]
         if src_df.empty:
             raise ValueError(f"No computational edges found for source '{source}'.")
 
         merged = src_df.join(exp_df, how="left")
         # skip edges without an experimental reference DDG
-        merged = merged.dropna(subset=["DDG_exp"])
-        datasets[label] = np.abs(merged["DDG (kcal/mol)"] - merged["DDG_exp"]).values
+        merged = merged.dropna(subset=["value_exp"])
+        datasets[label] = np.abs(merged[value_col] - merged["value_exp"]).values
 
     # finally check all datasets are the same length
     if len({len(v) for v in datasets.values()}) != 1:
@@ -1051,10 +1170,15 @@ def ecdf_plot_all_DDGs(
             "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
         )
 
+    # allow callers to override quantity/units via kwargs
+    quantity = kwargs.pop("quantity", plot_meta["ecdf_quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
     return ecdf_plot(
         datasets,
         title=title,
         xlabel="Pairwise",
+        quantity=quantity,
+        units=units,
         filename=filename,
         **kwargs,
     )
