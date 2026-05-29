@@ -855,7 +855,7 @@ def perfect_cycle():
 def test_get_cycle_closure_known_value(perfect_cycle):
     result = perfect_cycle.get_cycle_closure_dataframe()
     assert isinstance(result, pd.DataFrame)
-    assert list(result.columns) == ["cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"]
+    assert list(result.columns) == ["source", "cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"]
     assert len(result) == 1
     assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
     assert result["cc_unc_normalized (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
