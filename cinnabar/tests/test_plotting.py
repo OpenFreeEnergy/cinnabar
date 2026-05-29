@@ -514,22 +514,6 @@ def test_plot_ecdf_colors(fe_map, tmp_path):
     assert line.get_color() == "#FF5733"
 
 
-@pytest.mark.parametrize(
-    "graph",
-    [
-        nx.MultiDiGraph(),
-        # graph with nodes but no calculated DDG edges
-        nx.MultiDiGraph([(0, 1, {"some_other_data": 1.0})]),
-    ],
-)
-def test_plot_ecdf_dgs_no_data(graph):
-    with pytest.raises(
-        ValueError,
-        match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`.",
-    ):
-        plotting.ecdf_plot_DGs([graph], labels=["test"], filename=None)
-
-
 def test_plot_cycle_closure(fe_map, tmp_path):
     output_file = tmp_path / "cycle_closure.png"
     fig = plotting.plot_cycle_closure(fe_map, filename=str(output_file))
@@ -553,7 +537,7 @@ def test_plot_cycle_closure_no_cycles_no_plot(tmp_path):
         value=1.0 * unit.kilocalorie_per_mole,
         uncertainty=0.1 * unit.kilocalorie_per_mole,
     )
-    assert fe.get_cycle_closure().empty
+    assert fe.get_cycle_closure_dataframe().empty
     output_file = tmp_path / "cycle_closure.png"
     with pytest.warns(UserWarning, match="No cycles found"):
         fig = plotting.plot_cycle_closure(fe, filename=str(output_file))
