@@ -807,7 +807,22 @@ class FEMap:
         This matches the legacy format of this object, notably:
         - drops multi edge capability
         - removes units from values
+
+        .. deprecated::
+            ``to_legacy_graph`` is deprecated and will be removed in a future release.
+            Use ``get_relative_dataframe`` and ``get_absolute_dataframe`` to access
+            the underlying data, or ``generate_absolute_values`` to run MLE explicitly.
+            The plot functions ``plot_DDGs``, ``plot_DGs``, and ``plot_all_DDGs`` now accept
+            a ``FEMap`` directly and no longer require a legacy graph.
         """
+        warnings.warn(
+            "to_legacy_graph() is deprecated and will be removed in a future release. "
+            "Use get_relative_dataframe() and get_absolute_dataframe() to access the underlying data, "
+            "or generate_absolute_values() to run MLE explicitly. "
+            "The plot functions plot_DDGs, plot_DGs, and plot_all_DDGs now accept a FEMap directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # reduces to nx.DiGraph
         g = nx.DiGraph()
         # the MLE method can only use a single result per edge, we need to raise and error if we have repeats or bidirectional results
@@ -867,7 +882,17 @@ class FEMap:
 
         return g
 
-    def draw_graph(self, title: str = "", filename: str | None = None):
+    @staticmethod
+    def _canonical_edge(edge: tuple[str, str]) -> tuple[str, str]:
+        a, b = sorted(edge)
+        return a, b
+
+    def draw_graph(
+        self,
+        title: str = "",
+        filename: str | None = None,
+        highlight_edges: dict[str, list[tuple[str, str]]] | None = None,
+    ):
         """
         Draw the graph using matplotlib.
 
@@ -875,19 +900,49 @@ class FEMap:
         ----------
         title : str, default ""
             Title for the graph, by default an empty string.
-        filename : str or None, default None
+        filename : str | None, default None
             If provided, the graph will be saved to this file. If None, the graph will be displayed.
+        highlight_edges : dict[str, list[tuple[str, str]]], default None
+            Mapping of color -> list of edges to draw in that color.
+            Edges not included are drawn in grey.
         """
-        plt.figure(figsize=(10, 10))
+        edge_to_color: dict[tuple[str, str], str] = {}
 
-        graph = self.to_legacy_graph()
+        if highlight_edges:
+            for color, edges in highlight_edges.items():
+                for edge in edges:
+                    edge_to_color[self._canonical_edge(edge)] = color
 
+        graph = nx.DiGraph()
+        for m in self:
+            if not m.computational:
+                continue
+            if isinstance(m.labelA, ReferenceState):  # skip absolute measurements
+                continue
+            graph.add_edge(m.labelA, m.labelB)
+
+        fig, ax = plt.subplots(figsize=(10, 10))
         labels = {n: n for n in graph.nodes}
 
-        nx.draw_circular(graph, labels=labels, node_color="hotpink", node_size=250)
+        graph_edges = [self._canonical_edge(edge) for edge in graph.edges()]
+        edge_colors = [edge_to_color.get(edge, "grey") for edge in graph_edges]
+        edge_widths = [2.5 if edge in edge_to_color else 1.0 for edge in graph_edges]
+
+        nx.draw_circular(
+            graph,
+            labels=labels,
+            node_color="hotpink",
+            node_size=250,
+            edge_color=edge_colors,
+            width=edge_widths,
+            ax=ax,
+        )
+
         long_title = f"{title} \n Nedges={self.n_edges} \n Nligands={self.n_ligands} \n Degree={self.degree:.2f}"
-        plt.title(long_title)
+        ax.set_title(long_title)
+
         if filename is None:
             plt.show()
         else:
-            plt.savefig(filename, bbox_inches="tight")
+            fig.savefig(filename, bbox_inches="tight", dpi=300)
+        plt.close(fig)

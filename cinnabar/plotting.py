@@ -293,7 +293,8 @@ def _master_plot(*args, **kwargs):
 
 
 def plot_DDGs(
-    graph: nx.DiGraph,
+    femap: FEMap,
+    source: str,
     method_name: str = "",
     target_name: str = "",
     title: str = "",
@@ -311,8 +312,13 @@ def plot_DDGs(
 
     Parameters
     ----------
-    graph : nx.DiGraph
-        Graph object with relative free energy edges.
+    femap : FEMap
+        FEMap object with relative and absolute free energy edges
+    source : str
+        The source label of the computational relative free energies to plot against experiment.
+        This must match the ``source`` field used when the calculations were added to the
+        ``FEMap``.  For data loaded via ``FEMap.from_csv``
+        (or added without an explicit source), pass ``source=""``.
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
     target_name : string, default ""
@@ -362,33 +368,51 @@ def plot_DDGs(
     if data_label_type:
         assert not plotly, "We currently do not support data labeling for plotly-generated plots"
 
-    # data
-    x = [x[2]["exp_DDG"] for x in graph.edges(data=True)]
-    y = [x[2]["calc_DDG"] for x in graph.edges(data=True)]
-    xerr = np.asarray([x[2]["exp_dDDG"] for x in graph.edges(data=True)])
-    yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
+    # load the data using the internal dataframes
+    rel_df = femap.get_relative_dataframe()
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError("The FEMap contains no computational edges.")
+
+    if source not in all_comp_sources:
+        raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
+
+    # get the comp data from the computational source
+    comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
+    # get the experimental data
+    exp_data = rel_df[~comp_mask].rename(
+        columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"}
+    )
+
+    # merge to align the data and drop any values missing an experimental data point
+    merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
+    merged = merged.dropna(subset=["DDG_exp"])
+
+    # extract the required data
+    x = merged["DDG_exp"].to_numpy(copy=True)
+    y = merged["DDG (kcal/mol)"].to_numpy(copy=True)
+    xerr = merged["uncertainty_exp"].to_numpy(copy=True)
+    yerr = merged["uncertainty (kcal/mol)"].to_numpy(copy=True)
 
     # labels
     data_labels: list[str] = []
     if data_label_type:
-        node_names = {node_id: node_data["name"] for node_id, node_data in graph.nodes(data=True)}
-        data_labels = []
-        for node_A, node_B, edge_data in graph.edges(data=True):
-            node_A_name = node_names[node_A]
-            node_B_name = node_names[node_B]
-            if node_A_name.startswith("-") and node_B_name.startswith("-"):
+        for _, row in merged.iterrows():
+            node_a_name = row["labelA"]
+            node_b_name = row["labelB"]
+            if node_a_name.startswith("-") and node_b_name.startswith("-"):
                 # factor out "-" if both start with it
-                node_A_name = node_A_name[1:]
-                node_B_name = node_B_name[1:]
+                node_a_name = node_a_name[1:]
+                node_b_name = node_b_name[1:]
                 prefix = "-"
             else:
-                node_A_name = node_A_name
-                node_B_name = node_B_name
                 prefix = ""
             if data_label_type == "small-molecule":
-                data_labels.append(f"{prefix}({node_A_name}→{node_B_name})")
+                data_labels.append(f"{prefix}({node_a_name}→{node_b_name})")
             elif data_label_type == "protein-mutation":
-                data_labels.append(f"{prefix}({node_A_name}{node_B_name[0]})")
+                data_labels.append(f"{prefix}({node_a_name}{node_b_name[0]})")
             else:
                 raise ValueError(
                     "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
@@ -453,7 +477,8 @@ def plot_DDGs(
 
 
 def plot_DGs(
-    graph: nx.DiGraph,
+    femap: FEMap,
+    source: str,
     method_name: str = "",
     target_name: str = "",
     title: str = "",
@@ -470,8 +495,10 @@ def plot_DGs(
 
     Parameters
     ----------
-    graph : nx.DiGraph
-        Graph object with relative free energy edges.
+    femap : FEMap
+        FEMap object with absolute free energies to plot.
+    source : str
+        The name of the source label of the computational absolute values, if absolute values are generated with the MLE estimator this should be "MLE".
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
     target_name : string, default ""
@@ -492,11 +519,34 @@ def plot_DGs(
 
     """
 
-    # data
-    x_data = np.asarray([node[1]["exp_DG"] for node in graph.nodes(data=True)])
-    y_data = np.asarray([node[1]["calc_DG"] for node in graph.nodes(data=True)])
-    xerr = np.asarray([node[1]["exp_dDG"] for node in graph.nodes(data=True)])
-    yerr = np.asarray([node[1]["calc_dDG"] for node in graph.nodes(data=True)])
+    # extract the data from the internal dataframes
+    df = femap.get_absolute_dataframe()
+    comp_mask = df["computational"]
+    all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
+
+    if source not in all_comp_sources:
+        raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
+
+    # get the comp data from the computational source
+    comp_data = df[comp_mask & (df["source"] == source)]
+    # get the experimental data
+    exp_data = df[~comp_mask].rename(columns={"DG (kcal/mol)": "DG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"})
+
+    # merge to align the data and drop any values missing an experimental data point
+    merged = comp_data.merge(exp_data, how="left", on=["label"])
+    merged = merged.dropna(subset=["DG_exp"])
+
+    # extract the required data
+    x_data = merged["DG_exp"].to_numpy(copy=True)
+    y_data = merged["DG (kcal/mol)"].to_numpy(copy=True)
+    xerr = merged["uncertainty_exp"].to_numpy(copy=True)
+    yerr = merged["uncertainty (kcal/mol)"].to_numpy(copy=True)
 
     # centralising
     # this should be replaced by providing one experimental result
@@ -543,7 +593,8 @@ def plot_DGs(
 
 
 def plot_all_DDGs(
-    graph: nx.DiGraph,
+    femap: FEMap,
+    source: str,
     method_name: str = "",
     target_name: str = "",
     title: str = "",
@@ -560,8 +611,10 @@ def plot_all_DDGs(
 
     Parameters
     ----------
-    graph : nx.DiGraph
-        Graph object with relative free energy edges.
+    femap : FEMap
+        FEMap object with absolute free energies to plot.
+    source : str
+        The name of the source label of the computational absolute values, if absolute values are generated with the MLE estimator this should be "MLE".
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
     target_name : string, default ""
@@ -585,42 +638,43 @@ def plot_all_DDGs(
     -------
 
     """
+    # use the internal dataframes to get the pairwise differences
+    rel_df = femap.get_all_to_all_relative_dataframe(symmetrical=True)
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
-    nodes = graph.nodes(data=True)
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values which are needed to obtain the all-to-all pairwise DDGs. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
 
-    x_abs = np.asarray([node[1]["exp_DG"] for node in nodes])
-    y_abs = np.asarray([node[1]["calc_DG"] for node in nodes])
-    xabserr = np.asarray([node[1]["exp_dDG"] for node in nodes])
-    yabserr = np.asarray([node[1]["calc_dDG"] for node in nodes])
-    # do all to plot_all
-    x_data = []
-    y_data = []
-    xerr = []
-    yerr = []
-    for a, b in itertools.combinations(range(len(x_abs)), 2):
-        x = x_abs[a] - x_abs[b]
-        x_data.append(x)
-        x_data.append(-x)
-        err = (xabserr[a] ** 2 + xabserr[b] ** 2) ** 0.5
-        xerr.append(err)
-        xerr.append(err)
-        y = y_abs[a] - y_abs[b]
-        y_data.append(y)
-        y_data.append(-y)
-        err = (yabserr[a] ** 2 + yabserr[b] ** 2) ** 0.5
-        yerr.append(err)
-        yerr.append(err)
-    x_data_ = np.array(x_data)
-    y_data_ = np.array(y_data)
-    xerr_ = np.array(xerr)
-    yerr_ = np.array(yerr)
+    if source not in all_comp_sources:
+        raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
+
+    # get the comp data from the computational source
+    comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
+    # get the experimental data
+    exp_data = rel_df[~comp_mask].rename(
+        columns={"DDG (kcal/mol)": "DDG_exp", "uncertainty (kcal/mol)": "uncertainty_exp"}
+    )
+
+    # merge to align the data and drop any values missing an experimental data point
+    merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
+    merged = merged.dropna(subset=["DDG_exp"])
+
+    # extract the required data
+    x_data = merged["DDG_exp"].to_numpy(copy=True)
+    y_data = merged["DDG (kcal/mol)"].to_numpy(copy=True)
+    xerr = merged["uncertainty_exp"].to_numpy(copy=True)
+    yerr = merged["uncertainty (kcal/mol)"].to_numpy(copy=True)
 
     if plotly:
         plotlying._master_plot(
-            x_data_,
-            y_data_,
-            xerr=xerr_,
-            yerr=yerr_,
+            x_data,
+            y_data,
+            xerr=xerr,
+            yerr=yerr,
             title=title,
             method_name=method_name,
             plot_type="ΔΔG",
@@ -634,10 +688,10 @@ def plot_all_DDGs(
 
     else:
         pair_plot(
-            x_data_,
-            y_data_,
-            xerr=xerr_,
-            yerr=yerr_,
+            x_data,
+            y_data,
+            xerr=xerr,
+            yerr=yerr,
             title=title,
             method_name=method_name,
             filename=filename,
