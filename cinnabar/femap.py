@@ -921,7 +921,6 @@ class FEMap:
             graph.add_edge(m.labelA, m.labelB)
 
         fig, ax = plt.subplots(figsize=(10, 10))
-        graph = self.to_legacy_graph()
         labels = {n: n for n in graph.nodes}
 
         graph_edges = [self._canonical_edge(edge) for edge in graph.edges()]
