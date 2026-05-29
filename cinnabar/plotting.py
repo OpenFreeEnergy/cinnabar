@@ -32,7 +32,7 @@ def pair_plot(
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
-    dpi: float | str = "figure",
+    dpi: float | str = 300,
     data_labels: list[str] | None = None,
     axis_padding: float = 0.5,
     xy_lim: tuple[float, float] | None = None,
@@ -95,7 +95,7 @@ def pair_plot(
         Shift both the x and y-axis by a constant.
     figsize : float, default 3.25
         Size of figure for matplotlib.
-    dpi : float or 'figure', default 'figure'
+    dpi : float | str, default 300
         The resolution in dots per inch
         if 'figure', uses the figure's dpi value (this behavior is copied from
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
