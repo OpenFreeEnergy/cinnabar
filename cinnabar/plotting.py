@@ -168,9 +168,7 @@ def pair_plot(
         else:
             distances = tuple(guidelines)
             if len(distances) > 2:
-                raise ValueError(
-                    f"guidelines tuple must contain at most 2 distance values, got {len(distances)}."
-                )
+                raise ValueError(f"guidelines tuple must contain at most 2 distance values, got {len(distances)}.")
         # resolve per-band colors
         resolved_colors = [
             (guideline_colors[i] if guideline_colors and i < len(guideline_colors) else "grey")
@@ -283,9 +281,9 @@ def pair_plot(
 def _master_plot(*args, **kwargs):
     """Deprecated alias for the pair_plot function. Will be removed in a future release."""
     import warnings
+
     warnings.warn(
-        "_master_plot is deprecated and will be removed in a future release. "
-        "Use pair_plot instead.",
+        "_master_plot is deprecated and will be removed in a future release. Use pair_plot instead.",
         DeprecationWarning,
         stacklevel=2,
     )
