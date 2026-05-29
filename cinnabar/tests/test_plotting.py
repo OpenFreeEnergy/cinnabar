@@ -210,7 +210,7 @@ def test_pair_plot_bad_statistic_type(example_data_mle):
         )
 
 
-def test_pair_plot_xy_lim(example_data_mle):
+def test_pair_plot_xy_lim(example_data_mle, show_called):
     """Test that x and y limits are set correctly in master plot."""
 
     x_data, y_data, xerr, yerr = example_data_mle
