@@ -164,7 +164,7 @@ def pair_plot(
     if guidelines is not False and guidelines is not None and guidelines != ():
         # get the distances to use
         if isinstance(guidelines, bool):
-            distances: tuple[float, ...]  = (0.5, 1.0)
+            distances: tuple[float, ...] = (0.5, 1.0)
         else:
             distances = tuple(guidelines)
             if len(distances) > 2:
