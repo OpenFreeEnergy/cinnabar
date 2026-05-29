@@ -902,7 +902,7 @@ class FEMap:
             Title for the graph, by default an empty string.
         filename : str | None, default None
             If provided, the graph will be saved to this file. If None, the graph will be displayed.
-        highlight_edges : dict[str, list[tuple[str, str]]], optional
+        highlight_edges : dict[str, list[tuple[str, str]]], default None
             Mapping of color -> list of edges to draw in that color.
             Edges not included are drawn in grey.
         """
