@@ -833,7 +833,7 @@ def perfect_cycle():
 
 
 def test_get_cycle_closure_known_value(perfect_cycle):
-    result = perfect_cycle.get_cycle_closure()
+    result = perfect_cycle.get_cycle_closure_dataframe()
     assert isinstance(result, pd.DataFrame)
     assert list(result.columns) == ["cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"]
     assert len(result) == 1
@@ -848,14 +848,14 @@ def test_get_cycle_closure_normalized_known_value():
     fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
     fe.add_relative_calculation("C", "A", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm)
 
-    result = fe.get_cycle_closure()
+    result = fe.get_cycle_closure_dataframe()
     expected_cc_normalized = round(abs(0.5) / math.sqrt(3 * 0.1**2), 2)
 
     assert result["cc_unc_normalized (kcal/mol)"].iloc[0] == pytest.approx(expected_cc_normalized, abs=0.01)
 
 
 def test_get_cc_based_edge_statistics_known_value(perfect_cycle):
-    result = perfect_cycle.get_cc_based_edge_statistics()
+    result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe()
     assert len(result) == 3
     assert (result["n_cycles"] == 1).all()
     assert (result["mean_cc (kcal/mol)"] == 0.0).all()

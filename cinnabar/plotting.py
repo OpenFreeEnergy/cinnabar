@@ -1010,6 +1010,7 @@ def plot_cycle_closure(
     fe_map: FEMap,
     filename: Optional[str] = None,
     max_cycle_length: int = 5,
+    sources: Optional[list[str]] = None,
 ) -> plt.Figure:
     """
     Plot a histogram of cycle closure errors.
@@ -1023,21 +1024,34 @@ def plot_cycle_closure(
     max_cycle_length : int, optional
         Only consider cycles up to this length. Defaults to 5.
         The matplotlib Figure object, which can be edited further.
+    sources : list[str], optional
+        List of sources to plot. If None, all sources are plotted.
     """
-    df = fe_map.get_cycle_closure(max_cycle_length=max_cycle_length)
+    df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
 
     if df.empty:
         warnings.warn("No cycles found; skipping plot.")
         return
 
-    errors = df["cc (kcal/mol)"]
-    n_cycles = len(errors)
+    if sources is not None:
+        df = df[df["source"].isin(sources)]
+        if df.empty:
+            warnings.warn(
+                f"No cycles found for sources {sources}; skipping plot.")
+            return
+
+    unique_sources = df["source"].unique()
 
     fig, ax = plt.subplots(figsize=(5, 4))
-    ax.hist(errors, bins="auto", alpha=0.6, color="steelblue")
+
+    for source in unique_sources:
+        source_df = df[df["source"] == source]
+        ax.hist(source_df["cc (kcal/mol)"], bins="auto", alpha=0.6, label=source)
+
     ax.set_xlabel(r"Cycle closure (kcal mol$^{-1}$)")
     ax.set_ylabel("Count")
-    ax.set_title(f"Cycle closure distribution (n={n_cycles})")
+    ax.set_title("Cycle closure distribution")
+    ax.legend()
     fig.tight_layout()
 
     if filename is None:
