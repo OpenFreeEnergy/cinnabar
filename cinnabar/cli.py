@@ -37,15 +37,17 @@ def main():
         args.plot = ["ddg", "dg", "all ddg", "network"]
 
     network = FEMap.from_csv(args.csv)
+    # generate the MLE absolute values first
+    network.generate_absolute_values()
     # this generates the three plots that we need
     if "network" in args.plot:
         network.draw_graph(title=args.title, filename=f"{args.prefix}network.png")
     if "ddg" in args.plot:
-        plotting.plot_DDGs(network.to_legacy_graph(), title=args.title, filename=f"{args.prefix}DDGs.png")
+        plotting.plot_DDGs(network, source="", title=args.title, filename=f"{args.prefix}DDGs.png")
     if "dg" in args.plot:
-        plotting.plot_DGs(network.to_legacy_graph(), title=args.title, filename=f"{args.prefix}DGs.png")
+        plotting.plot_DGs(network, source="MLE", title=args.title, filename=f"{args.prefix}DGs.png")
     if "all ddg" in args.plot:
-        plotting.plot_all_DDGs(network.to_legacy_graph(), title=args.title, filename=f"{args.prefix}all_DDGs.png")
+        plotting.plot_all_DDGs(network, source="MLE", title=args.title, filename=f"{args.prefix}all_DDGs.png")
 
 
 if __name__ == "__main__":
