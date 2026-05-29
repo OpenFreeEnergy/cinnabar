@@ -474,7 +474,7 @@ def plot_DGs(
 
     if not all_comp_sources:
         raise ValueError(
-            f"The FEMap contains no computed absolute values. "
+            "The FEMap contains no computed absolute values. "
             "Call generate_absolute_values() first or add calculated absolute measurements directly."
         )
 
