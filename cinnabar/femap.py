@@ -9,6 +9,7 @@ which form an interconnected "network" of values.
 
 import copy
 import itertools
+import math
 import pathlib
 import warnings
 from dataclasses import asdict
@@ -946,3 +947,140 @@ class FEMap:
         else:
             fig.savefig(filename, bbox_inches="tight", dpi=300)
         plt.close(fig)
+
+    def get_cycle_closure_dataframe(self, max_cycle_length: int = 5) -> pd.DataFrame:
+        """
+        Calculate cycle closure errors for all cycles in the network.
+
+        Parameters
+        ----------
+        max_cycle_length : int, optional
+            Only consider cycles up to this length. Default 5.
+
+        Returns
+        -------
+        The pandas DataFrame will have the following columns:
+        - source
+        - cycle
+        - cc (kcal/mol)
+        - cc_unc_normalized (kcal/mol)
+        Sorted by source and cycle closure error descending.
+        """
+        df = self.get_relative_dataframe()
+        comp_df = df[df["computational"]]
+
+        rows = []
+        for source, source_df in comp_df.groupby("source"):
+            edge_ddg = {(row["labelA"], row["labelB"]): row["DDG (kcal/mol)"] for _, row in source_df.iterrows()}
+            edge_uncertainty = {
+                (row["labelA"], row["labelB"]): row["uncertainty (kcal/mol)"] for _, row in source_df.iterrows()
+            }
+
+            network = nx.DiGraph()
+            for a, b in edge_ddg:
+                network.add_edge(a, b)
+
+            cycles = [c for c in nx.simple_cycles(network.to_undirected()) if len(c) <= max_cycle_length]
+
+            for cycle in cycles:
+                sum_ddgs = 0.0
+                sum_var = 0.0
+                for i, lig in enumerate(cycle):
+                    lig_a = lig
+                    lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
+
+                    # depending on the direction the edge was calculated,
+                    # the sign of the DDG has to change
+                    if (lig_a, lig_b) in edge_ddg:
+                        sum_ddgs += edge_ddg[(lig_a, lig_b)]
+                        sum_var += edge_uncertainty[(lig_a, lig_b)] ** 2
+                    elif (lig_b, lig_a) in edge_ddg:
+                        sum_ddgs -= edge_ddg[(lig_b, lig_a)]
+                        sum_var += edge_uncertainty[(lig_b, lig_a)] ** 2
+                    else:
+                        # Edge missing from network; skip this cycle
+                        break
+
+                else:
+                    # Normalize by sqrt(cycle length) to allow comparison across
+                    # different cycle lengths
+                    cc = abs(sum_ddgs / math.sqrt(len(cycle)))
+                    cc_uncertainty_normalized = abs(sum_ddgs) / math.sqrt(sum_var)
+                    rows.append(
+                        {
+                            "source": source,
+                            "cycle": tuple(cycle),
+                            "cc (kcal/mol)": round(cc, 2),
+                            "cc_unc_normalized (kcal/mol)": round(cc_uncertainty_normalized, 2),
+                        }
+                    )
+
+        return (
+            pd.DataFrame(rows, columns=["source", "cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"])
+            .sort_values(["source", "cc (kcal/mol)"], ascending=[True, False])
+            .reset_index(drop=True)
+        )
+
+    def get_cycle_closure_edge_statistics_dataframe(self, max_cycle_length: int = 5) -> pd.DataFrame:
+        """
+        For each simulated edge, report how many cycles it appears in and
+        the mean and max cycle closure error of those cycles per source.
+
+        Parameters
+        ----------
+        max_cycle_length : int, optional
+            Only consider cycles up to this length. Defaults to 5.
+
+        Returns
+        -------
+        The pandas DataFrame will have the following columns:
+        - source
+        - ligandA
+        - ligandB
+        - n_cycles
+        - mean_cc (kcal/mol)
+        - max_cc (kcal/mol)
+
+        Sorted by source and mean cycle closure error descending.
+        """
+        from collections import defaultdict
+
+        cc_df = self.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
+        comp_df = self.get_relative_dataframe()
+        comp_df = comp_df[comp_df["computational"]]
+        edge_ddg_by_source = {
+            source: {(row["labelA"], row["labelB"]): row["DDG (kcal/mol)"] for _, row in group.iterrows()}
+            for source, group in comp_df.groupby("source")
+        }
+
+        rows = []
+        for source, source_cc_df in cc_df.groupby("source"):
+            edge_ddg = edge_ddg_by_source.get(source, {})
+            edge_cycles: dict[tuple, list[float]] = defaultdict(list)
+
+            for _, row in source_cc_df.iterrows():
+                cycle = list(row["cycle"])
+                cc = row["cc (kcal/mol)"]
+                for i, lig in enumerate(cycle):
+                    lig_a = lig
+                    lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
+                    edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (lig_b, lig_a)
+                    edge_cycles[edge].append(cc)
+
+            for (a, b), ccs in edge_cycles.items():
+                rows.append(
+                    {
+                        "source": source,
+                        "ligandA": a,
+                        "ligandB": b,
+                        "n_cycles": len(ccs),
+                        "mean_cc (kcal/mol)": round(sum(ccs) / len(ccs), 3),
+                        "max_cc (kcal/mol)": round(max(ccs), 3),
+                    }
+                )
+
+        return (
+            pd.DataFrame(rows)
+            .sort_values(["source", "mean_cc (kcal/mol)"], ascending=[True, False])
+            .reset_index(drop=True)
+        )

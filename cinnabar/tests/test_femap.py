@@ -1,4 +1,5 @@
 import json
+import math
 import re
 
 import matplotlib.pyplot as plt
@@ -838,3 +839,44 @@ def test_missing_estimator_metadata(example_map):
     with pytest.raises(KeyError, match="No estimator metadata stored for source test."):
         example_map.generate_absolute_values()
         example_map.get_estimator_metadata("test")
+
+
+@pytest.fixture()
+def perfect_cycle():
+    """A perfect cycle with zero cycle closure."""
+    kcalpm = unit.kilocalorie_per_mole
+    fe = femap.FEMap()
+    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("C", "A", value=-2.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    return fe
+
+
+def test_get_cycle_closure_known_value(perfect_cycle):
+    result = perfect_cycle.get_cycle_closure_dataframe()
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["source", "cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"]
+    assert len(result) == 1
+    assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result["cc_unc_normalized (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_get_cycle_closure_normalized_known_value():
+    kcalpm = unit.kilocalorie_per_mole
+    fe = femap.FEMap()
+    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
+    fe.add_relative_calculation("C", "A", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm)
+
+    result = fe.get_cycle_closure_dataframe()
+    expected_cc_normalized = round(abs(0.5) / math.sqrt(3 * 0.1**2), 2)
+
+    assert result["cc_unc_normalized (kcal/mol)"].iloc[0] == pytest.approx(expected_cc_normalized, abs=0.01)
+
+
+def test_get_cc_based_edge_statistics_known_value(perfect_cycle):
+    result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe()
+    assert len(result) == 3
+    assert (result["n_cycles"] == 1).all()
+    assert (result["mean_cc (kcal/mol)"] == 0.0).all()
+    assert (result["max_cc (kcal/mol)"] == 0.0).all()

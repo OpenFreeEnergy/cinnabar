@@ -1,5 +1,6 @@
 import itertools
-from typing import Any, Literal
+import warnings
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pylab as plt
 import networkx as nx
@@ -1058,3 +1059,64 @@ def ecdf_plot_all_DDGs(
         filename=filename,
         **kwargs,
     )
+
+
+def plot_cycle_closure(
+    fe_map: FEMap,
+    filename: Optional[str] = None,
+    max_cycle_length: int = 5,
+    sources: Optional[list[str]] = None,
+    bin_width: float = 0.5,
+) -> plt.Figure | None:
+    """
+    Plot a histogram of cycle closure errors.
+
+    Parameters
+    ----------
+    fe_map : FEMap
+        FEMap object containing the calculated edges.
+    filename : str, optional
+        If provided, the plot will be saved to this filename.
+    max_cycle_length : int, optional
+        Only consider cycles up to this length. Defaults to 5.
+        The matplotlib Figure object, which can be edited further.
+    sources : list[str], optional
+        List of sources to plot. If None, all sources are plotted.
+    bin_width : float, optional
+        Width of histogram bins in kcal/mol. Default: 0.5
+    """
+    df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
+
+    if df.empty:
+        warnings.warn("No cycles found; skipping plot.")
+        return None
+
+    if sources is not None:
+        df = df[df["source"].isin(sources)]
+        if df.empty:
+            warnings.warn(f"No cycles found for sources {sources}; skipping plot.")
+            return None
+
+    unique_sources = df["source"].unique()
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+
+    max_val = df["cc (kcal/mol)"].max()
+    bins = np.arange(0, max_val + bin_width, bin_width).tolist()
+
+    for source in unique_sources:
+        source_df = df[df["source"] == source]
+        ax.hist(source_df["cc (kcal/mol)"], bins=bins, alpha=0.6, label=source)
+
+    ax.set_xlabel(r"Cycle closure (kcal mol$^{-1}$)")
+    ax.set_ylabel("Count")
+    ax.set_title("Cycle closure distribution")
+    ax.legend()
+    fig.tight_layout()
+
+    if filename is None:
+        plt.show()
+    else:
+        fig.savefig(filename, bbox_inches="tight", dpi=300)
+
+    return fig

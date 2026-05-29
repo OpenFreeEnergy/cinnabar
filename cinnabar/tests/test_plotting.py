@@ -1,4 +1,5 @@
 import matplotlib.pylab as plt
+import networkx as nx
 import numpy as np
 import pytest
 from openff.units import unit
@@ -511,3 +512,34 @@ def test_plot_ecdf_colors(fe_map, tmp_path):
     # check that the line color matches the specified color
     line = fig.get_axes()[0].lines[0]
     assert line.get_color() == "#FF5733"
+
+
+def test_plot_cycle_closure(fe_map, tmp_path):
+    output_file = tmp_path / "cycle_closure.png"
+    fig = plotting.plot_cycle_closure(fe_map, filename=str(output_file))
+    assert fig is not None
+    axes = fig.get_axes()[0]
+    assert axes.get_xlabel() == r"Cycle closure (kcal mol$^{-1}$)"
+    assert axes.get_ylabel() == "Count"
+    assert output_file.exists()
+
+
+def test_plot_cycle_closure_show(fe_map, show_called):
+    _ = plotting.plot_cycle_closure(fe_map, filename=None)
+    assert "show" in show_called
+
+
+def test_plot_cycle_closure_no_cycles_no_plot(tmp_path):
+    fe = FEMap()
+    fe.add_relative_calculation(
+        "A",
+        "B",
+        value=1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    assert fe.get_cycle_closure_dataframe().empty
+    output_file = tmp_path / "cycle_closure.png"
+    with pytest.warns(UserWarning, match="No cycles found"):
+        fig = plotting.plot_cycle_closure(fe, filename=str(output_file))
+    assert fig is None
+    assert not output_file.exists()
