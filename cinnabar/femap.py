@@ -912,6 +912,7 @@ class FEMap:
             for color, edges in highlight_edges.items():
                 for edge in edges:
                     edge_to_color[self._canonical_edge(edge)] = color
+                    
         graph = nx.DiGraph()
         for m in self:
             if not m.computational:
