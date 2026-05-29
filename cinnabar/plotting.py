@@ -1094,8 +1094,7 @@ def plot_cycle_closure(
     if sources is not None:
         df = df[df["source"].isin(sources)]
         if df.empty:
-            warnings.warn(
-                f"No cycles found for sources {sources}; skipping plot.")
+            warnings.warn(f"No cycles found for sources {sources}; skipping plot.")
             return None
 
     unique_sources = df["source"].unique()
