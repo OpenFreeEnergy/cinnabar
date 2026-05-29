@@ -1060,6 +1060,7 @@ def ecdf_plot_all_DDGs(
         **kwargs,
     )
 
+
 def plot_cycle_closure(
     fe_map: FEMap,
     filename: Optional[str] = None,
@@ -1093,8 +1094,7 @@ def plot_cycle_closure(
     if sources is not None:
         df = df[df["source"].isin(sources)]
         if df.empty:
-            warnings.warn(
-                f"No cycles found for sources {sources}; skipping plot.")
+            warnings.warn(f"No cycles found for sources {sources}; skipping plot.")
             return
 
     unique_sources = df["source"].unique()

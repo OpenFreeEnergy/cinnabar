@@ -8,8 +8,8 @@ which form an interconnected "network" of values.
 """
 
 import copy
-import math
 import itertools
+import math
 import pathlib
 import warnings
 from dataclasses import asdict
@@ -971,23 +971,16 @@ class FEMap:
 
         rows = []
         for source, source_df in comp_df.groupby("source"):
-            edge_ddg = {
-                (row["labelA"], row["labelB"]): row["DDG (kcal/mol)"]
-                for _, row in source_df.iterrows()
-            }
+            edge_ddg = {(row["labelA"], row["labelB"]): row["DDG (kcal/mol)"] for _, row in source_df.iterrows()}
             edge_uncertainty = {
-                (row["labelA"], row["labelB"]): row["uncertainty (kcal/mol)"]
-                for _, row in source_df.iterrows()
+                (row["labelA"], row["labelB"]): row["uncertainty (kcal/mol)"] for _, row in source_df.iterrows()
             }
 
             network = nx.DiGraph()
             for a, b in edge_ddg:
                 network.add_edge(a, b)
 
-            cycles = [
-                c for c in nx.simple_cycles(network.to_undirected())
-                if len(c) <= max_cycle_length
-            ]
+            cycles = [c for c in nx.simple_cycles(network.to_undirected()) if len(c) <= max_cycle_length]
 
             for cycle in cycles:
                 sum_ddgs = 0.0
@@ -1013,17 +1006,17 @@ class FEMap:
                     # different cycle lengths
                     cc = abs(sum_ddgs / math.sqrt(len(cycle)))
                     cc_uncertainty_normalized = abs(sum_ddgs) / math.sqrt(sum_var)
-                    rows.append({
-                        "source": source,
-                        "cycle": tuple(cycle),
-                        "cc (kcal/mol)": round(cc, 2),
-                        "cc_unc_normalized (kcal/mol)": round(
-                            cc_uncertainty_normalized, 2),
-                    })
+                    rows.append(
+                        {
+                            "source": source,
+                            "cycle": tuple(cycle),
+                            "cc (kcal/mol)": round(cc, 2),
+                            "cc_unc_normalized (kcal/mol)": round(cc_uncertainty_normalized, 2),
+                        }
+                    )
 
         return (
-            pd.DataFrame(rows, columns=["source", "cycle", "cc (kcal/mol)",
-                                        "cc_unc_normalized (kcal/mol)"])
+            pd.DataFrame(rows, columns=["source", "cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"])
             .sort_values(["source", "cc (kcal/mol)"], ascending=[True, False])
             .reset_index(drop=True)
         )
@@ -1056,10 +1049,7 @@ class FEMap:
         comp_df = self.get_relative_dataframe()
         comp_df = comp_df[comp_df["computational"]]
         edge_ddg_by_source = {
-            source: {
-                (row["labelA"], row["labelB"]): row["DDG (kcal/mol)"]
-                for _, row in group.iterrows()
-            }
+            source: {(row["labelA"], row["labelB"]): row["DDG (kcal/mol)"] for _, row in group.iterrows()}
             for source, group in comp_df.groupby("source")
         }
 
@@ -1074,19 +1064,20 @@ class FEMap:
                 for i, lig in enumerate(cycle):
                     lig_a = lig
                     lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
-                    edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (
-                    lig_b, lig_a)
+                    edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (lig_b, lig_a)
                     edge_cycles[edge].append(cc)
 
             for (a, b), ccs in edge_cycles.items():
-                rows.append({
-                    "source": source,
-                    "ligandA": a,
-                    "ligandB": b,
-                    "n_cycles": len(ccs),
-                    "mean_cc (kcal/mol)": round(sum(ccs) / len(ccs), 3),
-                    "max_cc (kcal/mol)": round(max(ccs), 3),
-                })
+                rows.append(
+                    {
+                        "source": source,
+                        "ligandA": a,
+                        "ligandB": b,
+                        "n_cycles": len(ccs),
+                        "mean_cc (kcal/mol)": round(sum(ccs) / len(ccs), 3),
+                        "max_cc (kcal/mol)": round(max(ccs), 3),
+                    }
+                )
 
         return (
             pd.DataFrame(rows)
