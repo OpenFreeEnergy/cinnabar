@@ -1075,14 +1075,14 @@ def plot_cycle_closure(
     ----------
     fe_map : FEMap
         FEMap object containing the calculated edges.
-    filename : str, optional
+    filename : str, default None
         If provided, the plot will be saved to this filename.
-    max_cycle_length : int, optional
+    max_cycle_length : int, default 5
         Only consider cycles up to this length. Defaults to 5.
         The matplotlib Figure object, which can be edited further.
-    sources : list[str], optional
+    sources : list[str], default None
         List of sources to plot. If None, all sources are plotted.
-    bin_width : float, optional
+    bin_width : float, default 0.5
         Width of histogram bins in kcal/mol. Default: 0.5
     """
     df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
