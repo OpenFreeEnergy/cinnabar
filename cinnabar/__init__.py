@@ -12,3 +12,4 @@ from cinnabar import estimators, stats
 from cinnabar.classification_metrics import compute_fraction_best_ligands
 from cinnabar.femap import FEMap, unit
 from cinnabar.measurements import Measurement, ReferenceState
+from cinnabar.plotting import pair_plot
