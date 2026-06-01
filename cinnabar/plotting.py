@@ -1085,16 +1085,16 @@ def plot_cycle_closure(
     bin_width : float, default 0.5
         Width of histogram bins in kcal/mol. Default: 0.5
 
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the histogram which can be edited further.
+
     Raises
     ------
     ValueError
         If the FEMap contains no cycles, or if a requested
         source cannot be found.
-
-    Returns
-    -------
-    plt.Figure
-        The matplotlib Figure object containing the histogram which can be edited further.
     """
     df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
 
