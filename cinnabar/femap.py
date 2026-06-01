@@ -1045,7 +1045,7 @@ class FEMap:
 
         Parameters
         ----------
-        max_cycle_length : int, optional
+        max_cycle_length : int, default 5
             Only consider cycles up to this length. Defaults to 5.
 
         Returns
