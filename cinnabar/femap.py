@@ -970,9 +970,9 @@ class FEMap:
         -----
         Three cycle closure metrics are calculated:
 
-        - ``cc_error``: the raw absolute sum of DDGs around the cycle. Units: kcal/mol.
+        - ``cc (kcal/mol)``: the raw absolute sum of DDGs around the cycle. Units: kcal/mol.
 
-        - ``cc_per_edge``: the cycle closure divided by the square root of the cycle
+        - ``cc_per_edge (kcal/mol)``: the cycle closure divided by the square root of the cycle
           length, to allow comparison across different cycle lengths. Units: kcal/mol.
 
         - ``cc_unc_normalized``: the cycle closure error divided by its propagated uncertainty,
