@@ -1019,11 +1019,7 @@ class FEMap:
                     # Normalize by sqrt(cycle length) to allow comparison across
                     # different cycle lengths
                     cc_per_edge = cc / math.sqrt(len(cycle))
-                    cc_z_score = (
-                        cc / math.sqrt(sum_var)
-                        if sum_var > 0
-                        else np.nan
-                    )
+                    cc_z_score = cc / math.sqrt(sum_var) if sum_var > 0 else np.nan
                     rows.append(
                         {
                             "source": source,
