@@ -875,5 +875,22 @@ def test_get_cc_based_edge_statistics_known_value(perfect_cycle):
     result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe()
     assert len(result) == 3
     assert (result["n_cycles"] == 1).all()
-    assert (result["mean_cc (kcal/mol)"] == 0.0).all()
-    assert (result["max_cc (kcal/mol)"] == 0.0).all()
+    assert (result["mean_cc_per_edge (kcal/mol)"] == 0.0).all()
+    assert (result["max_cc_per_edge (kcal/mol)"] == 0.0).all()
+
+
+def test_get_cc_based_edge_statistics_reverse_direction(perfect_cycle):
+    kcalpm = unit.kilocalorie_per_mole
+    # add edges for more cycles
+    perfect_cycle.add_relative_calculation("A", "D", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+    perfect_cycle.add_relative_calculation("D", "B", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+
+    result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe(max_cycle_length=3)
+    cc_per_edge_abc = 0.0 / math.sqrt(3)   # perfect cycle A -> B -> C -> A
+    cc_per_edge_bad = 1.5 / math.sqrt(3)   # imperfect cycle B -> A -> D -> B
+
+    # A to B in two cycles
+    ab_row = result[(result["ligandA"] == "A") & (result["ligandB"] == "B")]
+    assert ab_row["n_cycles"].iloc[0] == 2
+    assert ab_row["mean_cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx((cc_per_edge_abc + cc_per_edge_bad) / 2, abs=1e-3)
+    assert ab_row["max_cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(cc_per_edge_bad, abs=1e-3)

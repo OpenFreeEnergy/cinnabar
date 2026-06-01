@@ -1028,9 +1028,9 @@ class FEMap:
                         {
                             "source": source,
                             "cycle": tuple(cycle),
-                            "cc (kcal/mol)": round(cc, 2),
-                            "cc_per_edge (kcal/mol)": round(cc_per_edge, 2),
-                            "cc_unc_normalized": round(cc_z_score, 2),
+                            "cc (kcal/mol)": cc,
+                            "cc_per_edge (kcal/mol)": cc_per_edge,
+                            "cc_unc_normalized": cc_z_score,
                         }
                     )
 
@@ -1048,6 +1048,9 @@ class FEMap:
         For each simulated edge, report how many cycles it appears in and
         the mean and max cycle closure error of those cycles per source.
 
+        The cycle closure values are based on ``cc_per_edge (kcal/mol)``,
+        defined as the absolute cycle closure divided by the square root of the cycle length.
+
         Parameters
         ----------
         max_cycle_length : int, default 5
@@ -1060,34 +1063,36 @@ class FEMap:
         - ligandA
         - ligandB
         - n_cycles
-        - mean_cc (kcal/mol)
-        - max_cc (kcal/mol)
+        - mean_cc_per_edge (kcal/mol)
+        - max_cc_per_edge (kcal/mol)
 
         Sorted by source and mean cycle closure error descending.
         """
         from collections import defaultdict
 
         cc_df = self.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
-        comp_df = self.get_relative_dataframe()
-        comp_df = comp_df[comp_df["computational"]]
-        edge_ddg_by_source = {
-            source: {(row["labelA"], row["labelB"]): row["DDG (kcal/mol)"] for _, row in group.iterrows()}
-            for source, group in comp_df.groupby("source")
-        }
+        print(cc_df)
+        # comp_df = self.get_relative_dataframe()
+        # comp_df = comp_df[comp_df["computational"]]
+        # edge_ddg_by_source = {
+        #     source: {(row["labelA"], row["labelB"]): row["DDG (kcal/mol)"] for _, row in group.iterrows()}
+        #     for source, group in comp_df.groupby("source")
+        # }
 
         rows = []
         for source, source_cc_df in cc_df.groupby("source"):
-            edge_ddg = edge_ddg_by_source.get(source, {})
+            # edge_ddg = edge_ddg_by_source.get(source, {})
             edge_cycles: dict[tuple, list[float]] = defaultdict(list)
 
             for _, row in source_cc_df.iterrows():
                 cycle = list(row["cycle"])
-                cc = row["cc_per_edge (kcal/mol)"]
+                cc_per_edge = row["cc_per_edge (kcal/mol)"]
                 for i, lig in enumerate(cycle):
                     lig_a = lig
                     lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
-                    edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (lig_b, lig_a)
-                    edge_cycles[edge].append(cc)
+                    # edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (lig_b, lig_a)
+                    edge = self._canonical_edge((lig_a, lig_b))
+                    edge_cycles[edge].append(cc_per_edge)
 
             for (a, b), ccs in edge_cycles.items():
                 rows.append(
@@ -1096,13 +1101,13 @@ class FEMap:
                         "ligandA": a,
                         "ligandB": b,
                         "n_cycles": len(ccs),
-                        "mean_cc (kcal/mol)": round(sum(ccs) / len(ccs), 3),
-                        "max_cc (kcal/mol)": round(max(ccs), 3),
+                        "mean_cc_per_edge (kcal/mol)": sum(ccs) / len(ccs),
+                        "max_cc_per_edge (kcal/mol)": max(ccs),
                     }
                 )
 
         return (
             pd.DataFrame(rows)
-            .sort_values(["source", "mean_cc (kcal/mol)"], ascending=[True, False])
+            .sort_values(["source", "mean_cc_per_edge (kcal/mol)"], ascending=[True, False])
             .reset_index(drop=True)
         )
