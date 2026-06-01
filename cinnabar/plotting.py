@@ -8,11 +8,12 @@ import seaborn as sns
 from adjustText import adjust_text
 from openff.units import Quantity, unit
 
-from cinnabar import plotlying, stats, conversion
+from cinnabar import conversion, plotlying, stats
 from cinnabar.femap import ANALYSIS_UNITS, FEMap
 
 # Define the default guidelines in kcal/mol for the scatter plots
 _DEFAULT_GUIDELINES_DG = (0.5, 1.0)
+
 
 def _convert_guidelines_to_pic50(guidelines: tuple[float, ...], temperature: Quantity) -> tuple[float, ...]:
     """
@@ -31,6 +32,7 @@ def _convert_guidelines_to_pic50(guidelines: tuple[float, ...], temperature: Qua
         pic50, _ = conversion.convert_observable(dg, original_type="dg", final_type="pic50", temperature=temperature)
         converted.append(abs(pic50.m))  # type: ignore[arg-type]
     return tuple(converted)
+
 
 # Map the observable type to expected dataframe column names and the units for the plot
 _OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
@@ -533,7 +535,9 @@ def plot_DDGs(
         units = kwargs.pop("units", plot_meta["units"])
         # Convert the guideline the equivalent distance in pIC50
         if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
-            kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature)
+            kwargs["guidelines"] = _convert_guidelines_to_pic50(
+                guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
+            )
         pair_plot(
             x_data,
             y_data,
@@ -666,8 +670,9 @@ def plot_DGs(
         units = kwargs.pop("units", plot_meta["units"])
         # Convert the guideline the equivalent distance in pIC50
         if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
-            kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG,
-                                                                temperature=temperature)
+            kwargs["guidelines"] = _convert_guidelines_to_pic50(
+                guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
+            )
         pair_plot(
             x_data,
             y_data,
@@ -799,8 +804,9 @@ def plot_all_DDGs(
         units = kwargs.pop("units", plot_meta["units"])
         # Convert the guideline the equivalent distance in pIC50
         if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
-            kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG,
-                                                                temperature=temperature)
+            kwargs["guidelines"] = _convert_guidelines_to_pic50(
+                guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
+            )
         pair_plot(
             x_data,
             y_data,
