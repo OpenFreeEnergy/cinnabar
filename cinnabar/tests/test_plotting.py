@@ -208,24 +208,35 @@ def test_plot_dgs_centralising(fe_map, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_bad_statistic_type(example_data_mle):
+def test_master_plot_deprecation_warning(example_data_mle, show_called):
+    """Test that master plot shows deprecation warning when called."""
+    x_data, y_data, _, yer = example_data_mle
+    with pytest.warns(DeprecationWarning, match="_master_plot is deprecated and will be removed in a future release."):
+        _ = plotting._master_plot(
+            x_data,
+            y_data,
+        )
+        assert "show" in show_called
+
+
+def test_pair_plot_bad_statistic_type(example_data_mle):
     """Test that bad statistic in master plot raises an error."""
 
     x_data, y_data, xerr, yerr = example_data_mle
     with pytest.raises(ValueError, match="Unknown statistic type bad_stat"):
-        _ = plotting._master_plot(
+        _ = plotting.pair_plot(
             x_data,
             y_data,
             statistic_type="bad_stat",
         )
 
 
-def test_master_plot_xy_lim(example_data_mle, show_called):
+def test_pair_plot_xy_lim(example_data_mle, show_called):
     """Test that x and y limits are set correctly in master plot."""
 
     x_data, y_data, xerr, yerr = example_data_mle
     lims = [-10, 10]
-    fig = plotting._master_plot(x_data, y_data, filename=None, xy_lim=lims)
+    fig = plotting.pair_plot(x_data, y_data, filename=None, xy_lim=lims)
     # inspect the figure axes to check axis limits
     axes = fig.get_axes()
     assert axes[0].get_xlim() == tuple(lims)
@@ -233,7 +244,7 @@ def test_master_plot_xy_lim(example_data_mle, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_axis_labels(example_data_mle, show_called):
+def test_pair_plot_axis_labels(example_data_mle, show_called):
     """Test that axis labels are set correctly in master plot."""
 
     x_data, y_data, xerr, yerr = example_data_mle
@@ -241,7 +252,7 @@ def test_master_plot_axis_labels(example_data_mle, show_called):
     y_label = "Predicted Values"
     quantity = "DG"
     units = "kcal/mol"
-    fig = plotting._master_plot(
+    fig = plotting.pair_plot(
         x_data,
         y_data,
         filename=None,
@@ -257,7 +268,7 @@ def test_master_plot_axis_labels(example_data_mle, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_stats(example_data_mle, show_called):
+def test_pair_plot_stats(example_data_mle, show_called):
     """Test that statistics are included in the master plot title."""
 
     x_data, y_data, xerr, yerr = example_data_mle
@@ -265,7 +276,7 @@ def test_master_plot_stats(example_data_mle, show_called):
     target_name = "Test Target"
     # add some non-default statistics
     statistics = ["RMSE", "MUE", "rho", "KTAU"]
-    fig = plotting._master_plot(
+    fig = plotting.pair_plot(
         x_data,
         y_data,
         filename=None,
@@ -280,11 +291,11 @@ def test_master_plot_stats(example_data_mle, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_clashing_scatter_kwargs(example_data_mle, show_called):
+def test_pair_plot_clashing_scatter_kwargs(example_data_mle, show_called):
     """Test that clashing scatter_kwargs will work with the scatter kwargs taking precedence."""
 
     x_data, y_data, xerr, yerr = example_data_mle
-    fig = plotting._master_plot(
+    fig = plotting.pair_plot(
         x_data,
         y_data,
         filename=None,

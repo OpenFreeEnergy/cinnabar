@@ -48,7 +48,7 @@ _OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
 }
 
 
-def _master_plot(
+def pair_plot(
     x: np.ndarray,
     y: np.ndarray,
     title: str = "",
@@ -60,7 +60,8 @@ def _master_plot(
     xlabel: str = "Experimental",
     ylabel: str = "Calculated",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
-    guidelines: bool = True,
+    guidelines: bool | tuple[float, float] = True,
+    guideline_colors: tuple[str, str] | None = None,
     origins: bool = True,
     color: str | None = None,
     statistics: list[Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU", "PI"]] | None = None,
@@ -68,7 +69,7 @@ def _master_plot(
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
-    dpi: float | str = "figure",
+    dpi: float | str = 300,
     data_labels: list[str] | None = None,
     axis_padding: float = 0.5,
     xy_lim: tuple[float, float] | None = None,
@@ -78,23 +79,23 @@ def _master_plot(
     statistic_type: Literal["mle", "mean"] = "mle",
     scatter_kwargs: dict[str, float | int | str] | None = None,
 ):
-    r"""Handles the aesthetics of the plots in one place.
+    r"""Handles the aesthetics of the pair plots in one place.
 
     Parameters
     ----------
     x : np.ndarray
-        Values to plot on the x-axis
+        Values to plot on the x-axis.
     y : np.ndarray
         Values to plot on the y-axis
-    title : string, default ""
-        Title for the plot
+    title : str, default ""
+        Title for the plot.
     xerr : np.ndarray | None , default None
         Error bars for x values if available.
     yerr : np.ndarray | None , default None
         Error bars for y values if available.
-    method_name : string, default ""
+    method_name : str, default ""
         Name of method associated with results, e.g. "openfe".
-    target_name : string, default ""
+    target_name : str, default ""
         Name of system for results, e.g. "Thrombin".
     quantity : str, default r"$\Delta\Delta$G"
         Metric that is being plotted, which will be included in the axis labels.
@@ -104,8 +105,19 @@ def _master_plot(
         Main label for the y-axis.
     units : str, default r"$\mathrm{kcal\,mol^{-1}}$"
         String value of units to label axis with.
-    guidelines : bool, default True
-        Toggles plotting of grey 0.5 and 1 kcal/mol error zone.
+    guidelines : bool | tuple[float, float], default True
+        Controls the shaded guideline bands drawn around the x=y line.
+
+        - ``True``: draw the default two bands at 0.5 and 1.0 kcal/mol.
+        - ``False``: no guidelines are drawn.
+        - ``tuple`` of up to 2 floats: draw a band for each value, e.g.
+          ``(0.5,)`` for a single band or ``(0.5, 1.0)`` for two bands.
+    guideline_colors : tuple[str, str], default None
+        Colors for each guideline band, corresponding positionally to each
+        distance in *guidelines*. If ``None``, or fewer colors than bands are
+        provided, the remaining bands default to ``"grey"``.
+        Example: ``("blue", "red")`` colors the inner band blue and the outer
+        band red.
     origins : bool, default True
         Toggles plotting of x and y-axis.
     color : str, default None
@@ -120,7 +132,7 @@ def _master_plot(
         Shift both the x and y-axis by a constant.
     figsize : float, default 3.25
         Size of figure for matplotlib.
-    dpi : float or 'figure', default 'figure'
+    dpi : float | str, default 300
         The resolution in dots per inch
         if 'figure', uses the figure's dpi value (this behavior is copied from
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
@@ -144,6 +156,12 @@ def _master_plot(
 
     Returns
     -------
+    plt.Figure
+
+    Raises
+    -------
+    ValueError
+        If more than 2 values are supplied to the guidelines argument.
 
     """
     nsamples = len(x)
@@ -180,23 +198,43 @@ def _master_plot(
 
     # plots x=y line
     plt.plot(scale, scale, "k:")
-    if guidelines:
-        small_dist = 0.5
-        # plots grey region around x=y line
-        plt.fill_between(
-            scale,
-            [ax_min - small_dist, ax_max - small_dist],
-            [ax_min + small_dist, ax_max + small_dist],
-            color="grey",
-            alpha=0.2,
-        )
-        plt.fill_between(
-            scale,
-            [ax_min - small_dist * 2, ax_max - small_dist * 2],
-            [ax_min + small_dist * 2, ax_max + small_dist * 2],
-            color="grey",
-            alpha=0.2,
-        )
+    if guidelines is not False and guidelines is not None and guidelines != ():
+        # get the distances to use
+        if isinstance(guidelines, bool):
+            distances: tuple[float, ...] = (0.5, 1.0)
+        else:
+            distances = tuple(guidelines)
+            if len(distances) > 2:
+                raise ValueError(f"guidelines tuple must contain at most 2 distance values, got {len(distances)}.")
+        # resolve per-band colors
+        resolved_colors = [
+            (guideline_colors[i] if guideline_colors and i < len(guideline_colors) else "grey")
+            for i in range(len(distances))
+        ]
+        for dist, band_color in zip(distances, resolved_colors):
+            plt.fill_between(
+                scale,
+                [ax_min - dist, ax_max - dist],
+                [ax_min + dist, ax_max + dist],
+                color=band_color,
+                alpha=0.2,
+            )
+            # label the upper boundary of the band where it exits through the top
+            # of the axes: the line y = x + dist hits y = ax_max at x = ax_max - dist
+            label_x = ax_max - dist
+            label_y = ax_max
+            if label_x > ax_min:
+                plt.gca().text(
+                    label_x,
+                    label_y,
+                    f"±{dist:g}",  # use :g to strip trailing zeros
+                    fontsize=7,
+                    ha="right",
+                    va="top",
+                    rotation=45,
+                    color="black",
+                    clip_on=True,
+                )
     # actual plotting
     cm = plt.get_cmap("coolwarm")
 
@@ -275,6 +313,18 @@ def _master_plot(
     else:
         plt.savefig(filename, bbox_inches="tight", dpi=dpi)
     return fig
+
+
+def _master_plot(*args, **kwargs):
+    """Deprecated alias for the pair_plot function. Will be removed in a future release."""
+    import warnings
+
+    warnings.warn(
+        "_master_plot is deprecated and will be removed in a future release. Use pair_plot instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return pair_plot(*args, **kwargs)
 
 
 def plot_DDGs(
@@ -455,7 +505,7 @@ def plot_DDGs(
         # allow callers to override quantity/units via kwargs
         quantity = kwargs.pop("quantity", plot_meta["quantity"])
         units = kwargs.pop("units", plot_meta["units"])
-        _master_plot(
+        pair_plot(
             x_data,
             y_data,
             xerr=xerr,
@@ -585,7 +635,7 @@ def plot_DGs(
         # allow callers to override quantity/units via kwargs
         quantity = kwargs.pop("quantity", plot_meta["quantity"])
         units = kwargs.pop("units", plot_meta["units"])
-        _master_plot(
+        pair_plot(
             x_data,
             y_data,
             xerr=xerr,
@@ -714,7 +764,7 @@ def plot_all_DDGs(
         # allow callers to override quantity/units via kwargs
         quantity = kwargs.pop("quantity", plot_meta["quantity"])
         units = kwargs.pop("units", plot_meta["units"])
-        _master_plot(
+        pair_plot(
             x_data,
             y_data,
             xerr=xerr,
