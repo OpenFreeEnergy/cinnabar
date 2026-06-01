@@ -1,6 +1,6 @@
 import itertools
 import warnings
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 import matplotlib.pylab as plt
 import networkx as nx
@@ -1063,11 +1063,11 @@ def ecdf_plot_all_DDGs(
 
 def plot_cycle_closure(
     fe_map: FEMap,
-    filename: Optional[str] = None,
+    filename: str | None,
     max_cycle_length: int = 5,
-    sources: Optional[list[str]] = None,
+    sources: list[str] | None = None,
     bin_width: float = 0.5,
-) -> plt.Figure | None:
+) -> plt.Figure:
     """
     Plot a histogram of cycle closure errors, taking the ``cc_per_edge (kcal/mol)``
     which is the cycle closure divided by the square root of the cycle length.
@@ -1076,15 +1076,25 @@ def plot_cycle_closure(
     ----------
     fe_map : FEMap
         FEMap object containing the calculated edges.
-    filename : str, default None
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
     max_cycle_length : int, default 5
         Only consider cycles up to this length. Defaults to 5.
-        The matplotlib Figure object, which can be edited further.
-    sources : list[str], default None
+    sources : list[str] | None, default None
         List of sources to plot. If None, all sources are plotted.
     bin_width : float, default 0.5
         Width of histogram bins in kcal/mol. Default: 0.5
+
+    Raises
+    ------
+    ValueError
+        If the FEMap contains no cycles, or if a requested
+        source cannot be found.
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the histogram which can be edited further.
     """
     df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
 

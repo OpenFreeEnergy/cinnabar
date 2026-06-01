@@ -1071,17 +1071,9 @@ class FEMap:
         from collections import defaultdict
 
         cc_df = self.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
-        print(cc_df)
-        # comp_df = self.get_relative_dataframe()
-        # comp_df = comp_df[comp_df["computational"]]
-        # edge_ddg_by_source = {
-        #     source: {(row["labelA"], row["labelB"]): row["DDG (kcal/mol)"] for _, row in group.iterrows()}
-        #     for source, group in comp_df.groupby("source")
-        # }
 
         rows = []
         for source, source_cc_df in cc_df.groupby("source"):
-            # edge_ddg = edge_ddg_by_source.get(source, {})
             edge_cycles: dict[tuple, list[float]] = defaultdict(list)
 
             for _, row in source_cc_df.iterrows():
@@ -1090,7 +1082,6 @@ class FEMap:
                 for i, lig in enumerate(cycle):
                     lig_a = lig
                     lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
-                    # edge = (lig_a, lig_b) if (lig_a, lig_b) in edge_ddg else (lig_b, lig_a)
                     edge = self._canonical_edge((lig_a, lig_b))
                     edge_cycles[edge].append(cc_per_edge)
 
