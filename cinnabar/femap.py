@@ -1032,7 +1032,7 @@ class FEMap:
         return (
             pd.DataFrame(
                 rows,
-                columns=["source", "cycle", "cc (kcal/mol)", "cc_per_edge (kcal/mol)", "cc_unc_normalized (kcal/mol)"],
+                columns=["source", "cycle", "cc (kcal/mol)", "cc_per_edge (kcal/mol)", "cc_unc_normalized"],
             )
             .sort_values(["source", "cc (kcal/mol)"], ascending=[True, False])
             .reset_index(drop=True)
