@@ -963,8 +963,20 @@ class FEMap:
         - source
         - cycle
         - cc (kcal/mol)
-        - cc_unc_normalized (kcal/mol)
+        - cc_unc_normalized
         Sorted by source and cycle closure error descending.
+
+        Notes
+        -----
+        Three cycle closure metrics are calculated:
+
+        - ``cc_error``: the raw absolute sum of DDGs around the cycle. Units: kcal/mol.
+
+        - ``cc_per_edge``: the cycle closure divided by the square root of the cycle
+          length, to allow comparison across different cycle lengths. Units: kcal/mol.
+
+        - ``cc_unc_normalized``: the cycle closure error divided by its propagated uncertainty,
+          calculated as ``abs(sum_ddgs) / sqrt(sum_var)``.
         """
         df = self.get_relative_dataframe()
         comp_df = df[df["computational"]]
@@ -1004,19 +1016,21 @@ class FEMap:
                 else:
                     # Normalize by sqrt(cycle length) to allow comparison across
                     # different cycle lengths
-                    cc = abs(sum_ddgs / math.sqrt(len(cycle)))
-                    cc_uncertainty_normalized = abs(sum_ddgs) / math.sqrt(sum_var)
+                    cc = abs(sum_ddgs)
+                    cc_per_edge = abs(sum_ddgs) / math.sqrt(len(cycle))
+                    cc_z_score = abs(sum_ddgs) / math.sqrt(sum_var)
                     rows.append(
                         {
                             "source": source,
                             "cycle": tuple(cycle),
                             "cc (kcal/mol)": round(cc, 2),
-                            "cc_unc_normalized (kcal/mol)": round(cc_uncertainty_normalized, 2),
+                            "cc_per_edge (kcal/mol)": round(cc_per_edge, 2),
+                            "cc_unc_normalized": round(cc_z_score, 2),
                         }
                     )
 
         return (
-            pd.DataFrame(rows, columns=["source", "cycle", "cc (kcal/mol)", "cc_unc_normalized (kcal/mol)"])
+            pd.DataFrame(rows, columns=["source", "cycle", "cc (kcal/mol)", "cc_per_edge (kcal/mol)", "cc_unc_normalized (kcal/mol)"])
             .sort_values(["source", "cc (kcal/mol)"], ascending=[True, False])
             .reset_index(drop=True)
         )
@@ -1060,7 +1074,7 @@ class FEMap:
 
             for _, row in source_cc_df.iterrows():
                 cycle = list(row["cycle"])
-                cc = row["cc (kcal/mol)"]
+                cc = row["cc_per_edge (kcal/mol)"]
                 for i, lig in enumerate(cycle):
                     lig_a = lig
                     lig_b = cycle[i + 1] if i < len(cycle) - 1 else cycle[0]
