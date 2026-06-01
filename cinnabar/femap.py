@@ -973,7 +973,8 @@ class FEMap:
         - ``cc (kcal/mol)``: the raw absolute sum of DDGs around the cycle. Units: kcal/mol.
 
         - ``cc_per_edge (kcal/mol)``: the cycle closure divided by the square root of the cycle
-          length, to allow comparison across different cycle lengths. Units: kcal/mol.
+          length, to allow comparison across different cycle lengths;
+          see Baumann et al. (DOI 10.1021/acs.jctc.3c00282). Units: kcal/mol.
 
         - ``cc_unc_normalized``: the cycle closure error divided by its propagated uncertainty,
           calculated as ``abs(sum_ddgs) / sqrt(sum_var)``.
@@ -1014,11 +1015,15 @@ class FEMap:
                         break
 
                 else:
+                    cc = abs(sum_ddgs)
                     # Normalize by sqrt(cycle length) to allow comparison across
                     # different cycle lengths
-                    cc = abs(sum_ddgs)
-                    cc_per_edge = abs(sum_ddgs) / math.sqrt(len(cycle))
-                    cc_z_score = abs(sum_ddgs) / math.sqrt(sum_var)
+                    cc_per_edge = cc / math.sqrt(len(cycle))
+                    cc_z_score = (
+                        cc / math.sqrt(sum_var)
+                        if sum_var > 0
+                        else np.nan
+                    )
                     rows.append(
                         {
                             "source": source,

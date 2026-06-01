@@ -841,17 +841,6 @@ def test_missing_estimator_metadata(example_map):
         example_map.get_estimator_metadata("test")
 
 
-@pytest.fixture()
-def perfect_cycle():
-    """A perfect cycle with zero cycle closure."""
-    kcalpm = unit.kilocalorie_per_mole
-    fe = femap.FEMap()
-    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
-    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
-    fe.add_relative_calculation("C", "A", value=-2.0 * kcalpm, uncertainty=0.1 * kcalpm)
-    return fe
-
-
 def test_get_cycle_closure_perfect_cycle(perfect_cycle):
     result = perfect_cycle.get_cycle_closure_dataframe()
     assert isinstance(result, pd.DataFrame)
@@ -862,20 +851,24 @@ def test_get_cycle_closure_perfect_cycle(perfect_cycle):
     assert result["cc_unc_normalized"].iloc[0] == pytest.approx(0.0, abs=1e-6)
 
 
-def test_get_cycle_closure_hystereses():
-    kcalpm = unit.kilocalorie_per_mole
-    fe = femap.FEMap()
-    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
-    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm)
-    fe.add_relative_calculation("C", "A", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm)
-
-    result = fe.get_cycle_closure_dataframe()
+def test_get_cycle_closure_hystereses(imperfect_cycle):
+    result = imperfect_cycle.get_cycle_closure_dataframe()
     expected_cc = abs(0.5)
     expected_cc_per_edge = round(abs(0.5) / math.sqrt(3), 2)
     expected_cc_normalized = round(abs(0.5) / math.sqrt(3 * 0.1**2), 2)
     assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(expected_cc, abs=0.01)
     assert result["cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(expected_cc_per_edge, abs=0.01)
     assert result["cc_unc_normalized"].iloc[0] == pytest.approx(expected_cc_normalized, abs=0.01)
+
+
+def test_get_cycle_closure_multiple_sources(perfect_cycle, imperfect_cycle):
+    fe = perfect_cycle + imperfect_cycle
+
+    result = fe.get_cycle_closure_dataframe()
+    assert len(result) == 2
+    assert set(result["source"].unique()) == {"method_a", "method_b"}
+    assert result[result["source"] == "method_a"]["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result[result["source"] == "method_b"]["cc (kcal/mol)"].iloc[0] == pytest.approx(0.5, abs=0.01)
 
 
 def test_get_cc_based_edge_statistics_known_value(perfect_cycle):

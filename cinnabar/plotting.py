@@ -1069,7 +1069,8 @@ def plot_cycle_closure(
     bin_width: float = 0.5,
 ) -> plt.Figure | None:
     """
-    Plot a histogram of cycle closure errors.
+    Plot a histogram of cycle closure errors, taking the ``cc_per_edge (kcal/mol)``
+    which is the cycle closure divided by the square root of the cycle length.
 
     Parameters
     ----------
@@ -1088,27 +1089,25 @@ def plot_cycle_closure(
     df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
 
     if df.empty:
-        warnings.warn("No cycles found; skipping plot.")
-        return None
+        raise ValueError("The FEMap does not contain cycles.")
 
     if sources is not None:
         df = df[df["source"].isin(sources)]
         if df.empty:
-            warnings.warn(f"No cycles found for sources {sources}; skipping plot.")
-            return None
+            raise ValueError(f"No cycles found for sources {sources}.")
 
     unique_sources = df["source"].unique()
 
     fig, ax = plt.subplots(figsize=(5, 4))
 
-    max_val = df["cc (kcal/mol)"].max()
+    max_val = df["cc_per_edge (kcal/mol)"].max()
     bins = np.arange(0, max_val + bin_width, bin_width).tolist()
 
     for source in unique_sources:
         source_df = df[df["source"] == source]
-        ax.hist(source_df["cc (kcal/mol)"], bins=bins, alpha=0.6, label=source)
+        ax.hist(source_df["cc_per_edge (kcal/mol)"], bins=bins, alpha=0.6, label=source)
 
-    ax.set_xlabel(r"Cycle closure (kcal mol$^{-1}$)")
+    ax.set_xlabel(r"Cycle closure per edge (kcal mol$^{-1}$)")
     ax.set_ylabel("Count")
     ax.set_title("Cycle closure distribution")
     ax.legend()
