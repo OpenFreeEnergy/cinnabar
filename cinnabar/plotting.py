@@ -8,8 +8,29 @@ import seaborn as sns
 from adjustText import adjust_text
 from openff.units import Quantity, unit
 
-from cinnabar import plotlying, stats
+from cinnabar import plotlying, stats, conversion
 from cinnabar.femap import ANALYSIS_UNITS, FEMap
+
+# Define the default guidelines in kcal/mol for the scatter plots
+_DEFAULT_GUIDELINES_DG = (0.5, 1.0)
+
+def _convert_guidelines_to_pic50(guidelines: tuple[float, ...], temperature: Quantity) -> tuple[float, ...]:
+    """
+    Convert the given guidelines from kcal/mol to pIC50 values at the given temperature.
+
+    Parameters
+    ----------
+    guidelines : tuple[float, float]
+        The guideline distances in kcal/mol to convert.
+    temperature : Quantity
+        The temperature at which to perform the conversion.
+    """
+    converted: list[float] = []
+    for g in guidelines:
+        dg = Quantity(g, units=unit.kilocalorie_per_mole)
+        pic50, _ = conversion.convert_observable(dg, original_type="dg", final_type="pic50", temperature=temperature)
+        converted.append(abs(pic50.m))  # type: ignore[arg-type]
+    return tuple(converted)
 
 # Map the observable type to expected dataframe column names and the units for the plot
 _OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
@@ -33,7 +54,7 @@ _OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
         "relative": {
             "value_col": "DpIC50",
             "uncertainty_col": "uncertainty (unitless)",
-            "quantity": r"$\Delta\mathrm{pIC50}$",
+            "quantity": r"$\Delta$pIC50",
             "units": "unitless",
             "ecdf_quantity": r"$|\Delta$pIC50$_{calc}$ - $\Delta$pIC50$_{exp}|$",
         },
@@ -112,6 +133,11 @@ def pair_plot(
         - ``False``: no guidelines are drawn.
         - ``tuple`` of up to 2 floats: draw a band for each value, e.g.
           ``(0.5,)`` for a single band or ``(0.5, 1.0)`` for two bands.
+
+        When calling the high-level plotting functions (``plot_DDGs``,
+        ``plot_DGs``, ``plot_all_DDGs``) with ``observable_type="pic50"``,
+        the default distances are automatically converted to pIC50 units
+        so the bands remain physically meaningful.  Pass an explicit ``guidelines`` tuple to override this.
     guideline_colors : tuple[str, str], default None
         Colors for each guideline band, corresponding positionally to each
         distance in *guidelines*. If ``None``, or fewer colors than bands are
@@ -505,6 +531,9 @@ def plot_DDGs(
         # allow callers to override quantity/units via kwargs
         quantity = kwargs.pop("quantity", plot_meta["quantity"])
         units = kwargs.pop("units", plot_meta["units"])
+        # Convert the guideline the equivalent distance in pIC50
+        if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
+            kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature)
         pair_plot(
             x_data,
             y_data,
@@ -635,6 +664,10 @@ def plot_DGs(
         # allow callers to override quantity/units via kwargs
         quantity = kwargs.pop("quantity", plot_meta["quantity"])
         units = kwargs.pop("units", plot_meta["units"])
+        # Convert the guideline the equivalent distance in pIC50
+        if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
+            kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG,
+                                                                temperature=temperature)
         pair_plot(
             x_data,
             y_data,
@@ -764,6 +797,10 @@ def plot_all_DDGs(
         # allow callers to override quantity/units via kwargs
         quantity = kwargs.pop("quantity", plot_meta["quantity"])
         units = kwargs.pop("units", plot_meta["units"])
+        # Convert the guideline the equivalent distance in pIC50
+        if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
+            kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG,
+                                                                temperature=temperature)
         pair_plot(
             x_data,
             y_data,
