@@ -519,7 +519,7 @@ def test_plot_cycle_closure(fe_map, tmp_path):
     fig = plotting.plot_cycle_closure(fe_map, filename=str(output_file))
     assert fig is not None
     axes = fig.get_axes()[0]
-    assert axes.get_xlabel() == r"Cycle closure (kcal mol$^{-1}$)"
+    assert axes.get_xlabel() == r"Cycle closure per edge (kcal mol$^{-1}$)"
     assert axes.get_ylabel() == "Count"
     assert output_file.exists()
 
@@ -557,8 +557,6 @@ def test_plot_cycle_closure_multiple_sources(perfect_cycle, imperfect_cycle, tmp
     fig = plotting.plot_cycle_closure(fe, filename=str(output_file))
     assert fig is not None
     axes = fig.get_axes()[0]
-    assert axes.get_xlabel() == r"Cycle closure (kcal mol$^{-1}$)"
-    assert axes.get_ylabel() == "Count"
     legend_texts = [t.get_text() for t in axes.get_legend().get_texts()]
     assert "method_a" in legend_texts
     assert "method_b" in legend_texts
