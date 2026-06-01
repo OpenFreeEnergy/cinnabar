@@ -524,6 +524,14 @@ def test_plot_cycle_closure(fe_map, tmp_path):
     assert output_file.exists()
 
 
+def test_plot_cycle_closure_source_filter(fe_map):
+    fig = plotting.plot_cycle_closure(fe_map, sources=[""])
+    assert isinstance(fig, plt.Figure)
+    axes = fig.get_axes()[0]
+    assert axes.get_xlabel() == r"Cycle closure (kcal mol$^{-1}$)"
+    assert axes.get_ylabel() == "Count"
+
+
 def test_plot_cycle_closure_show(fe_map, show_called):
     _ = plotting.plot_cycle_closure(fe_map, filename=None)
     assert "show" in show_called
@@ -541,5 +549,13 @@ def test_plot_cycle_closure_no_cycles_no_plot(tmp_path):
     output_file = tmp_path / "cycle_closure.png"
     with pytest.warns(UserWarning, match="No cycles found"):
         fig = plotting.plot_cycle_closure(fe, filename=str(output_file))
+    assert fig is None
+    assert not output_file.exists()
+
+
+def test_plot_cycle_closure_invalid_source(fe_map, tmp_path):
+    output_file = tmp_path / "cycle_closure.png"
+    with pytest.warns(UserWarning, match="No cycles found for sources"):
+        fig = plotting.plot_cycle_closure(fe_map, filename=str(output_file), sources=["nonexistent_source"])
     assert fig is None
     assert not output_file.exists()
