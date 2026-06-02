@@ -1,5 +1,4 @@
 import itertools
-import warnings
 from typing import Any, Literal
 
 import matplotlib.pylab as plt

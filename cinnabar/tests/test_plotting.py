@@ -1,5 +1,4 @@
 import matplotlib.pylab as plt
-import networkx as nx
 import numpy as np
 import pytest
 from openff.units import unit
