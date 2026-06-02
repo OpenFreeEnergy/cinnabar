@@ -9,13 +9,13 @@ from adjustText import adjust_text
 from openff.units import Quantity, unit
 
 from cinnabar import conversion, plotlying, stats
-from cinnabar.femap import ANALYSIS_UNITS, FEMap
+from cinnabar.femap import FEMap, ABSOLUTE_ANALYSIS_TYPES, RELATIVE_ANALYSIS_TYPES
 
 # Define the default guidelines in kcal/mol for the scatter plots
 _DEFAULT_GUIDELINES_DG = (0.5, 1.0)
 
 
-def _convert_guidelines_to_pic50(guidelines: tuple[float, ...], temperature: Quantity) -> tuple[float, ...]:
+def _convert_guidelines_to_pic50(guidelines: tuple[float, float], temperature: Quantity) -> tuple[float, ...]:
     """
     Convert the given guidelines from kcal/mol to pIC50 values at the given temperature.
 
@@ -34,40 +34,51 @@ def _convert_guidelines_to_pic50(guidelines: tuple[float, ...], temperature: Qua
     return tuple(converted)
 
 
+def _update_plot_kwargs(
+    kwargs: dict,
+    plot_meta: dict[str, str],
+    observable_type: str,
+    temperature: Quantity,
+) -> tuple[str, str, dict]:
+    """Extract and resolve quantity, units, and guidelines from kwargs for pair_plot calls."""
+    quantity = kwargs.pop("quantity", plot_meta["quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
+    if kwargs.get("guidelines", True) is True and observable_type.lower().endswith("pic50"):
+        kwargs["guidelines"] = _convert_guidelines_to_pic50(
+            guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
+        )
+    return quantity, units, kwargs
+
 # Map the observable type to expected dataframe column names and the units for the plot
-_OBSERVABLE_METADATA: dict[str, dict[str, dict[str, str]]] = {
-    "dg": {
-        "relative": {
+_OBSERVABLE_METADATA: dict[str, dict[str, str]] = {
+    "ddg": {
             "value_col": "DDG (kcal/mol)",
             "uncertainty_col": "uncertainty (kcal/mol)",
             "quantity": r"$\Delta\Delta$G",
             "units": r"$\mathrm{kcal\,mol^{-1}}$",
             "ecdf_quantity": r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
         },
-        "absolute": {
+    "dg": {
             "value_col": "DG (kcal/mol)",
             "uncertainty_col": "uncertainty (kcal/mol)",
             "quantity": r"$\Delta$G",
             "units": r"$\mathrm{kcal\,mol^{-1}}$",
             "ecdf_quantity": r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
         },
-    },
-    "pic50": {
-        "relative": {
+    "dpic50": {
             "value_col": "DpIC50",
             "uncertainty_col": "uncertainty (unitless)",
             "quantity": r"$\Delta$pIC50",
             "units": "unitless",
             "ecdf_quantity": r"$|\Delta$pIC50$_{calc}$ - $\Delta$pIC50$_{exp}|$",
         },
-        "absolute": {
+    "pic50": {
             "value_col": "pIC50",
             "uncertainty_col": "uncertainty (unitless)",
             "quantity": "pIC50",
             "units": "unitless",
             "ecdf_quantity": r"$|$pIC50$_{calc}$ - pIC50$_{exp}|$",
         },
-    },
 }
 
 
@@ -369,7 +380,7 @@ def plot_DDGs(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: Literal["mle", "mean"] = "mle",
-    observable_type: ANALYSIS_UNITS = "dg",
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
     temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
@@ -422,11 +433,11 @@ def plot_DDGs(
         Whether to account for uncertainty in y when bootstrapping.
     statistic_type : {"mle", "mean"}, default "mle"
         The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
-    observable_type : {"dg", "pic50"}, default "dg"
-        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-        Use ``pic50`` to report DpIC50 values.
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to plot DpIC50 values.
     temperature : Quantity, default 298.15 * unit.kelvin
-        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
 
     Returns
     -------
@@ -440,7 +451,7 @@ def plot_DDGs(
 
     # load the data using the internal dataframes
     rel_df = femap.get_relative_dataframe(observable_type=observable_type, temperature=temperature)
-    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
     value_col = plot_meta["value_col"]
     uncertainty_col = plot_meta["uncertainty_col"]
     comp_mask = rel_df["computational"]
@@ -531,13 +542,7 @@ def plot_DDGs(
         )
     else:
         # allow callers to override quantity/units via kwargs
-        quantity = kwargs.pop("quantity", plot_meta["quantity"])
-        units = kwargs.pop("units", plot_meta["units"])
-        # Convert the guideline the equivalent distance in pIC50
-        if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
-            kwargs["guidelines"] = _convert_guidelines_to_pic50(
-                guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
-            )
+        quantity, units, kwargs = _update_plot_kwargs(kwargs, plot_meta, observable_type, temperature)
         pair_plot(
             x_data,
             y_data,
@@ -570,7 +575,7 @@ def plot_DGs(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: Literal["mle", "mean"] = "mle",
-    observable_type: ANALYSIS_UNITS = "dg",
+    observable_type: ABSOLUTE_ANALYSIS_TYPES = "dg",
     temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
@@ -597,8 +602,8 @@ def plot_DGs(
     statistic_type : {"mle", "mean"}, default "mle"
         The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
     observable_type : {"dg", "pic50"}, default "dg"
-        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-        Use ``pic50`` to report DpIC50 values.
+        The observable type to plot values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to plot pIC50 values.
     temperature : Quantity, default 298.15 * unit.kelvin
         Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
 
@@ -609,7 +614,7 @@ def plot_DGs(
 
     # extract the data from the internal dataframes
     df = femap.get_absolute_dataframe(observable_type=observable_type, temperature=temperature)
-    plot_meta = _OBSERVABLE_METADATA[observable_type]["absolute"]
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
     value_col = plot_meta["value_col"]
     uncertainty_col = plot_meta["uncertainty_col"]
 
@@ -665,14 +670,7 @@ def plot_DGs(
             **kwargs,
         )
     else:
-        # allow callers to override quantity/units via kwargs
-        quantity = kwargs.pop("quantity", plot_meta["quantity"])
-        units = kwargs.pop("units", plot_meta["units"])
-        # Convert the guideline the equivalent distance in pIC50
-        if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
-            kwargs["guidelines"] = _convert_guidelines_to_pic50(
-                guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
-            )
+        quantity, units, kwargs = _update_plot_kwargs(kwargs, plot_meta, observable_type, temperature)
         pair_plot(
             x_data,
             y_data,
@@ -705,7 +703,7 @@ def plot_all_DDGs(
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
     statistic_type: Literal["mle", "mean"] = "mle",
-    observable_type: ANALYSIS_UNITS = "dg",
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
     temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
@@ -736,11 +734,11 @@ def plot_all_DDGs(
         Whether to account for uncertainty in y when bootstrapping.
     statistic_type : {"mle", "mean"}, default "mle"
         The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
-    observable_type : {"dg", "pic50"}, default "dg"
-        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-        Use ``pic50`` to report DpIC50 values.
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to plot DpIC50 values.
     temperature : Quantity, default 298.15 * unit.kelvin
-        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
 
     Returns
     -------
@@ -750,7 +748,7 @@ def plot_all_DDGs(
     rel_df = femap.get_all_to_all_relative_dataframe(
         symmetrical=True, observable_type=observable_type, temperature=temperature
     )
-    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
     value_col = plot_meta["value_col"]
     uncertainty_col = plot_meta["uncertainty_col"]
 
@@ -799,14 +797,7 @@ def plot_all_DDGs(
         )
 
     else:
-        # allow callers to override quantity/units via kwargs
-        quantity = kwargs.pop("quantity", plot_meta["quantity"])
-        units = kwargs.pop("units", plot_meta["units"])
-        # Convert the guideline the equivalent distance in pIC50
-        if kwargs.get("guidelines", True) is True and observable_type.lower() == "pic50":
-            kwargs["guidelines"] = _convert_guidelines_to_pic50(
-                guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
-            )
+        quantity, units, kwargs = _update_plot_kwargs(kwargs, plot_meta, observable_type, temperature)
         pair_plot(
             x_data,
             y_data,
@@ -951,7 +942,7 @@ def ecdf_plot_DDGs(
     labels: list[str] | None = None,
     title: str | None = "ECDF of Edgewise Absolute Errors",
     filename: str | None = None,
-    observable_type: ANALYSIS_UNITS = "dg",
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
     temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
@@ -976,11 +967,11 @@ def ecdf_plot_DDGs(
         Title for the plot. If ``None``, no title is set.
     filename : str | None, default None
         If provided, the plot will be saved to this filename.
-    observable_type : {"dg", "pic50"}, default "dg"
-        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-        Use ``pic50`` to report DpIC50 values.
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to report DpIC50 values.
     temperature : Quantity, default 298.15 * unit.kelvin
-        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -1000,7 +991,7 @@ def ecdf_plot_DDGs(
         computational results are in the graph.
     """
     rel_df = femap.get_relative_dataframe(observable_type=observable_type, temperature=temperature)
-    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
     value_col = plot_meta["value_col"]
     comp_mask = rel_df["computational"]
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
@@ -1057,7 +1048,7 @@ def ecdf_plot_DGs(
     title: str | None = "ECDF of Nodewise Absolute Errors",
     filename: str | None = None,
     centralizing: bool = True,
-    observable_type: ANALYSIS_UNITS = "dg",
+    observable_type: ABSOLUTE_ANALYSIS_TYPES = "dg",
     temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
@@ -1083,8 +1074,8 @@ def ecdf_plot_DGs(
     centralizing : bool, default True
         whether to center both calculated and experimental values around zero before calculating absolute errors.
     observable_type : {"dg", "pic50"}, default "dg"
-        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-        Use ``pic50`` to report DpIC50 values.
+        The observable type to plot values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report pIC50 values.
     temperature : Quantity, default 298.15 * unit.kelvin
         Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
     **kwargs
@@ -1102,7 +1093,7 @@ def ecdf_plot_DGs(
         computational results are in the graph.
     """
     df = femap.get_absolute_dataframe(observable_type=observable_type, temperature=temperature)
-    plot_meta = _OBSERVABLE_METADATA[observable_type]["absolute"]
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
     value_col = plot_meta["value_col"]
     comp_mask = df["computational"]
     all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
@@ -1168,7 +1159,7 @@ def ecdf_plot_all_DDGs(
     labels: list[str] | None = None,
     title: str | None = "ECDF of Pairwise (all-to-all) Absolute Errors",
     filename: str | None = None,
-    observable_type: ANALYSIS_UNITS = "dg",
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
     temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
@@ -1188,11 +1179,11 @@ def ecdf_plot_all_DDGs(
         Title for the plot.
     filename : str | None, default None
         If provided, the plot will be saved to this filename.
-    observable_type : {"dg", "pic50"}, default "dg"
-        The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-        Use ``pic50`` to report DpIC50 values.
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to report DpIC50 values.
     temperature : Quantity, default 298.15 * unit.kelvin
-        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -1217,7 +1208,7 @@ def ecdf_plot_all_DDGs(
     rel_df = femap.get_all_to_all_relative_dataframe(
         symmetrical=False, observable_type=observable_type, temperature=temperature
     )
-    plot_meta = _OBSERVABLE_METADATA[observable_type]["relative"]
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
     value_col = plot_meta["value_col"]
     comp_mask = rel_df["computational"]
     all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()

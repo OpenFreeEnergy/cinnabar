@@ -22,8 +22,8 @@ def show_called(monkeypatch):
 @pytest.mark.parametrize(
     "observable_type",
     [
-        pytest.param("dg", id="dg"),
-        pytest.param("pic50", id="pic50"),
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
     ],
 )
 def test_plot_ddgs_to_file(tmp_path, fe_map, observable_type):
@@ -60,8 +60,8 @@ def test_plot_dgs_show(fe_map, show_called):
 @pytest.mark.parametrize(
     "observable_type",
     [
-        pytest.param("dg", id="dg"),
-        pytest.param("pic50", id="pic50"),
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
     ],
 )
 def test_plot_all_ddgs_to_file(tmp_path, fe_map, observable_type):
@@ -310,8 +310,8 @@ def test_pair_plot_clashing_scatter_kwargs(example_data_mle, show_called):
 @pytest.mark.parametrize(
     "observable_type",
     [
-        pytest.param("dg", id="dg"),
-        pytest.param("pic50", id="pic50"),
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
     ],
 )
 def test_plot_ecdf_ddgs(fe_map, tmp_path, observable_type):
@@ -322,7 +322,7 @@ def test_plot_ecdf_ddgs(fe_map, tmp_path, observable_type):
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    expected_labels = plotting._OBSERVABLE_METADATA[observable_type]["relative"]
+    expected_labels = plotting._OBSERVABLE_METADATA[observable_type.lower()]
     assert axes.get_xlabel() == f"Edgewise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Edgewise Absolute Errors"
     # make sure the file was created
@@ -394,8 +394,8 @@ def test_plot_ecdf_ddgs_inconsistent_sources(fe_map):
 @pytest.mark.parametrize(
     "observable_type",
     [
-        pytest.param("dg", id="dg"),
-        pytest.param("pic50", id="pic50"),
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
     ],
 )
 def test_plot_ecdf_all_ddgs(fe_map, tmp_path, observable_type):
@@ -407,7 +407,7 @@ def test_plot_ecdf_all_ddgs(fe_map, tmp_path, observable_type):
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    expected_labels = plotting._OBSERVABLE_METADATA[observable_type]["relative"]
+    expected_labels = plotting._OBSERVABLE_METADATA[observable_type.lower()]
     assert axes.get_xlabel() == f"Pairwise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Pairwise (all-to-all) Absolute Errors"
     # make sure the file was created
@@ -520,7 +520,7 @@ def test_plot_ecdf_dgs_units(fe_map, tmp_path, observable_type):
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    expected_labels = plotting._OBSERVABLE_METADATA[observable_type]["absolute"]
+    expected_labels = plotting._OBSERVABLE_METADATA[observable_type.lower()]
     assert axes.get_xlabel() == f"Nodewise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Nodewise Absolute Errors"
     # make sure the file was created
