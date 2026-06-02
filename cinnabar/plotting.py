@@ -9,7 +9,7 @@ from adjustText import adjust_text
 from openff.units import Quantity, unit
 
 from cinnabar import conversion, plotlying, stats
-from cinnabar.femap import FEMap, ABSOLUTE_ANALYSIS_TYPES, RELATIVE_ANALYSIS_TYPES
+from cinnabar.femap import ABSOLUTE_ANALYSIS_TYPES, RELATIVE_ANALYSIS_TYPES, FEMap
 
 # Define the default guidelines in kcal/mol for the scatter plots
 _DEFAULT_GUIDELINES_DG = (0.5, 1.0)
@@ -44,41 +44,40 @@ def _update_plot_kwargs(
     quantity = kwargs.pop("quantity", plot_meta["quantity"])
     units = kwargs.pop("units", plot_meta["units"])
     if kwargs.get("guidelines", True) is True and observable_type.lower().endswith("pic50"):
-        kwargs["guidelines"] = _convert_guidelines_to_pic50(
-            guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature
-        )
+        kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature)
     return quantity, units, kwargs
+
 
 # Map the observable type to expected dataframe column names and the units for the plot
 _OBSERVABLE_METADATA: dict[str, dict[str, str]] = {
     "ddg": {
-            "value_col": "DDG (kcal/mol)",
-            "uncertainty_col": "uncertainty (kcal/mol)",
-            "quantity": r"$\Delta\Delta$G",
-            "units": r"$\mathrm{kcal\,mol^{-1}}$",
-            "ecdf_quantity": r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
-        },
+        "value_col": "DDG (kcal/mol)",
+        "uncertainty_col": "uncertainty (kcal/mol)",
+        "quantity": r"$\Delta\Delta$G",
+        "units": r"$\mathrm{kcal\,mol^{-1}}$",
+        "ecdf_quantity": r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
+    },
     "dg": {
-            "value_col": "DG (kcal/mol)",
-            "uncertainty_col": "uncertainty (kcal/mol)",
-            "quantity": r"$\Delta$G",
-            "units": r"$\mathrm{kcal\,mol^{-1}}$",
-            "ecdf_quantity": r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
-        },
+        "value_col": "DG (kcal/mol)",
+        "uncertainty_col": "uncertainty (kcal/mol)",
+        "quantity": r"$\Delta$G",
+        "units": r"$\mathrm{kcal\,mol^{-1}}$",
+        "ecdf_quantity": r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
+    },
     "dpic50": {
-            "value_col": "DpIC50",
-            "uncertainty_col": "uncertainty (unitless)",
-            "quantity": r"$\Delta$pIC50",
-            "units": "unitless",
-            "ecdf_quantity": r"$|\Delta$pIC50$_{calc}$ - $\Delta$pIC50$_{exp}|$",
-        },
+        "value_col": "DpIC50",
+        "uncertainty_col": "uncertainty (unitless)",
+        "quantity": r"$\Delta$pIC50",
+        "units": "unitless",
+        "ecdf_quantity": r"$|\Delta$pIC50$_{calc}$ - $\Delta$pIC50$_{exp}|$",
+    },
     "pic50": {
-            "value_col": "pIC50",
-            "uncertainty_col": "uncertainty (unitless)",
-            "quantity": "pIC50",
-            "units": "unitless",
-            "ecdf_quantity": r"$|$pIC50$_{calc}$ - pIC50$_{exp}|$",
-        },
+        "value_col": "pIC50",
+        "uncertainty_col": "uncertainty (unitless)",
+        "quantity": "pIC50",
+        "units": "unitless",
+        "ecdf_quantity": r"$|$pIC50$_{calc}$ - pIC50$_{exp}|$",
+    },
 }
 
 
