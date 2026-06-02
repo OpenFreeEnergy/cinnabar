@@ -963,6 +963,7 @@ class FEMap:
         - source
         - cycle
         - cc (kcal/mol)
+        - cc_per_edge (kcal/mol)
         - cc_unc_normalized
         Sorted by source and cycle closure error descending.
 
