@@ -994,6 +994,7 @@ class FEMap:
             for a, b in edge_ddg:
                 network.add_edge(a, b)
 
+            # Using the undirected graph means that self loop edges are not considered. 
             cycles = [c for c in nx.simple_cycles(network.to_undirected()) if len(c) <= max_cycle_length]
 
             for cycle in cycles:
