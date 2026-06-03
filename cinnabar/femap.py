@@ -979,8 +979,8 @@ class FEMap:
 
         - ``cc_unc_normalized``: the cycle closure error divided by its propagated uncertainty,
           calculated as ``abs(sum_ddgs) / sqrt(sum_var)``.
-          
-        The function currently does not consider self loop edges, e.g. A-->B and B-->A edges. 
+
+        The function currently does not consider self loop edges, e.g. A-->B and B-->A edges.
         """
         df = self.get_relative_dataframe()
         comp_df = df[df["computational"]]
@@ -996,7 +996,7 @@ class FEMap:
             for a, b in edge_ddg:
                 network.add_edge(a, b)
 
-            # Using the undirected graph means that self loop edges are not considered. 
+            # Using the undirected graph means that self loop edges are not considered.
             cycles = [c for c in nx.simple_cycles(network.to_undirected()) if len(c) <= max_cycle_length]
 
             for cycle in cycles:
