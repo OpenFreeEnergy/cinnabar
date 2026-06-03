@@ -979,6 +979,8 @@ class FEMap:
 
         - ``cc_unc_normalized``: the cycle closure error divided by its propagated uncertainty,
           calculated as ``abs(sum_ddgs) / sqrt(sum_var)``.
+          
+      The function currently does not consider self loop edges, e.g. A-->B and B-->A edges. 
         """
         df = self.get_relative_dataframe()
         comp_df = df[df["computational"]]
