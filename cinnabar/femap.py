@@ -30,7 +30,8 @@ if TYPE_CHECKING:
 _kcalpm = unit.kilocalorie_per_mole
 
 # Reusable typing alias for unit conversions
-ANALYSIS_UNITS = Literal["dg", "pic50"]
+ABSOLUTE_ANALYSIS_TYPES = Literal["dg", "pic50"]
+RELATIVE_ANALYSIS_TYPES = Literal["ddg", "dpic50"]
 
 
 def _convert_dg_df_to_pic50(
@@ -422,16 +423,16 @@ class FEMap:
 
     def get_relative_dataframe(
         self,
-        observable_type: ANALYSIS_UNITS = "dg",
+        observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
         temperature: Quantity = 298.15 * unit.kelvin,
     ) -> pd.DataFrame:
         """Get a dataframe of all relative results for all sources including experimental and computational.
 
         Parameters
         ----------
-        observable_type : {"dg", "pic50"}, default "dg"
-            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-            Use ``pic50`` to report DpIC50 values.
+        observable_type : {"ddg", "dpic50"}, default "ddg"
+            The observable type to report values in.  Defaults to ``ddg`` (kcal/mol).
+            Use ``dpic50`` to report DpIC50 values.
         temperature : Quantity, default 298.15 * unit.kelvin
             Temperature used for the unit conversion.
 
@@ -490,18 +491,18 @@ class FEMap:
             columns=cols,
         )
         # convert if required
-        if observable_type.lower() == "pic50":
+        if observable_type.lower() == "dpic50":
             df = _convert_dg_df_to_pic50(
                 df, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "DpIC50", "uncertainty (unitless)", temperature
             )
-        elif observable_type.lower() != "dg":
+        elif observable_type.lower() != "ddg":
             raise ValueError(f"Unknown observable_type: '{observable_type}'")
 
         return df.sort_values(by=["source", "computational", "labelA", "labelB"]).reset_index(drop=True)
 
     def get_absolute_dataframe(
         self,
-        observable_type: ANALYSIS_UNITS = "dg",
+        observable_type: ABSOLUTE_ANALYSIS_TYPES = "dg",
         temperature: Quantity = 298.15 * unit.kelvin,
     ) -> pd.DataFrame:
         """Get a dataframe of all absolute results from all sources.
@@ -510,7 +511,7 @@ class FEMap:
         ----------
         observable_type : {"dg", "pic50"}, default "dg"
             The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-            Use ``pic50`` to report DpIC50 values.
+            Use ``pic50`` to report pIC50 values.
         temperature : Quantity, default 298.15 * unit.kelvin
             Temperature used for the unit conversion.
 
@@ -554,7 +555,7 @@ class FEMap:
     def get_all_to_all_relative_dataframe(
         self,
         symmetrical: bool = True,
-        observable_type: ANALYSIS_UNITS = "dg",
+        observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
         temperature: Quantity = 298.15 * unit.kelvin,
     ) -> pd.DataFrame:
         """Get a dataframe of the all-to-all pairwise relative results using the absolute DG values.
@@ -563,9 +564,9 @@ class FEMap:
         ----------
         symmetrical : bool, default True
             If True, include both directions of each pairwise comparison. If False, include only one direction.
-        observable_type : {"dg", "pic50"}, default "dg"
-            The observable type to report values in.  Defaults to ``dg`` (kcal/mol).
-            Use ``pic50`` to report DpIC50 values.
+        observable_type : {"ddg", "dpic50"}, default "ddg"
+            The observable type to report values in.  Defaults to ``ddg`` (kcal/mol).
+            Use ``dpic50`` to report DpIC50 values.
         temperature : Quantity, default 298.15 * unit.kelvin
             Temperature used for the unit conversion.
 
@@ -653,11 +654,11 @@ class FEMap:
                 .reset_index(drop=True)
             )
 
-        if observable_type.lower() == "pic50":
+        if observable_type.lower() == "dpic50":
             result = _convert_dg_df_to_pic50(
                 result, "DDG (kcal/mol)", "uncertainty (kcal/mol)", "DpIC50", "uncertainty (unitless)", temperature
             )
-        elif observable_type.lower() != "dg":
+        elif observable_type.lower() != "ddg":
             raise ValueError(f"Unknown observable_type: '{observable_type}'")
 
         return result

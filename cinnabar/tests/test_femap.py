@@ -370,8 +370,8 @@ def test_to_relative_dataframe_regression(example_map, dataframe_func, expected)
 def test_to_relative_dataframe_pic50(example_map, dataframe_func):
     """Test that returning the values in units of pIC50 gives error metrics consistent with the values in kcal/mol"""
     example_map.generate_absolute_values()
-    rel_dg = dataframe_func(example_map, "dg")
-    rel_pci50 = dataframe_func(example_map, "pic50")
+    rel_dg = dataframe_func(example_map, "ddg")
+    rel_pci50 = dataframe_func(example_map, "dpic50")
     assert rel_dg.shape == rel_pci50.shape
 
     # make sure the column order is the same but the names have been updated
@@ -570,8 +570,8 @@ def test_all_to_all_pairwise_df_absolute(example_map):
 @pytest.mark.parametrize(
     "observable, value, uncertainty",
     [
-        pytest.param("dg", "DDG (kcal/mol)", "uncertainty (kcal/mol)", id="dg"),
-        pytest.param("pic50", "DpIC50", "uncertainty (unitless)", id="pic50"),
+        pytest.param("ddg", "DDG (kcal/mol)", "uncertainty (kcal/mol)", id="dg"),
+        pytest.param("dpic50", "DpIC50", "uncertainty (unitless)", id="pic50"),
     ],
 )
 def test_all_to_all_pairwise_df_no_data(observable, value, uncertainty):
