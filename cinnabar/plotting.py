@@ -1257,3 +1257,73 @@ def ecdf_plot_all_DDGs(
         filename=filename,
         **kwargs,
     )
+
+
+def plot_cycle_closure(
+    fe_map: FEMap,
+    filename: str | None,
+    max_cycle_length: int = 5,
+    sources: list[str] | None = None,
+    bin_width: float = 0.5,
+) -> plt.Figure:
+    """
+    Plot a histogram of cycle closure errors, taking the ``cc_per_edge (kcal/mol)``
+    which is the cycle closure divided by the square root of the cycle length.
+
+    Parameters
+    ----------
+    fe_map : FEMap
+        FEMap object containing the calculated edges.
+    filename : str | None, default None
+        If provided, the plot will be saved to this filename.
+    max_cycle_length : int, default 5
+        Only consider cycles up to this length. Defaults to 5.
+    sources : list[str] | None, default None
+        List of sources to plot. If None, all sources are plotted.
+    bin_width : float, default 0.5
+        Width of histogram bins in kcal/mol. Default: 0.5
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the histogram which can be edited further.
+
+    Raises
+    ------
+    ValueError
+        If the FEMap contains no cycles, or if a requested
+        source cannot be found.
+    """
+    df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
+
+    if df.empty:
+        raise ValueError("The FEMap does not contain cycles.")
+
+    if sources is not None:
+        df = df[df["source"].isin(sources)]
+        if df.empty:
+            raise ValueError(f"No cycles found for sources {sources}.")
+
+    unique_sources = df["source"].unique()
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+
+    max_val = df["cc_per_edge (kcal/mol)"].max()
+    bins = np.arange(0, max_val + bin_width, bin_width).tolist()
+
+    for source in unique_sources:
+        source_df = df[df["source"] == source]
+        ax.hist(source_df["cc_per_edge (kcal/mol)"], bins=bins, alpha=0.6, label=source)
+
+    ax.set_xlabel(r"Cycle closure per edge (kcal mol$^{-1}$)")
+    ax.set_ylabel("Count")
+    ax.set_title("Cycle closure distribution")
+    ax.legend()
+    fig.tight_layout()
+
+    if filename is None:
+        plt.show()
+    else:
+        fig.savefig(filename, bbox_inches="tight", dpi=300)
+
+    return fig

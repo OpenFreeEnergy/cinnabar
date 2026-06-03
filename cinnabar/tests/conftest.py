@@ -524,3 +524,25 @@ def ecdf_femap_missing_exp_data():
         label="ligand2", value=-5.0 * unit.kilocalories_per_mole, uncertainty=0.2 * unit.kilocalories_per_mole
     )
     return fe_map
+
+
+@pytest.fixture()
+def perfect_cycle():
+    """A perfect cycle with zero cycle closure."""
+    kcalpm = unit.kilocalorie_per_mole
+    fe = FEMap()
+    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+    fe.add_relative_calculation("C", "A", value=-2.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+    return fe
+
+
+@pytest.fixture()
+def imperfect_cycle():
+    """An imperfect cycle with a known cycle closure error."""
+    kcalpm = unit.kilocalorie_per_mole
+    fe = FEMap()
+    fe.add_relative_calculation("A", "B", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_b")
+    fe.add_relative_calculation("B", "C", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_b")
+    fe.add_relative_calculation("C", "A", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm, source="method_b")
+    return fe

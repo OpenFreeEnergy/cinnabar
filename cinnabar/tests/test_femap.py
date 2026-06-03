@@ -1,4 +1,5 @@
 import json
+import math
 import re
 
 import matplotlib.pyplot as plt
@@ -838,3 +839,60 @@ def test_missing_estimator_metadata(example_map):
     with pytest.raises(KeyError, match="No estimator metadata stored for source test."):
         example_map.generate_absolute_values()
         example_map.get_estimator_metadata("test")
+
+
+def test_get_cycle_closure_perfect_cycle(perfect_cycle):
+    result = perfect_cycle.get_cycle_closure_dataframe()
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["source", "cycle", "cc (kcal/mol)", "cc_per_edge (kcal/mol)", "cc_unc_normalized"]
+    assert len(result) == 1
+    assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result["cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result["cc_unc_normalized"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_get_cycle_closure_hystereses(imperfect_cycle):
+    result = imperfect_cycle.get_cycle_closure_dataframe()
+    expected_cc = abs(0.5)
+    expected_cc_per_edge = round(abs(0.5) / math.sqrt(3), 2)
+    expected_cc_normalized = round(abs(0.5) / math.sqrt(3 * 0.1**2), 2)
+    assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(expected_cc, abs=0.01)
+    assert result["cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(expected_cc_per_edge, abs=0.01)
+    assert result["cc_unc_normalized"].iloc[0] == pytest.approx(expected_cc_normalized, abs=0.01)
+
+
+def test_get_cycle_closure_multiple_sources(perfect_cycle, imperfect_cycle):
+    fe = perfect_cycle + imperfect_cycle
+
+    result = fe.get_cycle_closure_dataframe()
+    assert len(result) == 2
+    assert set(result["source"].unique()) == {"method_a", "method_b"}
+    assert result[result["source"] == "method_a"]["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result[result["source"] == "method_b"]["cc (kcal/mol)"].iloc[0] == pytest.approx(0.5, abs=0.01)
+
+
+def test_get_cc_based_edge_statistics_known_value(perfect_cycle):
+    result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe()
+    assert len(result) == 3
+    assert (result["n_cycles"] == 1).all()
+    assert (result["mean_cc_per_edge (kcal/mol)"] == 0.0).all()
+    assert (result["max_cc_per_edge (kcal/mol)"] == 0.0).all()
+
+
+def test_get_cc_based_edge_statistics_reverse_direction(perfect_cycle):
+    kcalpm = unit.kilocalorie_per_mole
+    # add edges for more cycles
+    perfect_cycle.add_relative_calculation("A", "D", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+    perfect_cycle.add_relative_calculation("D", "B", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+
+    result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe(max_cycle_length=3)
+    cc_per_edge_abc = 0.0 / math.sqrt(3)  # perfect cycle A -> B -> C -> A
+    cc_per_edge_bad = 1.5 / math.sqrt(3)  # imperfect cycle B -> A -> D -> B
+
+    # A to B in two cycles
+    ab_row = result[(result["ligandA"] == "A") & (result["ligandB"] == "B")]
+    assert ab_row["n_cycles"].iloc[0] == 2
+    assert ab_row["mean_cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(
+        (cc_per_edge_abc + cc_per_edge_bad) / 2, abs=1e-3
+    )
+    assert ab_row["max_cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(cc_per_edge_bad, abs=1e-3)
