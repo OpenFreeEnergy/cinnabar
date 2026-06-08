@@ -38,7 +38,7 @@ v0.6.0
 * The ``FEMMap.get_absolute_dataframe`` and ``FEMap.get_relative_dataframe`` methods now return dataframes in a sorted order of node labels grouped by source flags to enable easier comparisons between sources and with experimental values `PR#192 <https://github.com/OpenFreeEnergy/cinnabar/pull/192>`_.
 * The ``FEMap.get_relative_dataframe`` now also includes experimental differences for the simulated legs in the dataframe to enable easier comparisons between predicted and experimental values `PR#192 <https://github.com/OpenFreeEnergy/cinnabar/pull/192>`_.
 * ``cinnabar.arsenic`` has been renamed to ``cinnabar.cli``, other references to arsenic have also been removed. `PR#158 <https://github.com/OpenFreeEnergy/cinnabar/pull/158>`_.
-* Plotting functions ``plot_DDGs``, ``plot_DGs`` and ``plot_all_DDGs`` now require an FEMap as input along with a computational source, see the api tutorial for more details `PR#212 <https://github.com/OpenFreeEnergy/cinnabar/pull/212>`_.
+* Plotting functions ``plot_DDGs``, ``plot_DGs`` and ``plot_all_DDGs`` now require an FEMap as input along with a computational source, see the API tutorial for more details `PR#212 <https://github.com/OpenFreeEnergy/cinnabar/pull/212>`_.
 * The MLE estimator will now raise an error on any uncertainties of exactly zero on calculated edges due to issues with SVD calculations `PR#177 <https://github.com/OpenFreeEnergy/cinnabar/pull/177>`_.
 
 **Deprecated:**
