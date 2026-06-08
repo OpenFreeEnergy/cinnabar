@@ -48,7 +48,7 @@ v0.6.0
 
 **Fixed:**
 
-* A bug in ``FEMap.get_relative_dataframe()`` which gave the wrong values if absolute values were generated first using ``FEMap.generate_absolute_values()`` `PR#206 <https://github.com/OpenFreeEnergy/cinnabar/pull/206>`_.
+* Fixed bug in ``FEMap.get_relative_dataframe()`` which gave the wrong values if absolute values were generated first using ``FEMap.generate_absolute_values()`` `PR#206 <https://github.com/OpenFreeEnergy/cinnabar/pull/206>`_.
 * The ``plot_all_DDGs`` function now correctly uses the covariance matrix when available to compute error bars for the predicted values `PR#212 <https://github.com/OpenFreeEnergy/cinnabar/pull/212>`_.
 
 
