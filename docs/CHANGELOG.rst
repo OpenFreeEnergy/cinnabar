@@ -18,7 +18,7 @@ v0.6.0
 * Added the predictive index (PI) metric to compare ranking performance, this is also exposed in bootstrap statistics and can be used in plots `PR#194 <https://github.com/OpenFreeEnergy/cinnabar/pull/194>`_.
 * Added the ability to define new estimators by subclassing the ``Estimator`` class and implementing the ``_estimate`` method, these can then be applied to the ``FEMap`` to generate absolute DG estimates. `PR#193 <https://github.com/OpenFreeEnergy/cinnabar/pull/193>`_.
 * Added ``FEMap.get_cycle_closure_dataframe`` to calculate cycle closure errors for all cycles in the network,
-  reporting raw closure errors, per-edge contributions, and uncertainty-normalized cycle closures.
+  reporting raw closure errors, per-edge contributions, and uncertainty-normalized cycle closures. `PR#107 <https://github.com/OpenFreeEnergy/cinnabar/pull/107>`_.
 * Added ``FEMap.get_cycle_closure_edge_statistics_dataframe`` to report per-edge cycle closure statistics.
 * Added ``plotting.plot_cycle_closure`` to visualize the cycle closure error distribution as a histogram.
 * Documentation and tutorials for the ECDF plotting functionality `PR#206 <https://github.com/OpenFreeEnergy/cinnabar/pull/206>`_.
