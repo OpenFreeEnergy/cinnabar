@@ -23,7 +23,7 @@ v0.6.0
 * Added ``plotting.plot_cycle_closure`` to visualize the cycle closure error distribution as a histogram. `PR#107 <https://github.com/OpenFreeEnergy/cinnabar/pull/107>`_.
 * Documentation and tutorials for the ECDF plotting functionality `PR#206 <https://github.com/OpenFreeEnergy/cinnabar/pull/206>`_.
 * Added error estimates to ECDF plots via bootstrapping `PR#201 <https://github.com/OpenFreeEnergy/cinnabar/pull/201>`_.
-* added ECDF plotting functionality to visualize the empirical cumulative distribution function of predicted vs experimental absolute, relative and all-to-all pairwise binding free energies `PR#172 <https://github.com/OpenFreeEnergy/cinnabar/pull/172>`_.
+* Added ECDF plotting functionality to visualize the empirical cumulative distribution function of predicted vs experimental absolute, relative and all-to-all pairwise binding free energies `PR#172 <https://github.com/OpenFreeEnergy/cinnabar/pull/172>`_.
 * Exposed stats calculation functions in the ``cinnabar.stats`` module to the public API and added docs allowing users to use them directly `PR#186 <https://github.com/OpenFreeEnergy/cinnabar/pull/186>`_.
 * Added the ``compute_fraction_best_ligands`` function to compute the fraction of best ligands metric `PR#164 <https://github.com/OpenFreeEnergy/cinnabar/pull/164>`_.
 * Added ``highlight_edges`` argument to the ``draw_graph`` function, allowing the user to highlight edges in the network graph `PR#203 <https://github.com/OpenFreeEnergy/cinnabar/pull/203>`_.
