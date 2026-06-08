@@ -20,7 +20,7 @@ v0.6.0
 * Added ``FEMap.get_cycle_closure_dataframe`` to calculate cycle closure errors for all cycles in the network,
   reporting raw closure errors, per-edge contributions, and uncertainty-normalized cycle closures. `PR#107 <https://github.com/OpenFreeEnergy/cinnabar/pull/107>`_.
 * Added ``FEMap.get_cycle_closure_edge_statistics_dataframe`` to report per-edge cycle closure statistics. `PR#107 <https://github.com/OpenFreeEnergy/cinnabar/pull/107>`_.
-* Added ``plotting.plot_cycle_closure`` to visualize the cycle closure error distribution as a histogram.
+* Added ``plotting.plot_cycle_closure`` to visualize the cycle closure error distribution as a histogram. `PR#107 <https://github.com/OpenFreeEnergy/cinnabar/pull/107>`_.
 * Documentation and tutorials for the ECDF plotting functionality `PR#206 <https://github.com/OpenFreeEnergy/cinnabar/pull/206>`_.
 * added error estimates to ECDF plots via bootstrapping `PR#201 <https://github.com/OpenFreeEnergy/cinnabar/pull/201>`_.
 * added ECDF plotting functionality to visualize the empirical cumulative distribution function of predicted vs experimental absolute, relative and all-to-all pairwise binding free energies `PR#172 <https://github.com/OpenFreeEnergy/cinnabar/pull/172>`_.
