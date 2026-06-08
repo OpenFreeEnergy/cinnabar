@@ -25,7 +25,7 @@ v0.6.0
 * Added error estimates to ECDF plots via bootstrapping `PR#201 <https://github.com/OpenFreeEnergy/cinnabar/pull/201>`_.
 * added ECDF plotting functionality to visualize the empirical cumulative distribution function of predicted vs experimental absolute, relative and all-to-all pairwise binding free energies `PR#172 <https://github.com/OpenFreeEnergy/cinnabar/pull/172>`_.
 * Exposed stats calculation functions in the ``cinnabar.stats`` module to the public API and added docs allowing users to use them directly `PR#186 <https://github.com/OpenFreeEnergy/cinnabar/pull/186>`_.
-* add the ``compute_fraction_best_ligands`` function to compute the fraction of best ligands metric `PR#164 <https://github.com/OpenFreeEnergy/cinnabar/pull/164>`_.
+* Added the ``compute_fraction_best_ligands`` function to compute the fraction of best ligands metric `PR#164 <https://github.com/OpenFreeEnergy/cinnabar/pull/164>`_.
 * A ``highlight_edges`` argument was added to the ``draw_graph`` function, allowing the user to highlight edges in the network graph `PR#203 <https://github.com/OpenFreeEnergy/cinnabar/pull/203>`_.
 * Guidelines on scatter plots can now be set manually, the values are also annotated on the plots `PR#204 <https://github.com/OpenFreeEnergy/cinnabar/pull/204>`_.
 * Added ``get_all_to_all_relative_dataframe()`` function the the ``FEMap`` class to compute pairwise relative free energy differences between all ligands in a dataset `PR#187 <https://github.com/OpenFreeEnergy/cinnabar/pull/187>`_.
