@@ -1,10 +1,10 @@
 import matplotlib.pylab as plt
-import networkx as nx
 import numpy as np
 import pytest
 from openff.units import unit
 
 from cinnabar import FEMap, plotting
+from cinnabar.measurements import ReferenceState
 
 
 @pytest.fixture(scope="function")
@@ -19,59 +19,81 @@ def show_called(monkeypatch):
     return called
 
 
-def test_plot_ddgs_to_file(tmp_path, fe_map):
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
+    ],
+)
+def test_plot_ddgs_to_file(tmp_path, fe_map, observable_type):
     output_file = tmp_path / "ddg_plot.png"
-    _ = plotting.plot_DDGs(fe_map.to_legacy_graph(), filename=output_file)
+    _ = plotting.plot_DDGs(fe_map, source="", filename=output_file, observable_type=observable_type)
     assert output_file.exists()
 
 
 def test_plot_ddgs_show(fe_map, show_called):
-    _ = plotting.plot_DDGs(fe_map.to_legacy_graph(), filename=None)
+    _ = plotting.plot_DDGs(fe_map, source="", filename=None)
     assert "show" in show_called
 
 
-def test_plot_dgs_to_file(tmp_path, fe_map):
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
+def test_plot_dgs_to_file(tmp_path, fe_map, observable_type):
     output_file = tmp_path / "dg_plot.png"
-    _ = plotting.plot_DGs(fe_map.to_legacy_graph(), filename=output_file)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_DGs(fe_map, source="MLE", filename=output_file, observable_type=observable_type)
     assert output_file.exists()
 
 
 def test_plot_dgs_show(fe_map, show_called):
-    _ = plotting.plot_DGs(fe_map.to_legacy_graph(), filename=None)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_DGs(fe_map, source="MLE", filename=None)
     assert "show" in show_called
 
 
-def test_plot_all_ddgs_to_file(tmp_path, fe_map):
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
+    ],
+)
+def test_plot_all_ddgs_to_file(tmp_path, fe_map, observable_type):
     output_file = tmp_path / "all_ddg_plot.png"
-    _ = plotting.plot_all_DDGs(fe_map.to_legacy_graph(), filename=output_file)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_all_DDGs(fe_map, source="MLE", filename=output_file, observable_type=observable_type)
     assert output_file.exists()
 
 
 def test_plot_all_ddgs_show(fe_map, show_called):
-    _ = plotting.plot_all_DDGs(fe_map.to_legacy_graph(), filename=None)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_all_DDGs(fe_map, source="MLE", filename=None)
     assert "show" in show_called
 
 
 def test_plot_ddgs_symm_and_map(fe_map):
     """Test that plotting DDGs with both symmetrise and map raises an error."""
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(AssertionError):
-        _ = plotting.plot_DDGs(graph, symmetrise=True, map_positive=True)
+        _ = plotting.plot_DDGs(fe_map, source="", symmetrise=True, map_positive=True)
 
 
 def test_plot_ddgs_data_labels_and_plotly(fe_map):
     """Test that data labels and plotly backend raise an error."""
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(AssertionError):
-        _ = plotting.plot_DDGs(graph, plotly=True, data_label_type="small-molecule")
+        _ = plotting.plot_DDGs(fe_map, source="", plotly=True, data_label_type="small-molecule")
 
 
 @pytest.mark.parametrize("data_label_type", ["small-molecule", "protein-mutation"])
 def test_plot_ddgs_data_labels(fe_map, data_label_type, show_called):
     """Test that data labels can be set."""
 
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, data_label_type=data_label_type)
+    _ = plotting.plot_DDGs(fe_map, source="", data_label_type=data_label_type)
     assert "show" in show_called
 
 
@@ -85,19 +107,21 @@ def test_plot_ddgs_negative_data_labels(show_called, data_label_type):
         labelB="-ligand2",
         value=2.5 * unit.kilocalorie_per_mole,
         uncertainty=0.5 * unit.kilocalorie_per_mole,
+        source="test",
     )
     fe_map.add_experimental_measurement(
         label="-ligand1",
         value=-1.0 * unit.kilocalorie_per_mole,
         uncertainty=0.2 * unit.kilocalorie_per_mole,
+        source="test",
     )
     fe_map.add_experimental_measurement(
         label="-ligand2",
         value=1.5 * unit.kilocalorie_per_mole,
         uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="test",
     )
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, data_label_type=data_label_type, map_positive=False)
+    _ = plotting.plot_DDGs(fe_map, source="test", data_label_type=data_label_type, map_positive=False)
     assert "show" in show_called
 
 
@@ -120,60 +144,99 @@ def test_plot_ddgs_negative_bad_labels():
         value=1.5 * unit.kilocalorie_per_mole,
         uncertainty=0.3 * unit.kilocalorie_per_mole,
     )
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(ValueError, match="data_label_type unsupported. supported types:"):
-        _ = plotting.plot_DDGs(graph, data_label_type="invalid-label-type")
+        _ = plotting.plot_DDGs(fe_map, source="", data_label_type="invalid-label-type")
 
 
 def test_plot_ddgs_bad_labels(fe_map):
     """Test that bad data labels raise an error."""
-    graph = fe_map.to_legacy_graph()
     with pytest.raises(ValueError, match="data_label_type unsupported. supported types:"):
-        _ = plotting.plot_DDGs(graph, data_label_type="invalid-label-type")
+        _ = plotting.plot_DDGs(fe_map, source="", data_label_type="invalid-label-type")
 
 
 def test_plot_ddgs_symmetrise(fe_map, show_called):
     """Test that symmetrise option works."""
-
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, symmetrise=True)
+    _ = plotting.plot_DDGs(fe_map, source="", symmetrise=True)
     assert "show" in show_called
 
 
 def test_plot_ddgs_map_positive(fe_map, show_called):
     """Test that map_positive option works."""
-
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DDGs(graph, map_positive=True)
+    _ = plotting.plot_DDGs(fe_map, source="", map_positive=True)
     assert "show" in show_called
+
+
+def test_plot_ddgs_no_results():
+    """Test that trying to plot nothing raises a clear error"""
+    fe_map = FEMap()
+    with pytest.raises(ValueError, match="The FEMap contains no computational edges."):
+        plotting.plot_DDGs(fe_map, source="")
+
+
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.plot_DDGs, id="plot_DDGs"),
+        pytest.param(plotting.plot_DGs, id="plot_DGs"),
+        pytest.param(plotting.plot_all_DDGs, id="plot_all_DDGs"),
+    ],
+)
+def test_pair_plot_bad_source(fe_map, plot_func):
+    """Test that trying to plot with a bad source raises an error."""
+    fe_map.generate_absolute_values()
+    with pytest.raises(ValueError, match="Source bad_source is not a valid source"):
+        plot_func(fe_map, source="bad_source")
+
+
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.plot_all_DDGs, id="plot_all_DDGs"),
+        pytest.param(plotting.plot_DGs, id="plot_DGs"),
+    ],
+)
+def test_pair_plots_no_absolute_values(fe_map, plot_func):
+    """Test that trying to plot without absolute values raises an error for DG and pairwise DDG plots."""
+    with pytest.raises(ValueError, match="The FEMap contains no computed absolute values"):
+        plot_func(fe_map, source="")
 
 
 def test_plot_dgs_centralising(fe_map, show_called):
     """Test that centralising option works."""
-
-    graph = fe_map.to_legacy_graph()
-    _ = plotting.plot_DGs(graph, centralizing=True)
+    fe_map.generate_absolute_values()
+    _ = plotting.plot_DGs(fe_map, source="MLE", centralizing=True)
     assert "show" in show_called
 
 
-def test_master_plot_bad_statistic_type(example_data_mle):
+def test_master_plot_deprecation_warning(example_data_mle, show_called):
+    """Test that master plot shows deprecation warning when called."""
+    x_data, y_data, _, yer = example_data_mle
+    with pytest.warns(DeprecationWarning, match="_master_plot is deprecated and will be removed in a future release."):
+        _ = plotting._master_plot(
+            x_data,
+            y_data,
+        )
+        assert "show" in show_called
+
+
+def test_pair_plot_bad_statistic_type(example_data_mle):
     """Test that bad statistic in master plot raises an error."""
 
     x_data, y_data, xerr, yerr = example_data_mle
     with pytest.raises(ValueError, match="Unknown statistic type bad_stat"):
-        _ = plotting._master_plot(
+        _ = plotting.pair_plot(
             x_data,
             y_data,
             statistic_type="bad_stat",
         )
 
 
-def test_master_plot_xy_lim(example_data_mle, show_called):
+def test_pair_plot_xy_lim(example_data_mle, show_called):
     """Test that x and y limits are set correctly in master plot."""
 
     x_data, y_data, xerr, yerr = example_data_mle
     lims = [-10, 10]
-    fig = plotting._master_plot(x_data, y_data, filename=None, xy_lim=lims)
+    fig = plotting.pair_plot(x_data, y_data, filename=None, xy_lim=lims)
     # inspect the figure axes to check axis limits
     axes = fig.get_axes()
     assert axes[0].get_xlim() == tuple(lims)
@@ -181,7 +244,7 @@ def test_master_plot_xy_lim(example_data_mle, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_axis_labels(example_data_mle, show_called):
+def test_pair_plot_axis_labels(example_data_mle, show_called):
     """Test that axis labels are set correctly in master plot."""
 
     x_data, y_data, xerr, yerr = example_data_mle
@@ -189,7 +252,7 @@ def test_master_plot_axis_labels(example_data_mle, show_called):
     y_label = "Predicted Values"
     quantity = "DG"
     units = "kcal/mol"
-    fig = plotting._master_plot(
+    fig = plotting.pair_plot(
         x_data,
         y_data,
         filename=None,
@@ -205,7 +268,7 @@ def test_master_plot_axis_labels(example_data_mle, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_stats(example_data_mle, show_called):
+def test_pair_plot_stats(example_data_mle, show_called):
     """Test that statistics are included in the master plot title."""
 
     x_data, y_data, xerr, yerr = example_data_mle
@@ -213,7 +276,7 @@ def test_master_plot_stats(example_data_mle, show_called):
     target_name = "Test Target"
     # add some non-default statistics
     statistics = ["RMSE", "MUE", "rho", "KTAU"]
-    fig = plotting._master_plot(
+    fig = plotting.pair_plot(
         x_data,
         y_data,
         filename=None,
@@ -228,11 +291,11 @@ def test_master_plot_stats(example_data_mle, show_called):
     assert "show" in show_called
 
 
-def test_master_plot_clashing_scatter_kwargs(example_data_mle, show_called):
+def test_pair_plot_clashing_scatter_kwargs(example_data_mle, show_called):
     """Test that clashing scatter_kwargs will work with the scatter kwargs taking precedence."""
 
     x_data, y_data, xerr, yerr = example_data_mle
-    fig = plotting._master_plot(
+    fig = plotting.pair_plot(
         x_data,
         y_data,
         filename=None,
@@ -244,28 +307,32 @@ def test_master_plot_clashing_scatter_kwargs(example_data_mle, show_called):
     assert "show" in show_called
 
 
-def test_plot_ecdf_ddgs(fe_map, tmp_path):
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
+    ],
+)
+def test_plot_ecdf_ddgs(fe_map, tmp_path, observable_type):
     """Test ECDF DDG plotting function."""
     output_file = tmp_path / "test_ecdf_ddgs.png"
-    fig = plotting.ecdf_plot_DDGs([fe_map], labels=["Test FE Map"], filename=output_file.as_posix())
+    fig = plotting.ecdf_plot_DDGs(fe_map, filename=output_file.as_posix(), observable_type=observable_type)
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    assert (
-        axes.get_xlabel() == r"Edgewise $|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
-    )
+    expected_labels = plotting._OBSERVABLE_METADATA[observable_type.lower()]
+    assert axes.get_xlabel() == f"Edgewise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Edgewise Absolute Errors"
     # make sure the file was created
     assert output_file.exists()
 
 
 def test_plot_ecdf_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
-    """Test ECDF DDG plotting function with missing experimental data."""
+    """Test ECDF DDG plotting function with missing experimental data (one edge skipped)."""
     output_file = tmp_path / "test_ecdf_ddgs_missing_data.png"
-    fig = plotting.ecdf_plot_DDGs(
-        [ecdf_femap_missing_exp_data], labels=["FE Map with Missing Data"], filename=output_file.as_posix()
-    )
+    fig = plotting.ecdf_plot_DDGs(ecdf_femap_missing_exp_data, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -277,32 +344,71 @@ def test_plot_ecdf_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     assert output_file.exists()
 
 
+def test_plot_ecdf_ddgs_no_computational_edges():
+    """Test that a FEMap with no computational edges raises a clear error."""
+    fe = FEMap()
+    fe.add_experimental_measurement(
+        label="ligand1",
+        value=-7.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+    )
+    with pytest.raises(ValueError, match="no computational edges"):
+        plotting.ecdf_plot_DDGs(fe)
+
+
+def test_plot_ecdf_ddgs_invalid_source(fe_map):
+    """Test that a requested source not present in the FEMap raises a clear error."""
+    with pytest.raises(ValueError, match="No computational edges found for source 'nonexistent'"):
+        plotting.ecdf_plot_DDGs(fe_map, sources=["nonexistent"])
+
+
 @pytest.mark.parametrize(
-    "graph",
+    "plot_func",
     [
-        nx.MultiDiGraph(),
-        nx.MultiDiGraph([(0, 1, {"calc_deltadeltaG": 1.0})]),
+        pytest.param(plotting.ecdf_plot_DDGs, id="ecdf_plot_DDGs"),
+        pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+        pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
     ],
 )
-def test_plot_ecdf_ddgs_no_data(graph):
-    with pytest.raises(
-        ValueError,
-        match="Graph with label test has edges with missing calculated DDG values, which should be stored as `calc_DDG`.",
-    ):
-        plotting.ecdf_plot_DDGs([graph], labels=["test"], filename=None)
+def test_plot_ecdf_mismatched_sources_labels(fe_map, plot_func):
+    """Test that mismatched sources/labels lengths raise a clear error."""
+    with pytest.raises(ValueError, match="must have the same length"):
+        # required for the DG and all-to-all DDG plots
+        fe_map.generate_absolute_values()
+        plot_func(fe_map, sources=[""], labels=["A", "B"])
 
 
-def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
+def test_plot_ecdf_ddgs_inconsistent_sources(fe_map):
+    """Test that inconsistent results across sources raise a clear error."""
+    fe_map.add_relative_calculation(
+        labelA="CAT-13b",
+        labelB="CAT-17g",
+        value=-2.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="Method B",
+    )
+    with pytest.raises(ValueError, match="Inconsistent number of computational edges across sources"):
+        plotting.ecdf_plot_DDGs(fe_map)
+
+
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("ddg", id="dg"),
+        pytest.param("dpic50", id="pic50"),
+    ],
+)
+def test_plot_ecdf_all_ddgs(fe_map, tmp_path, observable_type):
     """Test ECDF All DDG plotting function."""
     output_file = tmp_path / "test_ecdf_all_ddgs.png"
-    fig = plotting.ecdf_plot_all_DDGs([fe_map], labels=["Test FE Map"], filename=output_file.as_posix())
+    fe_map.generate_absolute_values()
+    fig = plotting.ecdf_plot_all_DDGs(fe_map, filename=output_file.as_posix(), observable_type=observable_type)
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
     assert axes.get_ylabel() == "Cumulative Probability"
-    assert (
-        axes.get_xlabel() == r"Pairwise $|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$ ($\mathrm{kcal\,mol^{-1}}$)"
-    )
+    expected_labels = plotting._OBSERVABLE_METADATA[observable_type.lower()]
+    assert axes.get_xlabel() == f"Pairwise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
     assert axes.get_title() == "ECDF of Pairwise (all-to-all) Absolute Errors"
     # make sure the file was created
     assert output_file.exists()
@@ -311,9 +417,8 @@ def test_plot_ecdf_all_ddgs(fe_map, tmp_path):
 def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
     """Test ECDF All DDG plotting function with missing experimental data."""
     output_file = tmp_path / "test_ecdf_all_ddgs_missing_data.png"
-    fig = plotting.ecdf_plot_all_DDGs(
-        [ecdf_femap_missing_exp_data], labels=["FE Map with Missing Data"], filename=output_file.as_posix()
-    )
+    ecdf_femap_missing_exp_data.generate_absolute_values()
+    fig = plotting.ecdf_plot_all_DDGs(ecdf_femap_missing_exp_data, filename=output_file.as_posix())
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -326,28 +431,68 @@ def test_plot_ecdf_all_ddgs_missing_data(tmp_path, ecdf_femap_missing_exp_data):
 
 
 @pytest.mark.parametrize(
-    "graph",
+    "plot_func",
     [
-        nx.MultiDiGraph(),
-        # graph with nodes but no calculated DDG edges
-        nx.MultiDiGraph([(0, 1, {"some_other_data": 1.0})]),
+        pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+        pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
     ],
 )
-def test_plot_ecdf_all_ddgs_no_data(graph):
-    with pytest.raises(
-        ValueError,
-        match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`.",
-    ):
-        plotting.ecdf_plot_all_DDGs([graph], labels=["test"], filename=None)
+def test_plot_ecdf_no_absolute_values(fe_map, plot_func):
+    """Test that calling ecdf_plot_all_DDGs without generating absolute values raises a clear error."""
+    with pytest.raises(ValueError, match="generate_absolute_values"):
+        plot_func(fe_map)
+
+
+@pytest.mark.parametrize(
+    "plot_func, expected",
+    [
+        pytest.param(
+            plotting.ecdf_plot_DGs, "No computed absolute values found for source 'Method C'.", id="ecdf_plot_DGs"
+        ),
+        pytest.param(
+            plotting.ecdf_plot_all_DDGs, "No computational edges found for source 'Method C'.", id="ecdf_plot_all_DDGs"
+        ),
+    ],
+)
+def test_plot_ecdf_missing_absolute_values(fe_map, plot_func, expected):
+    """Test that the DG and all-to-all DDG plots raise a clear error with missing absolute values."""
+    fe_map.generate_absolute_values()
+    with pytest.raises(ValueError, match=expected):
+        plot_func(fe_map, sources=["Method C"])
+
+
+@pytest.mark.parametrize(
+    "plot_func",
+    [
+        pytest.param(plotting.ecdf_plot_DGs, id="ecdf_plot_DGs"),
+        pytest.param(plotting.ecdf_plot_all_DDGs, id="ecdf_plot_all_DDGs"),
+    ],
+)
+def test_plot_ecdf_inconsistent_sources(fe_map, plot_func):
+    """Test that inconsistent results across sources raise a clear error for the DG and all-to-all DDG plots."""
+    fe_map.generate_absolute_values()
+    fe_map.add_absolute_calculation(
+        label="CAT-13b",
+        value=-8 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="Method C",
+    )
+    fe_map.add_absolute_calculation(
+        label="CAT-17g",
+        value=-9 * unit.kilocalorie_per_mole,
+        uncertainty=0.3 * unit.kilocalorie_per_mole,
+        source="Method C",
+    )
+    with pytest.raises(ValueError, match="Inconsistent number of computational"):
+        plot_func(fe_map)
 
 
 @pytest.mark.parametrize("centralising, xlim", [(True, (2.1, 2.2)), (False, (11.5, 11.6))])
 def test_plot_ecdf_dgs(fe_map, tmp_path, centralising, xlim):
     """Test ECDF DG plotting function with and without centralizing."""
+    fe_map.generate_absolute_values()
     output_file = tmp_path / "test_ecdf_dgs.png"
-    fig = plotting.ecdf_plot_DGs(
-        [fe_map], labels=["Test FE Map"], filename=output_file.as_posix(), centralizing=centralising
-    )
+    fig = plotting.ecdf_plot_DGs(fe_map, filename=output_file.as_posix(), centralizing=centralising)
     assert fig is not None
     # check the axis are labeled correctly
     axes = fig.get_axes()[0]
@@ -359,30 +504,57 @@ def test_plot_ecdf_dgs(fe_map, tmp_path, centralising, xlim):
     assert output_file.exists()
 
 
-def test_plot_ecdf_ddgs_multiple(fe_map, tmp_path):
-    """Test ECDF DDG plotting function with multiple FE maps."""
-    output_file = tmp_path / "test_ecdf_ddgs_multiple.png"
-    # Create a second FE map for testing
-    # add gaussian noise to the first map to create a second map
-    graph = nx.MultiDiGraph()
-    for a, b, data in fe_map.to_networkx().edges(data=True):
-        new_data = data.copy()
-        if data["source"] != "reverse" and data["computational"]:
-            # add noise to the result
-            new_result = data["DG"] + np.random.normal(0, data["uncertainty"].m) * data["DG"].u
-            new_data["DG"] = new_result
-            graph.add_edge(a, b, **new_data)
-            # and add the reverse edge
-            rev_data = new_data.copy()
-            rev_data["source"] = "reverse"
-            rev_data["DG"] = -new_data["DG"]
-            graph.add_edge(b, a, **rev_data)
-        else:
-            graph.add_edge(a, b, **data)
-    fe_map_2 = FEMap.from_networkx(graph)
-    fig = plotting.ecdf_plot_DDGs([fe_map, fe_map_2], labels=["FE Map 1", "FE Map 2"], filename=output_file.as_posix())
+@pytest.mark.parametrize(
+    "observable_type",
+    [
+        pytest.param("dg", id="dg"),
+        pytest.param("pic50", id="pic50"),
+    ],
+)
+def test_plot_ecdf_dgs_units(fe_map, tmp_path, observable_type):
+    """Test ECDF DG plotting function with different units"""
+    fe_map.generate_absolute_values()
+    output_file = tmp_path / "test_ecdf_dgs.png"
+    fig = plotting.ecdf_plot_DGs(fe_map, filename=output_file.as_posix(), observable_type=observable_type)
     assert fig is not None
-    # check the file was created
+    # check the axis are labeled correctly
+    axes = fig.get_axes()[0]
+    assert axes.get_ylabel() == "Cumulative Probability"
+    expected_labels = plotting._OBSERVABLE_METADATA[observable_type.lower()]
+    assert axes.get_xlabel() == f"Nodewise {expected_labels['ecdf_quantity']} ({expected_labels['units']})"
+    assert axes.get_title() == "ECDF of Nodewise Absolute Errors"
+    # make sure the file was created
+    assert output_file.exists()
+
+
+def test_plot_ecdf_ddgs_multiple_sources(fe_map, tmp_path):
+    """Test ECDF DDG plotting with two computational sources in a single FEMap."""
+    output_file = tmp_path / "test_ecdf_ddgs_multiple.png"
+    # add a second source (Method B) with small noise on the same edges
+    rng = np.random.default_rng(seed=42)
+    for m in list(fe_map):
+        if m.computational:
+            if isinstance(m.labelA, ReferenceState):
+                continue
+            noise = rng.normal(0, 0.3) * m.DG.u
+            fe_map.add_relative_calculation(
+                labelA=m.labelA,
+                labelB=m.labelB,
+                value=m.DG + noise,
+                uncertainty=m.uncertainty,
+                source="Method B",
+            )
+    fig = plotting.ecdf_plot_DDGs(
+        fe_map,
+        sources=["", "Method B"],
+        labels=["Method A", "Method B"],
+        filename=output_file.as_posix(),
+    )
+    assert fig is not None
+    # legend should contain both labels
+    legend_texts = [t.get_text() for t in fig.get_axes()[0].get_legend().get_texts()]
+    assert "Method A" in legend_texts
+    assert "Method B" in legend_texts
     assert output_file.exists()
 
 
@@ -391,10 +563,15 @@ def test_plot_ecdf_no_datasets():
         plotting.ecdf_plot({})
 
 
+def test_plot_ecdf_bad_ci(fe_map):
+    with pytest.raises(ValueError, match="ci must be between 0 and 1."):
+        plotting.ecdf_plot(fe_map, ci=1.1)
+
+
 def test_plot_ecdf_colors(fe_map, tmp_path):
     """Test ECDF plotting function with custom colors."""
     output_file = tmp_path / "test_ecdf_colors.png"
-    fig = plotting.ecdf_plot_DDGs([fe_map], labels=["Test FE Map"], colors=["#FF5733"], filename=output_file.as_posix())
+    fig = plotting.ecdf_plot_DDGs(fe_map, colors=["#FF5733"], filename=output_file.as_posix())
     assert fig is not None
     # check the file was created
     assert output_file.exists()
@@ -403,17 +580,50 @@ def test_plot_ecdf_colors(fe_map, tmp_path):
     assert line.get_color() == "#FF5733"
 
 
-@pytest.mark.parametrize(
-    "graph",
-    [
-        nx.MultiDiGraph(),
-        # graph with nodes but no calculated DDG edges
-        nx.MultiDiGraph([(0, 1, {"some_other_data": 1.0})]),
-    ],
-)
-def test_plot_ecdf_dgs_no_data(graph):
-    with pytest.raises(
-        ValueError,
-        match="Graph with label test has nodes with missing calculated DG values, which should be stored as `calc_DG`.",
-    ):
-        plotting.ecdf_plot_DGs([graph], labels=["test"], filename=None)
+def test_plot_cycle_closure(fe_map, tmp_path):
+    output_file = tmp_path / "cycle_closure.png"
+    fig = plotting.plot_cycle_closure(fe_map, filename=str(output_file))
+    assert fig is not None
+    axes = fig.get_axes()[0]
+    assert axes.get_xlabel() == r"Cycle closure per edge (kcal mol$^{-1}$)"
+    assert axes.get_ylabel() == "Count"
+    assert output_file.exists()
+
+
+def test_plot_cycle_closure_show(fe_map, show_called):
+    _ = plotting.plot_cycle_closure(fe_map, filename=None)
+    assert "show" in show_called
+
+
+def test_plot_cycle_closure_no_cycles_no_plot(tmp_path):
+    fe = FEMap()
+    fe.add_relative_calculation(
+        "A",
+        "B",
+        value=1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+    )
+    assert fe.get_cycle_closure_dataframe().empty
+    output_file = tmp_path / "cycle_closure.png"
+    with pytest.raises(ValueError, match="The FEMap does not contain cycles"):
+        plotting.plot_cycle_closure(fe, filename=str(output_file))
+    assert not output_file.exists()
+
+
+def test_plot_cycle_closure_invalid_source(fe_map, tmp_path):
+    output_file = tmp_path / "cycle_closure.png"
+    with pytest.raises(ValueError, match="No cycles found for sources"):
+        plotting.plot_cycle_closure(fe_map, filename=str(output_file), sources=["nonexistent_source"])
+    assert not output_file.exists()
+
+
+def test_plot_cycle_closure_multiple_sources(perfect_cycle, imperfect_cycle, tmp_path):
+    fe = perfect_cycle + imperfect_cycle
+    output_file = tmp_path / "cycle_closure_multiple.png"
+    fig = plotting.plot_cycle_closure(fe, filename=str(output_file))
+    assert fig is not None
+    axes = fig.get_axes()[0]
+    legend_texts = [t.get_text() for t in axes.get_legend().get_texts()]
+    assert "method_a" in legend_texts
+    assert "method_b" in legend_texts
+    assert output_file.exists()

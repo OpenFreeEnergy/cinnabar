@@ -50,7 +50,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.extlinks",
-    "nbsphinx",
+    "myst_nb",
 ]
 
 autosummary_generate = True
@@ -80,7 +80,7 @@ language = "en"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "default"
@@ -173,5 +173,15 @@ texinfo_documents = [
     ),
 ]
 
+
+# -- myst-nb configuration ---------------------------------------------------
+
+# Do not re-execute notebooks during the build; use the pre-saved cell outputs
+nb_execution_mode = "off"
+
+# Generate HTML anchors for headings up to depth 3 so that plain #slug fragment
+# links inside notebooks resolve as HTML anchors rather than Sphinx cross-refs.
+# This restores the nbsphinx behavior for within-page heading links.
+myst_heading_anchors = 3
 
 # -- Extension configuration -------------------------------------------------

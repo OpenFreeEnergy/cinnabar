@@ -1,13 +1,16 @@
 import json
+import math
+import re
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import pandas as pd
 import pytest
 from openff.units import unit
 
 import cinnabar
-from cinnabar import estimators, femap
+from cinnabar import conversion, estimators, femap, stats
 
 
 def test_read_csv(example_csv):
@@ -191,6 +194,11 @@ def test_to_legacy(example_map, ref_legacy):
     assert s == ref_legacy
 
 
+def test_to_legacy_deprecated(fe_map):
+    with pytest.warns(DeprecationWarning, match=re.escape("to_legacy_graph() is deprecated")):
+        _ = fe_map.to_legacy_graph()
+
+
 def test_generate_absolute_values(example_map, ref_mle_results):
     example_map.generate_absolute_values()
 
@@ -208,6 +216,7 @@ def test_generate_absolute_values(example_map, ref_mle_results):
         assert yerr.magnitude == pytest.approx(yerr_ref), e
     # check the metadata is correct
     metadata = example_map.get_estimator_metadata("MLE")
+    assert isinstance(metadata, estimators.MLEEstimatorResult)
     # check general metadata is correct
     assert metadata.source == "MLE"
     assert metadata.estimator == "MLEEstimator"
@@ -328,6 +337,130 @@ def test_generate_absolute_values_repeats():
         fe_map.generate_absolute_values()
 
 
+@pytest.mark.parametrize(
+    "dataframe_func, expected",
+    [
+        pytest.param(lambda fe: fe.get_relative_dataframe(), 1.05, id="relative"),
+        pytest.param(lambda fe: fe.get_all_to_all_relative_dataframe(symmetrical=False), 1.21, id="all-to-all"),
+    ],
+)
+def test_to_relative_dataframe_regression(example_map, dataframe_func, expected):
+    """Test that the values in the relative/pairwise relative dataframe match the original values in the map."""
+    # needed for the pairwise dataframe
+    example_map.generate_absolute_values()
+    rel_df = dataframe_func(example_map)
+    # calculate the RMSE between the reported edges and the experimental differences
+    # make sure this matches some historic data
+    calc_ddg = rel_df[rel_df["computational"] == True]["DDG (kcal/mol)"].values
+    exp_ddg = rel_df[rel_df["computational"] == False]["DDG (kcal/mol)"].values
+    rmse = stats.calculate_rmse(exp_ddg, calc_ddg)
+    assert rmse == pytest.approx(expected, abs=0.01)
+
+
+@pytest.mark.parametrize(
+    "dataframe_func",
+    [
+        pytest.param(lambda fe, observable: fe.get_relative_dataframe(observable_type=observable), id="relative"),
+        pytest.param(
+            # we need the abs values for the all-to-all method
+            lambda fe, observable: fe.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable),
+            id="all-to-all",
+        ),
+    ],
+)
+def test_to_relative_dataframe_pic50(example_map, dataframe_func):
+    """Test that returning the values in units of pIC50 gives error metrics consistent with the values in kcal/mol"""
+    example_map.generate_absolute_values()
+    rel_dg = dataframe_func(example_map, "ddg")
+    rel_pci50 = dataframe_func(example_map, "dpic50")
+    assert rel_dg.shape == rel_pci50.shape
+
+    # make sure the column order is the same but the names have been updated
+    assert rel_pci50.columns.tolist() == [
+        "labelA",
+        "labelB",
+        "DpIC50",
+        "uncertainty (unitless)",
+        "source",
+        "computational",
+    ]
+
+    # as dg to pic50 is linear check the RMSE also converts
+    calc_ddg = rel_dg[rel_dg["computational"] == True]["DDG (kcal/mol)"].values
+    exp_ddg = rel_dg[rel_dg["computational"] == False]["DDG (kcal/mol)"].values
+    rmse_dg = stats.calculate_rmse(exp_ddg, calc_ddg)
+    # same again for pic50
+    calc_dpic50 = rel_pci50[rel_pci50["computational"] == True]["DpIC50"].values
+    exp_dpic50 = rel_pci50[rel_pci50["computational"] == False]["DpIC50"].values
+    rmse_pic50 = stats.calculate_rmse(exp_dpic50, calc_dpic50)
+    # convert the error back
+    rmse_pic50, _ = conversion.convert_observable(rmse_pic50, "pic50", "dg")
+    # we need to use the abs value due to the conversion
+    assert rmse_dg == pytest.approx(abs(rmse_pic50), abs=0.01)
+
+
+@pytest.mark.parametrize(
+    "dataframe_func",
+    [
+        pytest.param(lambda fe, observable: fe.get_relative_dataframe(observable_type=observable), id="relative"),
+        pytest.param(lambda fe, observable: fe.get_absolute_dataframe(observable_type=observable), id="absolute"),
+        pytest.param(
+            lambda fe, observable: fe.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable),
+            id="all-to-all",
+        ),
+    ],
+)
+def test_to_dataframe_bad_observable(example_map, dataframe_func):
+    """Make sure an error is raised if we request the dataframe in an unsupported observable type."""
+    example_map.generate_absolute_values()
+    with pytest.raises(ValueError, match="Unknown observable_type: 'unsupported'"):
+        dataframe_func(example_map, "unsupported")
+
+
+def test_to_absolute_dataframe_regression(example_map):
+    """Test that the values in the absolute dataframe match the original values in the map."""
+    example_map.generate_absolute_values()
+    abs_df = example_map.get_absolute_dataframe()
+    # make sure the RMSE and R2 matches some historic data
+    calc_dg = abs_df[abs_df["computational"] == True]["DG (kcal/mol)"].to_numpy(copy=True)
+    exp_dg = abs_df[abs_df["computational"] == False]["DG (kcal/mol)"].to_numpy(copy=True)
+    # as the MLE values are centered at zero apply a shift to the experimental mean
+    calc_dg -= calc_dg.mean()  # remove any systematic shift
+    calc_dg += exp_dg.mean()
+    rmse = stats.calculate_rmse(exp_dg, calc_dg)
+    assert rmse == pytest.approx(0.84, abs=0.01)
+    r_2 = stats.calculate_r2(exp_dg, calc_dg)
+    assert r_2 == pytest.approx(0.61, abs=0.01)
+
+
+def test_to_absolute_dataframe_pic50(example_map):
+    """Test that returning the values in units of pIC50 gives error metrics consistent with the values in kcal/mol"""
+    example_map.generate_absolute_values()
+    abs_dg = example_map.get_absolute_dataframe()
+    abs_pci50 = example_map.get_absolute_dataframe(observable_type="pic50")
+    assert abs_dg.shape == abs_pci50.shape
+
+    # make sure the column order is the same but the names have been updated
+    assert abs_pci50.columns.tolist() == ["label", "pIC50", "uncertainty (unitless)", "source", "computational"]
+
+    # as dg to pic50 is linear check the RMSE also converts
+    calc_ddg = abs_dg[abs_dg["computational"] == True]["DG (kcal/mol)"].values
+    exp_ddg = abs_dg[abs_dg["computational"] == False]["DG (kcal/mol)"].values
+    rmse_dg = stats.calculate_rmse(exp_ddg, calc_ddg)
+    # same again for pic50
+    calc_dpic50 = abs_pci50[abs_pci50["computational"] == True]["pIC50"].values
+    exp_dpic50 = abs_pci50[abs_pci50["computational"] == False]["pIC50"].values
+    rmse_pic50 = stats.calculate_rmse(exp_dpic50, calc_dpic50)
+    # convert the error back
+    rmse_pic50, _ = conversion.convert_observable(rmse_pic50, "pic50", "dg")
+    # we need to use the abs value due to the conversion
+    assert rmse_dg == pytest.approx(abs(rmse_pic50), abs=0.01)  # use abs 0.01 as we round pic50 to 2dp
+    # also check the ranking
+    r_2_dg = stats.calculate_r2(exp_ddg, calc_ddg)
+    r_2_pic50 = stats.calculate_r2(exp_dpic50, calc_dpic50)
+    assert r_2_dg == pytest.approx(r_2_pic50, abs=0.01)  # use abs 0.01 as we round pic50 to 2dp
+
+
 def test_to_dataframe(example_map):
     abs_df = example_map.get_absolute_dataframe()
     rel_df = example_map.get_relative_dataframe()
@@ -345,6 +478,171 @@ def test_to_dataframe(example_map):
     assert abs_df2.shape == (72, 5)
     assert abs_df2.loc[abs_df2.computational].shape == (36, 5)
     assert abs_df2.loc[~abs_df2.computational].shape == (36, 5)
+
+
+def test_relative_dataframe_after_absolute(example_map):
+    """Test that the relative dataframe is not changed by the generation of absolute values."""
+    rel_df = example_map.get_relative_dataframe()
+    example_map.generate_absolute_values()
+    rel_df2 = example_map.get_relative_dataframe()
+    # every row should be the same and in the same order
+    assert rel_df.shape == (116, 6)
+    assert rel_df2.shape == (116, 6)
+    for col in rel_df.columns:
+        assert np.array_equal(rel_df[col].values, rel_df2[col].values)
+
+
+def test_to_all_pairwise_df_symmetry(example_map):
+    """Test generating the all-to-all pairwise dataframe with the symmetry option."""
+    # Generate using only the experimental data
+    all_symmetry_df = example_map.get_all_to_all_relative_dataframe(symmetrical=True)
+    all_no_sym_df = example_map.get_all_to_all_relative_dataframe(symmetrical=False)
+
+    assert all_symmetry_df.shape == (36 * 35, 6)  # n(n-1) for symmetrical
+    assert all_no_sym_df.shape == (36 * 35 // 2, 6)  # n(n-1) / 2 for non-symmetrical
+
+    # generate again using the calculated absolute values as well
+    example_map.generate_absolute_values()
+    all_symmetry_df2 = example_map.get_all_to_all_relative_dataframe(symmetrical=True)
+    all_no_sym_df2 = example_map.get_all_to_all_relative_dataframe(symmetrical=False)
+
+    assert all_symmetry_df2.shape == (36 * 35 * 2, 6)  # n(n-1) for symmetrical * 2 for both sources
+    assert all_no_sym_df2.shape == (36 * 35, 6)  # n(n-1) / 2 for non-symmetrical * 2 for both sources
+
+    # make sure the pair ordering is the same for each source
+    for df in [all_symmetry_df2, all_no_sym_df2]:
+        # get a 2D array of the label pairs for each source and check they are the same
+        comp_labels = df.loc[df.computational, ["labelA", "labelB"]].values
+        exp_labels = df.loc[~df.computational, ["labelA", "labelB"]].values
+        assert (comp_labels == exp_labels).all()
+
+    # make sure all values are correct
+    abs_df = example_map.get_absolute_dataframe()
+    for df in [all_symmetry_df2, all_no_sym_df2]:
+        for _, row in df.iterrows():
+            label_a = row["labelA"]
+            label_b = row["labelB"]
+            computational = row["computational"]
+
+            if computational:
+                source_df = abs_df.loc[abs_df.computational]
+            else:
+                source_df = abs_df.loc[~abs_df.computational]
+
+            dg_a = source_df.loc[source_df.label == label_a, "DG (kcal/mol)"].values[0]
+            dg_b = source_df.loc[source_df.label == label_b, "DG (kcal/mol)"].values[0]
+            expected_ddg = dg_b - dg_a
+            assert row["DDG (kcal/mol)"] == expected_ddg
+
+
+def test_all_to_all_pairwise_df_absolute(example_map):
+    """Test that we can generate the all-to-all pairwise dataframe using the absolute values,
+    and that it matches the pairwise df generated from the original map.
+    """
+    example_map.generate_absolute_values()
+    abs_df = example_map.get_absolute_dataframe()
+    abs_df = abs_df[(abs_df["computational"] == True) & (abs_df["source"] == "MLE")]
+    pair_rel_df = example_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    pair_rel_df = pair_rel_df[pair_rel_df["computational"] == True].reset_index(drop=True)
+
+    abs_map = femap.FEMap()
+    # add each predicted absolute value as a measurement and compute the pairwise df again
+    for _, row in abs_df.iterrows():
+        abs_map.add_absolute_calculation(
+            label=row["label"],
+            value=row["DG (kcal/mol)"] * unit.kilocalorie_per_mole,
+            uncertainty=row["uncertainty (kcal/mol)"] * unit.kilocalorie_per_mole,
+            source="ABFE",
+        )
+
+    abs_pair_rel_df = abs_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    # the df should match between the two maps, except for the uncertainty and source columns which will be different
+    # due to the different sources and the way uncertainties are propagated for the pairwise df
+    pd.testing.assert_frame_equal(
+        pair_rel_df.drop(columns=["uncertainty (kcal/mol)", "source"]),
+        abs_pair_rel_df.drop(columns=["uncertainty (kcal/mol)", "source"]),
+    )
+    # we should also check that the uncertainty is different as we should be using the covariance in the pair_rel_df
+    assert not np.array_equal(
+        pair_rel_df["uncertainty (kcal/mol)"].values, abs_pair_rel_df["uncertainty (kcal/mol)"].values
+    )
+
+
+@pytest.mark.parametrize(
+    "observable, value, uncertainty",
+    [
+        pytest.param("ddg", "DDG (kcal/mol)", "uncertainty (kcal/mol)", id="dg"),
+        pytest.param("dpic50", "DpIC50", "uncertainty (unitless)", id="pic50"),
+    ],
+)
+def test_all_to_all_pairwise_df_no_data(observable, value, uncertainty):
+    """Test that we can generate the all-to-all pairwise dataframe with no data without error."""
+    fe_map = femap.FEMap()
+    df = fe_map.get_all_to_all_relative_dataframe(symmetrical=False, observable_type=observable)
+    assert len(df) == 0
+    # make sure the columns are still correct though
+    assert df.columns.tolist() == [
+        "labelA",
+        "labelB",
+        value,
+        uncertainty,
+        "source",
+        "computational",
+    ]
+
+
+def test_missing_column_names_when_converting(example_map):
+    """Make sure a clear error is raised if we try and convert to a dataframe but the column names are missing."""
+    # try and convert the wrong dataframe
+    rel_df = example_map.get_relative_dataframe()
+    with pytest.raises(ValueError, match=re.escape("Column(s) ['DG (kcal/mol)'] not found in dataframe.")):
+        femap._convert_dg_df_to_pic50(
+            df=rel_df,
+            value_col="DG (kcal/mol)",
+            uncertainty_col="uncertainty (kcal/mol)",
+            new_value_col="pIC50",
+            new_uncertainty_col="uncertainty (unitless)",
+            temperature=298.15 * unit.kelvin,
+        )
+
+
+def test_to_all_pairwise_df_uses_covariance_matrix():
+    fe_map = cinnabar.FEMap()
+    kjpm = unit.kilojoule_per_mole
+
+    fe_map.add_relative_calculation("A", "B", 4.184 * kjpm, 0.4184 * kjpm)
+    fe_map.add_relative_calculation("B", "C", 8.368 * kjpm, 0.8368 * kjpm)
+    fe_map.add_relative_calculation("A", "C", 12.552 * kjpm, 1.2552 * kjpm)
+
+    fe_map.generate_absolute_values()
+
+    pairwise_df = fe_map.get_all_to_all_relative_dataframe(symmetrical=False)
+    abs_df = fe_map.get_absolute_dataframe().set_index("label")
+    metadata = fe_map.get_estimator_metadata("MLE")
+    assert isinstance(metadata, estimators.MLEEstimatorResult)
+    label_to_index = {label: i for i, label in enumerate(metadata.ligand_order)}
+
+    for _, row in pairwise_df.iterrows():
+        label_a = row["labelA"]
+        label_b = row["labelB"]
+        i = label_to_index[label_a]
+        j = label_to_index[label_b]
+        covariance = metadata.covariance_matrix[i, j]
+        expected_uncertainty = (
+            abs_df.loc[label_a, "uncertainty (kcal/mol)"] ** 2
+            + abs_df.loc[label_b, "uncertainty (kcal/mol)"] ** 2
+            - 2 * covariance
+        ) ** 0.5
+
+        assert row["uncertainty (kcal/mol)"] == pytest.approx(expected_uncertainty)
+
+    naive_uncertainty = (
+        abs_df.loc["A", "uncertainty (kcal/mol)"] ** 2 + abs_df.loc["B", "uncertainty (kcal/mol)"] ** 2
+    ) ** 0.5
+    ab_uncertainty = pairwise_df.loc[
+        (pairwise_df.labelA == "A") & (pairwise_df.labelB == "B"), "uncertainty (kcal/mol)"
+    ].iloc[0]
+    assert ab_uncertainty < naive_uncertainty
 
 
 def test_to_networkx(example_map):
@@ -442,6 +740,13 @@ def test_add_wrong_type():
 
 def test_draw_graph_to_file(fe_map, tmp_path):
     filepath = tmp_path / "femap_graph.png"
+    # add a fake abs calculation which should be skipped
+    fe_map.add_absolute_calculation(
+        label="c1",
+        value=-10.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.2 * unit.kilocalorie_per_mole,
+        source="test-ABFE",
+    )
     fe_map.draw_graph(title="test", filename=filepath)
 
     assert filepath.exists()
@@ -458,6 +763,14 @@ def test_draw_graph_show(fe_map, monkeypatch):
     fe_map.draw_graph(title="test", filename=None)
 
     assert called.get("show", False) is True
+
+
+def test_highlight_edges_reverse_direction(fe_map, tmp_path):
+    filepath = tmp_path / "femap_graph.png"
+    a, b = list(fe_map.to_legacy_graph().edges())[0]
+    fe_map.draw_graph(title="test", filename=filepath, highlight_edges={"red": [(b, a)]})
+
+    assert filepath.exists()
 
 
 def test_to_legacy_missing_exp():
@@ -526,3 +839,60 @@ def test_missing_estimator_metadata(example_map):
     with pytest.raises(KeyError, match="No estimator metadata stored for source test."):
         example_map.generate_absolute_values()
         example_map.get_estimator_metadata("test")
+
+
+def test_get_cycle_closure_perfect_cycle(perfect_cycle):
+    result = perfect_cycle.get_cycle_closure_dataframe()
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["source", "cycle", "cc (kcal/mol)", "cc_per_edge (kcal/mol)", "cc_unc_normalized"]
+    assert len(result) == 1
+    assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result["cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result["cc_unc_normalized"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_get_cycle_closure_hystereses(imperfect_cycle):
+    result = imperfect_cycle.get_cycle_closure_dataframe()
+    expected_cc = abs(0.5)
+    expected_cc_per_edge = round(abs(0.5) / math.sqrt(3), 2)
+    expected_cc_normalized = round(abs(0.5) / math.sqrt(3 * 0.1**2), 2)
+    assert result["cc (kcal/mol)"].iloc[0] == pytest.approx(expected_cc, abs=0.01)
+    assert result["cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(expected_cc_per_edge, abs=0.01)
+    assert result["cc_unc_normalized"].iloc[0] == pytest.approx(expected_cc_normalized, abs=0.01)
+
+
+def test_get_cycle_closure_multiple_sources(perfect_cycle, imperfect_cycle):
+    fe = perfect_cycle + imperfect_cycle
+
+    result = fe.get_cycle_closure_dataframe()
+    assert len(result) == 2
+    assert set(result["source"].unique()) == {"method_a", "method_b"}
+    assert result[result["source"] == "method_a"]["cc (kcal/mol)"].iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result[result["source"] == "method_b"]["cc (kcal/mol)"].iloc[0] == pytest.approx(0.5, abs=0.01)
+
+
+def test_get_cc_based_edge_statistics_known_value(perfect_cycle):
+    result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe()
+    assert len(result) == 3
+    assert (result["n_cycles"] == 1).all()
+    assert (result["mean_cc_per_edge (kcal/mol)"] == 0.0).all()
+    assert (result["max_cc_per_edge (kcal/mol)"] == 0.0).all()
+
+
+def test_get_cc_based_edge_statistics_reverse_direction(perfect_cycle):
+    kcalpm = unit.kilocalorie_per_mole
+    # add edges for more cycles
+    perfect_cycle.add_relative_calculation("A", "D", value=1.0 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+    perfect_cycle.add_relative_calculation("D", "B", value=-1.5 * kcalpm, uncertainty=0.1 * kcalpm, source="method_a")
+
+    result = perfect_cycle.get_cycle_closure_edge_statistics_dataframe(max_cycle_length=3)
+    cc_per_edge_abc = 0.0 / math.sqrt(3)  # perfect cycle A -> B -> C -> A
+    cc_per_edge_bad = 1.5 / math.sqrt(3)  # imperfect cycle B -> A -> D -> B
+
+    # A to B in two cycles
+    ab_row = result[(result["ligandA"] == "A") & (result["ligandB"] == "B")]
+    assert ab_row["n_cycles"].iloc[0] == 2
+    assert ab_row["mean_cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(
+        (cc_per_edge_abc + cc_per_edge_bad) / 2, abs=1e-3
+    )
+    assert ab_row["max_cc_per_edge (kcal/mol)"].iloc[0] == pytest.approx(cc_per_edge_bad, abs=1e-3)

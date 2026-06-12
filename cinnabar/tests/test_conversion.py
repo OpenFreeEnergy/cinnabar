@@ -156,6 +156,10 @@ def test_convert_value_from_ic50(value, uncertainty, temp, output_type, expected
     ],
 )
 def test_convert_value_from_pic50(value, uncertainty, temp, output_type, expected_value, expected_uncertainty):
+    d = unit("dimensionless")
+    value *= d
+    if uncertainty is not None:
+        uncertainty *= d
     converted_value, converted_error = conversion.convert_observable(
         value=value,
         original_type="pic50",

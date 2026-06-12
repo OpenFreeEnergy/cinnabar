@@ -23,15 +23,18 @@ defaults:
 jobs:
   test:
     name: "💻-${{matrix.os }} 🐍-${{ matrix.python-version }}"
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu', 'macos']
+        os: ["ubuntu-latest"]
         python-version:
-          - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
+        include:
+          - os: "macos-latest"
+            python-version: "3.12"
 
     steps:
       - uses: actions/checkout@v6
