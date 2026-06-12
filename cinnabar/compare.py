@@ -16,6 +16,7 @@ def compare_and_rank_results(
     metrics_to_compute: list[Literal["MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"]] | None = None,
     num_bootstraps: int = 1_000,
     confidence_level: float = 0.95,
+    alpha: float = 0.05,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Compare and rank multiple result sources on a single FEMap based on the chosen performance metric and return an ordered table of
@@ -25,23 +26,27 @@ def compare_and_rank_results(
     ----------
     femap : FEMap
         An FEMap instance with results from multiple sources to compare.
-    prediction_type: Literal["nodewise", "edgewise"], optional
-        The type of prediction to evaluate, by default "edgewise".
-    rank_metric : Literal["MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"], optional
-        The metric used to rank the models, by default "MUE".
-    metrics_to_compute : list[Literal["MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"]], optional
-        A list of metrics to compute for each model. If None, all metrics appropriate for the `prediction_type` will be computed.
-    num_bootstraps : int, optional
-        The number of bootstrap samples to use for estimating confidence intervals, by default 1000.
-    confidence_level : float, optional
-        The confidence level for the intervals, by default 0.95.
+    prediction_type: {"nodewise", "edgewise"}, default "edgewise"
+        The type of prediction in the FEMap to evaluate.
+    rank_metric : {"MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"}, default "MUE"
+        The metric used to rank the models.
+    metrics_to_compute : list[{"MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"}] | None, default None
+        A list of metrics to compute for each model. If ``None``, all metrics appropriate for the ``prediction_type`` will be computed.
+    num_bootstraps : int, default 1000
+        The number of bootstrap samples to use for estimating confidence intervals.
+    confidence_level : float, default 0.95
+        The confidence level for the intervals.
+    alpha : float, default 0.05
+        The significance level (Type I error probability) for determining statistical significance
+        in pairwise comparisons. Lower values are more conservative and require stronger evidence for significance.
 
     Note
     ----
     - The comparison method uses a joint bootstrapping procedure that generates a distribution of differences in the rank metric and checks for significant differences using a method inspired by. [1]_
     - Each source must be evaluated on the same set of edges.
     - Prediction types "nodewise" and "edgewise" correspond to DGs and edgewise DDGs respectively.
-    - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the ``Holm`` method by default.
+    - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the ``Holm``
+    method to control the family-wise error rate in a low number of comparisons. For more information see https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method.
 
     Returns
     -------
@@ -58,11 +63,16 @@ def compare_and_rank_results(
     # get the predictions and experimental values from the FEMaps and align them into a DataFrame
     predictions_by_key = defaultdict(dict)
     if prediction_type == "nodewise":
-        # make sure we have absolute values
-        femap.generate_absolute_values()
         abs_df = femap.get_absolute_dataframe()
         # get the computational sources we want to compare
-        sources = abs_df[abs_df["computational"] == True]["source"].unique()
+        sources = abs_df[abs_df["computational"] == True]["source"].unique().tolist()
+
+        if not sources:
+            raise ValueError(
+                "The FEMap contains no computed absolute values. "
+                "Call generate_absolute_values() first or add calculated absolute measurements directly to run nodewise comparisons."
+            )
+        
         # for each row add the node prediction
         for _, row in abs_df.iterrows():
             node_label = row["label"]
@@ -173,7 +183,7 @@ def compare_and_rank_results(
                 "CI Lower": lower,
                 "CI Upper": upper,
                 "p-value": p_value,
-                "significant": p_value < 0.05,
+                "significant": p_value < alpha,
             }
         )
     comparison_df = pd.DataFrame(comparison_data)
@@ -183,10 +193,10 @@ def compare_and_rank_results(
         from statsmodels.stats.multitest import multipletests
 
         p_values = comparison_df["p-value"].values
-        reject, pvals_corrected, _, _ = multipletests(p_values, alpha=0.05, method="holm")
+        reject, pvals_corrected, _, _ = multipletests(p_values, alpha=alpha, method="holm")
         comparison_df["p-value corrected"] = pvals_corrected
         # add corrected significance
-        comparison_df["significant"] = pvals_corrected < 0.05
+        comparison_df["significant"] = pvals_corrected < alpha
 
     # rank the models and apply the CLD
     # the order depends on whether lower or higher is better for the rank metric

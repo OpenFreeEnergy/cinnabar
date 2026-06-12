@@ -59,9 +59,32 @@ def test_compare_and_rank_results(fe_map):
 
 
 def test_nodewise_comparison(fe_map):
+    np.random.seed(42)
+
+    compare_map = FEMap()
+    for m in fe_map:
+        if m.computational:
+            # add the result with a new source
+            compare_map.add_relative_calculation(
+                labelA=m.labelA, labelB=m.labelB, value=m.DG, uncertainty=m.uncertainty, source="original"
+            )
+            # add the data again under a second source with some noise added
+            compare_map.add_relative_calculation(
+                labelA=m.labelA,
+                labelB=m.labelB,
+                value=np.random.normal(m.DG.m, m.uncertainty.m) * unit.kilocalorie_per_mole,
+                uncertainty=m.uncertainty,
+                source="perturbed",
+            )
+        else:
+            # add the experimental data
+            compare_map.add_measurement(m)
+
+    # add the absolute values to the map
+    compare_map.generate_absolute_values()
     # a simple test to make sure it runs
     summary_df, comparison_df = compare_and_rank_results(
-        fe_map,
+        compare_map,
         prediction_type="nodewise",
         rank_metric="PI",
     )
@@ -69,7 +92,13 @@ def test_nodewise_comparison(fe_map):
         assert metric in summary_df.columns
         for ci in ["Upper", "Lower"]:
             assert f"{metric}_CI_{ci}" in summary_df.columns
-    summary_df.to_csv("summary_df.csv")
+        # check that original and perturbed are ranked the same
+        assert summary_df[summary_df["Model"] == "MLE(original)"]["CLD"].values[0] == "a"
+        assert summary_df[summary_df["Model"] == "MLE(perturbed)"]["CLD"].values[0] == "a"
+        # check that the comparison table has a single comparison between the two models
+        assert len(comparison_df) == 1
+        # as we have two methods we do not need to correct the p-values
+        assert "p-value corrected" not in comparison_df.columns
 
 
 def test_invalid_prediction_type(fe_map):
@@ -132,3 +161,11 @@ def test_missing_rank_metric(fe_map):
         rank_metric="MUE",
         metrics_to_compute=["RMSE"],  # miss the rank metric from the compute list and it should still work
     )
+
+
+def test_missing_node_values(fe_map):
+    with pytest.raises(ValueError, match="The FEMap contains no computed absolute values. "):
+        _, _ = compare_and_rank_results(
+            fe_map,
+            prediction_type="nodewise",
+        )
