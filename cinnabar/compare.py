@@ -46,7 +46,7 @@ def compare_and_rank_results(
     - Each source must be evaluated on the same set of edges.
     - Prediction types "nodewise" and "edgewise" correspond to DGs and edgewise DDGs respectively.
     - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the ``Holm``
-    method to control the family-wise error rate in a low number of comparisons. For more information see https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method.
+          method to control the family-wise error rate in a low number of comparisons. For more information see https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method.
 
     Returns
     -------
@@ -72,7 +72,7 @@ def compare_and_rank_results(
                 "The FEMap contains no computed absolute values. "
                 "Call generate_absolute_values() first or add calculated absolute measurements directly to run nodewise comparisons."
             )
-        
+
         # for each row add the node prediction
         for _, row in abs_df.iterrows():
             node_label = row["label"]
