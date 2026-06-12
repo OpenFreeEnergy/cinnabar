@@ -61,7 +61,7 @@ def compare_and_rank_results(
     """
 
     # get the predictions and experimental values from the FEMaps and align them into a DataFrame
-    predictions_by_key = defaultdict(dict)
+    predictions_by_key:dict[tuple[str, str] | str, dict[str, float]] = defaultdict(dict)
     if prediction_type == "nodewise":
         abs_df = femap.get_absolute_dataframe()
         # get the computational sources we want to compare
@@ -252,7 +252,7 @@ def _apply_cld(comparison_df: pd.DataFrame, ordered_labels: list[str]) -> dict[s
     sig = _build_significance_lookup(comparison_df)
 
     # Each letter is represented as a set of methods which are not significantly different
-    letters = []
+    letters: list[set[str]] = []
 
     def is_compatible(meth, let):
         """Check if method can join this letter set"""
