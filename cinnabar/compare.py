@@ -61,7 +61,7 @@ def compare_and_rank_results(
     """
 
     # get the predictions and experimental values from the FEMaps and align them into a DataFrame
-    predictions_by_key:dict[tuple[str, str] | str, dict[str, float]] = defaultdict(dict)
+    predictions_by_key: dict[tuple[str, str] | str, dict[str, float]] = defaultdict(dict)
     if prediction_type == "nodewise":
         abs_df = femap.get_absolute_dataframe()
         # get the computational sources we want to compare
