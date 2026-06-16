@@ -9,6 +9,10 @@ or to rank ligands by affinity, we need absolute free energies (:math:`\Delta G`
 
 This requires an **estimator**: a method that takes the network of relative free energies and produces absolute values.
 
+Custom estimators can be added by subclassing :class:`cinnabar.estimators.Estimator` and passing an instance to
+:meth:`cinnabar.femap.FEMap.generate_absolute_values`. For a worked example, see the
+:doc:`custom estimator tutorial <../tutorials/custom-estimator>`.
+
 
 Maximum Likelihood Estimation (MLE)
 -----------------------------------
