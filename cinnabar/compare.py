@@ -59,13 +59,20 @@ def compare_and_rank_results(
     ----------
     .. [1] https://www.nature.com/articles/s42004-025-01428-y
     """
+    # bounds checks on the input parameters
+    if not isinstance(num_bootstraps, int) or num_bootstraps < 1:
+        raise ValueError("num_bootstraps must be an integer >= 1.")
+    if not isinstance(confidence_level, (int, float)) or not (0 < confidence_level < 1):
+        raise ValueError("confidence_level must be a number between 0 and 1 (exclusive).")
+    if not isinstance(alpha, (int, float)) or not (0 < alpha < 1):
+        raise ValueError("alpha must be a number between 0 and 1 (exclusive).")
 
     # get the predictions and experimental values from the FEMaps and align them into a DataFrame
     predictions_by_key: dict[tuple[str, str] | str, dict[str, float]] = defaultdict(dict)
     if prediction_type == "nodewise":
         abs_df = femap.get_absolute_dataframe()
         # get the computational sources we want to compare
-        sources = abs_df[abs_df["computational"] == True]["source"].unique().tolist()
+        sources = abs_df[abs_df["computational"]]["source"].unique().tolist()
 
         if not sources:
             raise ValueError(
@@ -84,7 +91,7 @@ def compare_and_rank_results(
 
     elif prediction_type == "edgewise":
         rel_df = femap.get_relative_dataframe()
-        sources = rel_df[rel_df["computational"] == True]["source"].unique()
+        sources = rel_df[rel_df["computational"]]["source"].unique().tolist()
         for _, row in rel_df.iterrows():
             key = (row["labelA"], row["labelB"])
             if not row["computational"]:
@@ -118,6 +125,8 @@ def compare_and_rank_results(
 
     # we must compute the rank metric however it is possible to miss it
     if rank_metric not in metrics_to_compute:
+        # make a copy of the input list as we may need to mutate it - use shall as metrics are immutable
+        metrics_to_compute = list(metrics_to_compute)
         metrics_to_compute.append(rank_metric)
 
     # check we can compute all requested metrics
@@ -125,7 +134,7 @@ def compare_and_rank_results(
         if metric not in _AVAILABLE_STATS:
             raise ValueError(f"Metric {metric} is not available.")
 
-    metrics_by_source = dict((source, dict((metric, []) for metric in metrics_to_compute)) for source in sources)
+    metrics_by_source: dict[str, dict[str, list[float]]] = {source: {metric: [] for metric in metrics_to_compute} for source in sources}
     pairwise_metrics = {}
     # compute bootstrap metrics for each model using the same bootstrap samples, joint bootstrap
     for _ in range(num_bootstraps):
