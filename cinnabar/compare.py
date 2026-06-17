@@ -134,7 +134,9 @@ def compare_and_rank_results(
         if metric not in _AVAILABLE_STATS:
             raise ValueError(f"Metric {metric} is not available.")
 
-    metrics_by_source: dict[str, dict[str, list[float]]] = {source: {metric: [] for metric in metrics_to_compute} for source in sources}
+    metrics_by_source: dict[str, dict[str, list[float]]] = {
+        source: {metric: [] for metric in metrics_to_compute} for source in sources
+    }
     pairwise_metrics = {}
     # compute bootstrap metrics for each model using the same bootstrap samples, joint bootstrap
     for _ in range(num_bootstraps):

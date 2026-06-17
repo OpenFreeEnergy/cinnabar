@@ -173,15 +173,10 @@ def test_missing_node_values(fe_map):
 
 def test_low_bootstrap_samples(fe_map):
     with pytest.raises(ValueError, match="num_bootstraps must be an integer >= 1."):
-        _, _ = compare_and_rank_results(
-            fe_map,
-            num_bootstraps=0
-        )
+        _, _ = compare_and_rank_results(fe_map, num_bootstraps=0)
 
 
-@pytest.mark.parametrize("ci", [
-    0, 1, "one"
-])
+@pytest.mark.parametrize("ci", [0, 1, "one"])
 def test_bad_ci(fe_map, ci):
     with pytest.raises(ValueError, match="confidence_level must be a number between 0 and 1"):
         _, _ = compare_and_rank_results(
@@ -190,9 +185,7 @@ def test_bad_ci(fe_map, ci):
         )
 
 
-@pytest.mark.parametrize("alpha", [
-    0, 1, "one"
-])
+@pytest.mark.parametrize("alpha", [0, 1, "one"])
 def test_bad_alpha(fe_map, alpha):
     with pytest.raises(ValueError, match="alpha must be a number between 0 and 1"):
         _, _ = compare_and_rank_results(
