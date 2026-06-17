@@ -17,3 +17,4 @@ API Tutorials
     custom-estimator
     calculating-metrics
     ecdf-plots
+    cycle-closure
