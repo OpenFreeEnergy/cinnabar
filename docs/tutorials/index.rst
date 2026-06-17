@@ -16,3 +16,4 @@ API Tutorials
     cinnabar-api
     calculating-metrics
     ecdf-plots
+    cycle-closure
