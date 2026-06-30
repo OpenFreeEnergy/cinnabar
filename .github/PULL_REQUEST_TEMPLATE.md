@@ -8,8 +8,14 @@ Notable points that this PR has either accomplished or will accomplish.
 ## Questions
 - [ ] Question1
 
+## LLM / AI generated code disclosure
+<!-- Please update this disclosure to reflect if you did or did not use LLMs / AI to generate code -->
+LLMs or other AI-powered tools (beyond simple IDE use cases) were used in this contribution: yes / no
+If yes, please provide details here:
+
 ## Checklist
 - [ ] Added a ``news`` entry for new features, bug fixes, or other user facing changes.
+- [ ] Filled in the AI-generated code disclosure.
 
 ## Status
 - [ ] Ready to go
