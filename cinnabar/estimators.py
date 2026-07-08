@@ -280,7 +280,7 @@ class MLEEstimator(Estimator):
         )
 
     @staticmethod
-    def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None) -> (np.ndarray, np.ndarray):
+    def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None) -> tuple[np.ndarray, np.ndarray]:
         """
         Compute maximum likelihood estimate of free energies and covariance in their estimates.
         The number 'factor' is the node attribute on which the MLE will be calculated,
@@ -450,7 +450,7 @@ class MLEEstimator(Estimator):
         unit = units.pop()
 
         graph = nx.DiGraph()
-        edges_seen: List[tuple] = []
+        edges_seen: list[tuple] = []
 
         # populate the edges of the graph along with their computational binding free energies
         for m in filter(lambda m: m.computational, measurements):
