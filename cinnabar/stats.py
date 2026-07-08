@@ -365,4 +365,3 @@ def bootstrap_statistic(
         "high": np.percentile(s_n, high_percentile),  # high end of confidence interval
     }
     return stats
-

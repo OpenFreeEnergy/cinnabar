@@ -341,10 +341,9 @@ class MLEEstimator(Estimator):
             if node_label in data:
                 i = node_name_to_index[n]
                 z[i] = data[node_factor] / (data[node_label] ** 2)
-                F_matrix[i,i] = 1 / (data[node_label] ** 2)
+                F_matrix[i, i] = 1 / (data[node_label] ** 2)
 
         for a, b, data in graph.edges(data=True):
-
             if a == b:
                 continue
 
@@ -353,7 +352,9 @@ class MLEEstimator(Estimator):
 
             deltaij = data[factor]
             if (varij := data[factor.replace("_", "_d")] ** 2) == 0:
-                raise ValueError(f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs.")
+                raise ValueError(
+                    f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs."
+                )
 
             z[i] += -deltaij / varij
             z[j] += deltaij / varij
