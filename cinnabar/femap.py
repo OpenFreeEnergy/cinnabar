@@ -21,10 +21,8 @@ import numpy as np
 import pandas as pd
 from openff.units import Quantity, unit
 
-
-from cinnabar.estimators import MLEEstimator
 from cinnabar.conversion import convert_observable
-
+from cinnabar.estimators import MLEEstimator
 from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
