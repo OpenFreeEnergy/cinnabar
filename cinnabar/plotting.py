@@ -1,116 +1,213 @@
 import itertools
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 import matplotlib.pylab as plt
 import networkx as nx
 import numpy as np
 import seaborn as sns
 from adjustText import adjust_text
+from openff.units import Quantity, unit
 
-from cinnabar import plotlying, stats
-from cinnabar.femap import FEMap
+from cinnabar import conversion, plotlying, stats
+from cinnabar.femap import ABSOLUTE_ANALYSIS_TYPES, RELATIVE_ANALYSIS_TYPES, FEMap
+
+# Define the default guidelines in kcal/mol for the scatter plots
+_DEFAULT_GUIDELINES_DG = (0.5, 1.0)
 
 
-def _master_plot(
+def _convert_guidelines_to_pic50(guidelines: tuple[float, float], temperature: Quantity) -> tuple[float, ...]:
+    """
+    Convert the given guidelines from kcal/mol to pIC50 values at the given temperature.
+
+    Parameters
+    ----------
+    guidelines : tuple[float, float]
+        The guideline distances in kcal/mol to convert.
+    temperature : Quantity
+        The temperature at which to perform the conversion.
+    """
+    converted: list[float] = []
+    for g in guidelines:
+        dg = Quantity(g, units=unit.kilocalorie_per_mole)
+        pic50, _ = conversion.convert_observable(dg, original_type="dg", final_type="pic50", temperature=temperature)
+        converted.append(abs(pic50.m))  # type: ignore[arg-type]
+    return tuple(converted)
+
+
+def _update_plot_kwargs(
+    kwargs: dict,
+    plot_meta: dict[str, str],
+    observable_type: str,
+    temperature: Quantity,
+) -> tuple[str, str, dict]:
+    """Extract and resolve quantity, units, and guidelines from kwargs for pair_plot calls."""
+    quantity = kwargs.pop("quantity", plot_meta["quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
+    if kwargs.get("guidelines", True) is True and observable_type.lower().endswith("pic50"):
+        kwargs["guidelines"] = _convert_guidelines_to_pic50(guidelines=_DEFAULT_GUIDELINES_DG, temperature=temperature)
+    return quantity, units, kwargs
+
+
+# Map the observable type to expected dataframe column names and the units for the plot
+_OBSERVABLE_METADATA: dict[str, dict[str, str]] = {
+    "ddg": {
+        "value_col": "DDG (kcal/mol)",
+        "uncertainty_col": "uncertainty (kcal/mol)",
+        "quantity": r"$\Delta\Delta$G",
+        "units": r"$\mathrm{kcal\,mol^{-1}}$",
+        "ecdf_quantity": r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
+    },
+    "dg": {
+        "value_col": "DG (kcal/mol)",
+        "uncertainty_col": "uncertainty (kcal/mol)",
+        "quantity": r"$\Delta$G",
+        "units": r"$\mathrm{kcal\,mol^{-1}}$",
+        "ecdf_quantity": r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
+    },
+    "dpic50": {
+        "value_col": "DpIC50",
+        "uncertainty_col": "uncertainty (unitless)",
+        "quantity": r"$\Delta$pIC50",
+        "units": "unitless",
+        "ecdf_quantity": r"$|\Delta$pIC50$_{calc}$ - $\Delta$pIC50$_{exp}|$",
+    },
+    "pic50": {
+        "value_col": "pIC50",
+        "uncertainty_col": "uncertainty (unitless)",
+        "quantity": "pIC50",
+        "units": "unitless",
+        "ecdf_quantity": r"$|$pIC50$_{calc}$ - pIC50$_{exp}|$",
+    },
+}
+
+
+def pair_plot(
     x: np.ndarray,
     y: np.ndarray,
     title: str = "",
-    xerr: Optional[np.ndarray] = None,
-    yerr: Optional[np.ndarray] = None,
+    xerr: np.ndarray | None = None,
+    yerr: np.ndarray | None = None,
     method_name: str = "",
     target_name: str = "",
     quantity: str = r"$\Delta\Delta$G",
     xlabel: str = "Experimental",
     ylabel: str = "Calculated",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
-    guidelines: bool = True,
+    guidelines: bool | tuple[float, float] = True,
+    guideline_colors: tuple[str, str] | None = None,
     origins: bool = True,
-    color: Optional[str] = None,
-    statistics: list = ["RMSE", "MUE"],
-    filename: Optional[str] = None,
+    color: str | None = None,
+    statistics: list[Literal["RMSE", "NRMSE", "MUE", "RAE", "R2", "rho", "KTAU", "PI"]] | None = None,
+    filename: str | None = None,
     centralizing: bool = True,
     shift: float = 0.0,
     figsize: float = 3.25,
-    dpi: Union[float, str] = "figure",
-    data_labels: list = [],
+    dpi: float | str = 300,
+    data_labels: list[str] | None = None,
     axis_padding: float = 0.5,
-    xy_lim: list = [],
-    font_sizes: dict = {"title": 12, "labels": 9, "other": 12},
+    xy_lim: tuple[float, float] | None = None,
+    font_sizes: dict[str, int] | None = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
-    scatter_kwargs: dict = {"s": 20, "marker": "o"},
+    statistic_type: Literal["mle", "mean"] = "mle",
+    scatter_kwargs: dict[str, float | int | str] | None = None,
 ):
-    """Handles the aesthetics of the plots in one place.
+    r"""Handles the aesthetics of the pair plots in one place.
 
     Parameters
     ----------
     x : np.ndarray
-        Values to plot on the x axis
+        Values to plot on the x-axis.
     y : np.ndarray
-        Values to plot on the y axis
-    title : string, default = ''
-        Title for the plot
-    xerr : np.ndarray , default = None
-        Error bars for x values
-    yerr : np.ndarray , default = None
-        Error bars for y values
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    quantity : str, default = '$\\Delta \\Delta$ G'
-        metric that is being plotted
-    xlabel : str, default = 'Experimental'
-        label for xaxis
-    ylabel : str, default = 'Calculated'
-        label for yaxis
-    units : str, default = r'$\\mathrm{kcal\\,mol^{-1}}$'
-        string value of units to label axis
-    guidelines : bool, default = True
-        toggles plotting of grey 0.5 and 1 kcal/mol error zone
-    origins : bool, default = True
-        toggles plotting of x and y axis
-    color : str, default = None
-        if None, will be coloured according to distance from unity
-    statistics : list(str), default = ['RMSE',  'MUE']
-        list of statistics to calculate and report on the plot
-    filename : str, default = None
-        filename for plot
-    centralizing : bool, default = True
-        ofset the free energies
-    shift : float, default = 0.
-        shift both the x and y axis by a constant
-    figsize : float, default = 3.25
-        size of figure for matplotlib
-    dpi : float or 'figure', default 'figure'
-        the resolution in dots per inch
+        Values to plot on the y-axis
+    title : str, default ""
+        Title for the plot.
+    xerr : np.ndarray | None , default None
+        Error bars for x values if available.
+    yerr : np.ndarray | None , default None
+        Error bars for y values if available.
+    method_name : str, default ""
+        Name of method associated with results, e.g. "openfe".
+    target_name : str, default ""
+        Name of system for results, e.g. "Thrombin".
+    quantity : str, default r"$\Delta\Delta$G"
+        Metric that is being plotted, which will be included in the axis labels.
+    xlabel : str, default "Experimental"
+        Main abel for the x-axis.
+    ylabel : str, default "Calculated"
+        Main label for the y-axis.
+    units : str, default r"$\mathrm{kcal\,mol^{-1}}$"
+        String value of units to label axis with.
+    guidelines : bool | tuple[float, float], default True
+        Controls the shaded guideline bands drawn around the x=y line.
+
+        - ``True``: draw the default two bands at 0.5 and 1.0 kcal/mol.
+        - ``False``: no guidelines are drawn.
+        - ``tuple`` of up to 2 floats: draw a band for each value, e.g.
+          ``(0.5,)`` for a single band or ``(0.5, 1.0)`` for two bands.
+
+        When calling the high-level plotting functions (``plot_DDGs``,
+        ``plot_DGs``, ``plot_all_DDGs``) with ``observable_type="pic50"``,
+        the default distances are automatically converted to pIC50 units
+        so the bands remain physically meaningful.  Pass an explicit ``guidelines`` tuple to override this.
+    guideline_colors : tuple[str, str], default None
+        Colors for each guideline band, corresponding positionally to each
+        distance in *guidelines*. If ``None``, or fewer colors than bands are
+        provided, the remaining bands default to ``"grey"``.
+        Example: ``("blue", "red")`` colors the inner band blue and the outer
+        band red.
+    origins : bool, default True
+        Toggles plotting of x and y-axis.
+    color : str, default None
+        The name of the colour scheme for the scatter plots. If None, will be coloured according to distance from unity
+    statistics : list[{'RMSE', 'NRMSE', 'MUE', 'RAE', 'R2', 'rho', 'KTAU', 'PI'}] | None, default None
+        List of statistics to calculate and report on the plot, if None "RMSE" and "MUE" will be reported.
+    filename : str | None, default None
+        Filename for plot, if not provided the plot will be displayed.
+    centralizing : bool, default True
+        Offset the free energies ``True`` or report raw values ``False``.
+    shift : float, default 0.
+        Shift both the x and y-axis by a constant.
+    figsize : float, default 3.25
+        Size of figure for matplotlib.
+    dpi : float | str, default 300
+        The resolution in dots per inch
         if 'figure', uses the figure's dpi value (this behavior is copied from
         https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
-    data_labels : list of str, default []
-        list of labels for each data point
-    axis_padding : float, default = 0.5
-        padding to add to maximum axis value and subtract from the minimum axis value
-    xy_lim : list, default []
-        contains the minimum and maximum values to use for the x and y axes. if specified, axis_padding is ignored
-    font_sizes : dict, default {"title": 12, "labels": 9, "other": 12}
-        font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other")
+    data_labels : list[str] | None, default None
+        List of labels for each data point.
+    axis_padding : float, default 0.5
+        Padding to add to maximum axis value and subtract from the minimum axis value.
+    xy_lim : tuple[float, float] | None, default None
+        Contains the minimum and maximum values to use for the x and y-axis. if specified, ``axis_padding`` is ignored.
+    font_sizes : dict[str, int] | None, default None
+        Font sizes to use for the title ("title"), the data labels ("labels"), and the rest of the plot ("other").
+        Defaults to {"title": 12, "labels": 9, "other": 12}
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
-    scatter_kwargs : dict, default {"s": 20, "marker": "o"}
-        arguments to control plt.scatter(), these will override the default cinnabar settings
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic)
+    scatter_kwargs : dict[str, float | int | str] | None, default None
+        Arguments to control plt.scatter(), these will override the default cinnabar settings.
 
     Returns
     -------
+    plt.Figure
+
+    Raises
+    -------
+    ValueError
+        If more than 2 values are supplied to the guidelines argument.
 
     """
     nsamples = len(x)
+
     # aesthetics
+    if font_sizes is None:
+        font_sizes = {"title": 12, "labels": 9, "other": 12}
+
     plt.rcParams["xtick.labelsize"] = font_sizes["other"]
     plt.rcParams["ytick.labelsize"] = font_sizes["other"]
     plt.rcParams["font.size"] = font_sizes["other"]
@@ -127,7 +224,7 @@ def _master_plot(
     else:
         ax_min = min(min(x), min(y)) - axis_padding
         ax_max = max(max(x), max(y)) + axis_padding
-        scale = [ax_min, ax_max]
+        scale = (ax_min, ax_max)
 
     plt.xlim(scale)
     plt.ylim(scale)
@@ -139,30 +236,53 @@ def _master_plot(
 
     # plots x=y line
     plt.plot(scale, scale, "k:")
-    if guidelines:
-        small_dist = 0.5
-        # plots grey region around x=y line
-        plt.fill_between(
-            scale,
-            [ax_min - small_dist, ax_max - small_dist],
-            [ax_min + small_dist, ax_max + small_dist],
-            color="grey",
-            alpha=0.2,
-        )
-        plt.fill_between(
-            scale,
-            [ax_min - small_dist * 2, ax_max - small_dist * 2],
-            [ax_min + small_dist * 2, ax_max + small_dist * 2],
-            color="grey",
-            alpha=0.2,
-        )
+    if guidelines is not False and guidelines is not None and guidelines != ():
+        # get the distances to use
+        if isinstance(guidelines, bool):
+            distances: tuple[float, ...] = (0.5, 1.0)
+        else:
+            distances = tuple(guidelines)
+            if len(distances) > 2:
+                raise ValueError(f"guidelines tuple must contain at most 2 distance values, got {len(distances)}.")
+        # resolve per-band colors
+        resolved_colors = [
+            (guideline_colors[i] if guideline_colors and i < len(guideline_colors) else "grey")
+            for i in range(len(distances))
+        ]
+        for dist, band_color in zip(distances, resolved_colors):
+            plt.fill_between(
+                scale,
+                [ax_min - dist, ax_max - dist],
+                [ax_min + dist, ax_max + dist],
+                color=band_color,
+                alpha=0.2,
+            )
+            # label the upper boundary of the band where it exits through the top
+            # of the axes: the line y = x + dist hits y = ax_max at x = ax_max - dist
+            label_x = ax_max - dist
+            label_y = ax_max
+            if label_x > ax_min:
+                plt.gca().text(
+                    label_x,
+                    label_y,
+                    f"±{dist:g}",  # use :g to strip trailing zeros
+                    fontsize=7,
+                    ha="right",
+                    va="top",
+                    rotation=45,
+                    color="black",
+                    clip_on=True,
+                )
     # actual plotting
     cm = plt.get_cmap("coolwarm")
 
     if color is None:
-        color = np.abs(x - y)
+        _color = np.abs(x - y)
         # 2.372 kcal / mol = 4 RT
-        color = cm(color / 2.372)
+        _color = cm(_color / 2.372)
+    else:
+        _color = color
+
     plt.errorbar(
         x,
         y,
@@ -175,25 +295,34 @@ def _master_plot(
     )
     # add our cinnabar preset settings to the scatter_kwargs to make sure they do not clash
     # scatter kwargs will override the default settings
-    default_kwargs = {
-        "color": color,
+    default_kwargs: dict[str, Any] = {
+        "color": _color,
         "zorder": 2,
         "edgecolors": "dimgrey",
         "linewidths": 0.7,
+        "s": 20,
+        "marker": "o",
     }
-    default_kwargs.update(scatter_kwargs)
+    if scatter_kwargs is not None:
+        default_kwargs.update(scatter_kwargs)
     plt.scatter(x, y, **default_kwargs)
 
     # Label points
-    texts = []
-    for i, label in enumerate(data_labels):
-        texts.append(plt.text(x[i] + 0.03, y[i] + 0.03, label, fontsize=font_sizes["labels"]))
-    adjust_text(texts)
+    if data_labels is not None:
+        texts = []
+        for i, label in enumerate(data_labels):
+            texts.append(plt.text(x[i] + 0.03, y[i] + 0.03, label, fontsize=font_sizes["labels"]))
+        adjust_text(texts)
 
     # stats and title
     statistics_string = ""
     if statistic_type not in ["mle", "mean"]:
         raise ValueError(f"Unknown statistic type {statistic_type}")
+
+    # set default statistics values if not provided
+    if statistics is None:
+        statistics = ["RMSE", "MUE"]
+
     for statistic in statistics:
         s = stats.bootstrap_statistic(
             x,
@@ -224,45 +353,64 @@ def _master_plot(
     return fig
 
 
+def _master_plot(*args, **kwargs):
+    """Deprecated alias for the pair_plot function. Will be removed in a future release."""
+    import warnings
+
+    warnings.warn(
+        "_master_plot is deprecated and will be removed in a future release. Use pair_plot instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return pair_plot(*args, **kwargs)
+
+
 def plot_DDGs(
-    graph: nx.DiGraph,
+    femap: FEMap,
+    source: str,
     method_name: str = "",
     target_name: str = "",
     title: str = "",
     map_positive: bool = False,
-    filename: Optional[str] = None,
+    filename: str | None = None,
     symmetrise: bool = False,
     plotly: bool = False,
     data_label_type: Literal["small-molecule", "protein-mutation"] | None = None,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
+    statistic_type: Literal["mle", "mean"] = "mle",
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
     """Function to plot relative free energies
 
     Parameters
     ----------
-    graph : nx.DiGraph
-        graph object with relative free energy edges
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    title : string, default = ''
-        Title for the plot
-    map_positive : bool, default=False
-        whether to map all DDGs to the positive x values.
-        this is an aesthetic choice
-    filename : str, default = None
-        filename for plot
-    symmetrise : bool, default = False
-        whether to plot each datapoint twice, both
-        positive and negative
-    plotly : bool, default = False
-        whether to use plotly to generate the plot
-    data_label_type : str or None, default = None
-        type of data label to add to each edge
+    femap : FEMap
+        FEMap object with relative and absolute free energy edges
+    source : str
+        The source label of the computational relative free energies to plot against experiment.
+        This must match the ``source`` field used when the calculations were added to the
+        ``FEMap``.  For data loaded via ``FEMap.from_csv``
+        (or added without an explicit source), pass ``source=""``.
+    method_name : string, default ""
+        Name of method associated with results, e.g. "openfe" by default an empty string.
+    target_name : string, default ""
+        Name of system for results, e.g. "Thrombin".
+    title : string, default ""
+        Title for the plot.
+    map_positive : bool, default False
+        Whether to map all DDGs to the positive x values.
+        This is an aesthetic choice
+    filename : str | None, default None
+        Filename for plot, if None the plot will be displayed.
+    symmetrise : bool, default False
+        Whether to plot each datapoint twice, both positive and negative values.
+    plotly : bool, default False
+        Whether to use plotly to generate the plot.
+    data_label_type : {"small-molecule", "protein-mutation"} | None, default None
+        Type of data label to add to each edge
 
         if ``None`` data labels will not be added
 
@@ -279,12 +427,16 @@ def plot_DDGs(
         .. TODO: implement data labeling for the case where plotly=True
 
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to plot DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
 
     Returns
     -------
@@ -296,33 +448,52 @@ def plot_DDGs(
     if data_label_type:
         assert not plotly, "We currently do not support data labeling for plotly-generated plots"
 
-    # data
-    x = [x[2]["exp_DDG"] for x in graph.edges(data=True)]
-    y = [x[2]["calc_DDG"] for x in graph.edges(data=True)]
-    xerr = np.asarray([x[2]["exp_dDDG"] for x in graph.edges(data=True)])
-    yerr = np.asarray([x[2]["calc_dDDG"] for x in graph.edges(data=True)])
+    # load the data using the internal dataframes
+    rel_df = femap.get_relative_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
+    value_col = plot_meta["value_col"]
+    uncertainty_col = plot_meta["uncertainty_col"]
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError("The FEMap contains no computational edges.")
+
+    if source not in all_comp_sources:
+        raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
+
+    # get the comp data from the computational source
+    comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
+    # get the experimental data
+    exp_data = rel_df[~comp_mask].rename(columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"})
+
+    # merge to align the data and drop any values missing an experimental data point
+    merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
+    merged = merged.dropna(subset=["value_exp"])
+
+    # extract the required data
+    x = merged["value_exp"].to_numpy(copy=True)
+    y = merged[value_col].to_numpy(copy=True)
+    xerr = merged["uncertainty_exp"].to_numpy(copy=True)
+    yerr = merged[uncertainty_col].to_numpy(copy=True)
 
     # labels
-    data_labels = []
+    data_labels: list[str] = []
     if data_label_type:
-        node_names = {node_id: node_data["name"] for node_id, node_data in graph.nodes(data=True)}
-        data_labels = []
-        for node_A, node_B, edge_data in graph.edges(data=True):
-            node_A_name = node_names[node_A]
-            node_B_name = node_names[node_B]
-            if node_A_name.startswith("-") and node_B_name.startswith("-"):
+        for _, row in merged.iterrows():
+            node_a_name = row["labelA"]
+            node_b_name = row["labelB"]
+            if node_a_name.startswith("-") and node_b_name.startswith("-"):
                 # factor out "-" if both start with it
-                node_A_name = node_A_name[1:]
-                node_B_name = node_B_name[1:]
+                node_a_name = node_a_name[1:]
+                node_b_name = node_b_name[1:]
                 prefix = "-"
             else:
-                node_A_name = node_A_name
-                node_B_name = node_B_name
                 prefix = ""
             if data_label_type == "small-molecule":
-                data_labels.append(f"{prefix}({node_A_name}→{node_B_name})")
+                data_labels.append(f"{prefix}({node_a_name}→{node_b_name})")
             elif data_label_type == "protein-mutation":
-                data_labels.append(f"{prefix}({node_A_name}{node_B_name[0]})")
+                data_labels.append(f"{prefix}({node_a_name}{node_b_name[0]})")
             else:
                 raise ValueError(
                     "data_label_type unsupported. supported types: 'small-molecule' and 'protein-mutation'"
@@ -333,19 +504,21 @@ def plot_DDGs(
         y_data = np.append(y, [-i for i in y])
         xerr = np.append(xerr, xerr)
         yerr = np.append(yerr, yerr)
-        data_labels = np.append(data_labels, data_labels)
+        # double the data labels list
+        data_labels = data_labels + data_labels
+
     elif map_positive:
-        x_data = []
-        y_data = []
+        x_data_map = []
+        y_data_map = []
         for i, j in zip(x, y):
             if i < 0:
-                x_data.append(-i)
-                y_data.append(-j)
+                x_data_map.append(-i)
+                y_data_map.append(-j)
             else:
-                x_data.append(i)
-                y_data.append(j)
-        x_data = np.asarray(x_data)
-        y_data = np.asarray(y_data)
+                x_data_map.append(i)
+                y_data_map.append(j)
+        x_data = np.asarray(x_data_map)
+        y_data = np.asarray(y_data_map)
     else:
         x_data = np.asarray(x)
         y_data = np.asarray(y)
@@ -367,7 +540,9 @@ def plot_DDGs(
             **kwargs,
         )
     else:
-        _master_plot(
+        # allow callers to override quantity/units via kwargs
+        quantity, units, kwargs = _update_plot_kwargs(kwargs, plot_meta, observable_type, temperature)
+        pair_plot(
             x_data,
             y_data,
             xerr=xerr,
@@ -376,6 +551,8 @@ def plot_DDGs(
             title=title,
             method_name=method_name,
             target_name=target_name,
+            quantity=quantity,
+            units=units,
             data_labels=data_labels,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
@@ -385,51 +562,87 @@ def plot_DDGs(
 
 
 def plot_DGs(
-    graph: nx.DiGraph,
+    femap: FEMap,
+    source: str,
     method_name: str = "",
     target_name: str = "",
     title: str = "",
-    filename: Optional[str] = None,
+    filename: str | None = None,
     plotly: bool = False,
     centralizing: bool = True,
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
+    statistic_type: Literal["mle", "mean"] = "mle",
+    observable_type: ABSOLUTE_ANALYSIS_TYPES = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
     """Function to plot absolute free energies.
 
     Parameters
     ----------
-    graph : nx.DiGraph
-        graph object with relative free energy edges
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    title : string, default = ''
-        Title for the plot
-    filename : str, default = None
-        filename for plot
+    femap : FEMap
+        FEMap object with absolute free energies to plot.
+    source : str
+        The name of the source label of the computational absolute values, if absolute values are generated with the MLE estimator this should be "MLE".
+    method_name : string, default ""
+        Name of method associated with results, e.g. "openfe" by default an empty string.
+    target_name : string, default ""
+        Name of system for results, e.g. "Thrombin" by default an empty string.
+    title : string, default ""
+        Title for the plot.
+    filename : str | None, default None
+        Filename for plot if None the plot will be displayed.
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to plot values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to plot pIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
 
     Returns
     -------
 
     """
 
-    # data
-    x_data = np.asarray([node[1]["exp_DG"] for node in graph.nodes(data=True)])
-    y_data = np.asarray([node[1]["calc_DG"] for node in graph.nodes(data=True)])
-    xerr = np.asarray([node[1]["exp_dDG"] for node in graph.nodes(data=True)])
-    yerr = np.asarray([node[1]["calc_dDG"] for node in graph.nodes(data=True)])
+    # extract the data from the internal dataframes
+    df = femap.get_absolute_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
+    value_col = plot_meta["value_col"]
+    uncertainty_col = plot_meta["uncertainty_col"]
+
+    comp_mask = df["computational"]
+    all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
+
+    if source not in all_comp_sources:
+        raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
+
+    # get the comp data from the computational source
+    comp_data = df[comp_mask & (df["source"] == source)]
+    # get the experimental data
+    exp_data = df[~comp_mask].rename(columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"})
+
+    # merge to align the data and drop any values missing an experimental data point
+    merged = comp_data.merge(exp_data, how="left", on=["label"])
+    merged = merged.dropna(subset=["value_exp"])
+
+    # extract the required data
+    x_data = merged["value_exp"].to_numpy(copy=True)
+    y_data = merged[value_col].to_numpy(copy=True)
+    xerr = merged["uncertainty_exp"].to_numpy(copy=True)
+    yerr = merged[uncertainty_col].to_numpy(copy=True)
 
     # centralising
     # this should be replaced by providing one experimental result
@@ -456,14 +669,16 @@ def plot_DGs(
             **kwargs,
         )
     else:
-        _master_plot(
+        quantity, units, kwargs = _update_plot_kwargs(kwargs, plot_meta, observable_type, temperature)
+        pair_plot(
             x_data,
             y_data,
             xerr=xerr,
             yerr=yerr,
             origins=False,
             statistics=["RMSE", "MUE", "R2", "rho"],
-            quantity=r"$\Delta$G",
+            quantity=quantity,
+            units=units,
             title=title,
             method_name=method_name,
             target_name=target_name,
@@ -476,85 +691,99 @@ def plot_DGs(
 
 
 def plot_all_DDGs(
-    graph: nx.DiGraph,
+    femap: FEMap,
+    source: str,
     method_name: str = "",
     target_name: str = "",
     title: str = "",
-    filename: Optional[str] = None,
+    filename: str | None = None,
     plotly: bool = False,
     shift: float = 0.0,
     bootstrap_x_uncertainty: bool = False,
     bootstrap_y_uncertainty: bool = False,
-    statistic_type: str = "mle",
+    statistic_type: Literal["mle", "mean"] = "mle",
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ):
     """Plots relative free energies between all ligands, which is calculated from
-    the differences between all the absolute free energies. This data is different to `plot_DGs`
+    the differences between all the absolute free energies. This data is different to ``plot_DGs``.
 
     Parameters
     ----------
-    graph : nx.DiGraph
-        graph object with relative free energy edges
-    method_name : string, optional
-        name of method associated with results, e.g. 'perses'
-    target_name : string, optional
-        name of system for results, e.g. 'Thrombin'
-    title : string, default = ''
-        Title for the plot
-    filename : str, default = None
-        filename for plot
-    plotly : bool, default = True
-        whether to use plotly for the plotting
-    shift : float, default = 0.
-        shift both the x and y axis by a constant
+    femap : FEMap
+        FEMap object with absolute free energies to plot.
+    source : str
+        The name of the source label of the computational absolute values, if absolute values are generated with the MLE estimator this should be "MLE".
+    method_name : string, default ""
+        Name of method associated with results, e.g. "openfe" by default an empty string.
+    target_name : string, default ""
+        Name of system for results, e.g. "Thrombin" by default an empty string.
+    title : string, default ""
+        Title for the plot.
+    filename : str | None, default None
+        Filename for plot if None the plot will be displayed.
+    plotly : bool, default True
+        Whether to use plotly for the plotting.
+    shift : float, default 0.
+        Shift both the x and y-axis by a constant.
     bootstrap_x_uncertainty : bool, default False
-        whether to account for uncertainty in x when bootstrapping
+        Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False
-        whether to account for uncertainty in y when bootstrapping
-    statistic_type : str, default 'mle'
-        the type of statistic to use, either 'mle' (i.e. sample statistic)
-        or 'mean' (i.e. bootstrapped mean statistic)
+        Whether to account for uncertainty in y when bootstrapping.
+    statistic_type : {"mle", "mean"}, default "mle"
+        The type of statistic to use, either "mle" (i.e. sample statistic) or "mean" (i.e. bootstrapped mean statistic).
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to plot DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
 
     Returns
     -------
 
     """
+    # use the internal dataframes to get the pairwise differences
+    rel_df = femap.get_all_to_all_relative_dataframe(
+        symmetrical=True, observable_type=observable_type, temperature=temperature
+    )
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
+    value_col = plot_meta["value_col"]
+    uncertainty_col = plot_meta["uncertainty_col"]
 
-    nodes = graph.nodes(data=True)
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
 
-    x_abs = np.asarray([node[1]["exp_DG"] for node in nodes])
-    y_abs = np.asarray([node[1]["calc_DG"] for node in nodes])
-    xabserr = np.asarray([node[1]["exp_dDG"] for node in nodes])
-    yabserr = np.asarray([node[1]["calc_dDG"] for node in nodes])
-    # do all to plot_all
-    x_data = []
-    y_data = []
-    xerr = []
-    yerr = []
-    for a, b in itertools.combinations(range(len(x_abs)), 2):
-        x = x_abs[a] - x_abs[b]
-        x_data.append(x)
-        x_data.append(-x)
-        err = (xabserr[a] ** 2 + xabserr[b] ** 2) ** 0.5
-        xerr.append(err)
-        xerr.append(err)
-        y = y_abs[a] - y_abs[b]
-        y_data.append(y)
-        y_data.append(-y)
-        err = (yabserr[a] ** 2 + yabserr[b] ** 2) ** 0.5
-        yerr.append(err)
-        yerr.append(err)
-    x_data_ = np.array(x_data)
-    y_data_ = np.array(y_data)
-    xerr_ = np.array(xerr)
-    yerr_ = np.array(yerr)
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values which are needed to obtain the all-to-all pairwise DDGs. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
+
+    if source not in all_comp_sources:
+        raise ValueError(f"Source {source} is not a valid source, available sources: {all_comp_sources}")
+
+    # get the comp data from the computational source
+    comp_data = rel_df[comp_mask & (rel_df["source"] == source)]
+    # get the experimental data
+    exp_data = rel_df[~comp_mask].rename(columns={value_col: "value_exp", uncertainty_col: "uncertainty_exp"})
+
+    # merge to align the data and drop any values missing an experimental data point
+    merged = comp_data.merge(exp_data, how="left", on=["labelA", "labelB"])
+    merged = merged.dropna(subset=["value_exp"])
+
+    # extract the required data
+    x_data = merged["value_exp"].to_numpy(copy=True)
+    y_data = merged[value_col].to_numpy(copy=True)
+    xerr = merged["uncertainty_exp"].to_numpy(copy=True)
+    yerr = merged[uncertainty_col].to_numpy(copy=True)
 
     if plotly:
         plotlying._master_plot(
-            x_data_,
-            y_data_,
-            xerr=xerr_,
-            yerr=yerr_,
+            x_data,
+            y_data,
+            xerr=xerr,
+            yerr=yerr,
             title=title,
             method_name=method_name,
             plot_type="ΔΔG",
@@ -567,15 +796,18 @@ def plot_all_DDGs(
         )
 
     else:
-        _master_plot(
-            x_data_,
-            y_data_,
-            xerr=xerr_,
-            yerr=yerr_,
+        quantity, units, kwargs = _update_plot_kwargs(kwargs, plot_meta, observable_type, temperature)
+        pair_plot(
+            x_data,
+            y_data,
+            xerr=xerr,
+            yerr=yerr,
             title=title,
             method_name=method_name,
             filename=filename,
             target_name=target_name,
+            quantity=quantity,
+            units=units,
             shift=shift,
             bootstrap_x_uncertainty=bootstrap_x_uncertainty,
             bootstrap_y_uncertainty=bootstrap_y_uncertainty,
@@ -587,7 +819,7 @@ def plot_all_DDGs(
 def ecdf_plot(
     datasets: dict[str, np.ndarray],
     title: str | None = "ECDF of Absolute Errors",
-    xlabel: str = "Pairwise",
+    xlabel: str = "Edgewise",
     quantity: str = r"$|\Delta\Delta$G$_{calc} - \Delta\Delta$G$_{exp}|$",
     units: str = r"$\mathrm{kcal\,mol^{-1}}$",
     ylabel: str = "Cumulative Probability",
@@ -605,23 +837,23 @@ def ecdf_plot(
     ----------
     datasets : dict[str, np.ndarray]
         A dictionary where keys are dataset labels and values are the data arrays.
-    title: str | None, default = "ECDF of Absolute Errors"
+    title: str | None, default "ECDF of Absolute Errors"
         Title for the plot. If None, no title is set.
-    xlabel : str, default = "Absolute Error"
+    xlabel : str, default "Edgewise"
         Label for the x-axis.
-    quantity : str, default = r"$\Delta\Delta$G"
+    quantity : str, default r"$\Delta\Delta$G"
         Metric that is being plotted.
-    units : str, default = r"$\mathrm{kcal\,mol^{-1}}$"
+    units : str, default r"$\mathrm{kcal\,mol^{-1}}$"
         Units of the metric being plotted.
-    ylabel : str, default = "Cumulative Probability"
+    ylabel : str, default "Cumulative Probability"
         Label for the y-axis.
-    figsize : float | tuple[float, float], default = 4
+    figsize : float | tuple[float, float], default 4
         Size of the figure.
-    colors : list[str] | None, default = None
+    colors : list[str] | None, default None
         List of colors for each dataset. If None, default colors are used.
-    ecdf_kwargs : dict, optional
+    ecdf_kwargs : dict, default None
         Additional keyword arguments to pass to seaborn.ecdfplot.
-    filename : str | None, default = None
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
     nbootstraps : int, default = 1_000
         Number of bootstraps to perform for estimating confidence intervals.
@@ -704,25 +936,41 @@ def ecdf_plot(
 
 
 def ecdf_plot_DDGs(
-    graphs: list[FEMap | nx.MultiDiGraph],
-    labels: list[str],
+    femap: FEMap,
+    sources: list[str] | None = None,
+    labels: list[str] | None = None,
     title: str | None = "ECDF of Edgewise Absolute Errors",
     filename: str | None = None,
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
     """
-    Plot ECDF of absolute errors for edgewise relative free energies in a graph.
+    Plot ECDF of absolute errors for edgewise relative free energies from multiple sources within a single FEMap.
+
+    Each computational source in the FEMap (i.e. each distinct ``source`` tag on
+    the relative calculations) is plotted as a separate ECDF curve.
 
     Parameters
     ----------
-    graphs: list[FEMap | nx.MultiDiGraph]
-        A list of graph objects with relative free energy edges.
-    labels: list[str]
-        A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default = "ECDF of Absolute Errors"
-        Title for the plot. If None, no title is set.
-    filename : str | None, default = None
+    femap : FEMap
+        A single FEMap containing one or more computational sources together
+        with experimental absolute measurements.
+    sources : list[str] | None, default None
+        Computational source names to include in the plot.  If ``None``, all
+        computational sources are used.
+    labels : list[str] | None, default None
+        Display labels for the legend, one per source.  If ``None``, the source
+        names are used directly, this should be used with ``sources`` to ensure the correct label is applied to the corresponding source.
+    title : str | None, default "ECDF of Edgewise Absolute Errors"
+        Title for the plot. If ``None``, no title is set.
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -733,69 +981,102 @@ def ecdf_plot_DDGs(
 
     Notes
     -----
-    We assume that the graphs have edges with 'calc_DDG' and 'exp_DDG' attributes. If any edges are missing an experimental value,
-    they will be skipped in the absolute error calculation.
+    If any edges are missing an experimental value, they will be skipped in the absolute error calculation.
 
     Raises
     ------
     ValueError
-        If any edges are missing a calculated DDG value.
+        If any edges are missing a calculated DDG value, if the number of sources and labels do not match or if no
+        computational results are in the graph.
     """
-    # extract the edgewise absolute errors for each graph
+    rel_df = femap.get_relative_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
+    value_col = plot_meta["value_col"]
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError("The FEMap contains no computational edges.")
+
+    if sources is None:
+        sources = all_comp_sources
+    if labels is None:
+        labels = list(sources)
+
+    if len(sources) != len(labels):
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
+
+    # get the experimental data
+    exp_df = rel_df[~comp_mask].set_index(["labelA", "labelB"])[[value_col]].rename(columns={value_col: "value_exp"})
+
     datasets = {}
-    for graph, label in zip(graphs, labels):
-        # handle the case where a FEMap is provided
-        if isinstance(graph, FEMap):
-            graph = graph.to_legacy_graph()
+    for source, label in zip(sources, labels):
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[[value_col]]
+        if src_df.empty:
+            raise ValueError(f"No computational edges found for source '{source}'.")
 
-        # if the experimental value is missing, add a nan so we can filter it out
-        x = np.array([x[2].get("exp_DDG", np.nan) for x in graph.edges(data=True)])
-        y = np.array([x[2].get("calc_DDG", np.nan) for x in graph.edges(data=True)])
-        # if any calculated values are missing raise an error
-        if np.any(np.isnan(y)) or y.size == 0:
-            raise ValueError(
-                f"Graph with label {label} has edges with missing calculated DDG values, which should be stored as `calc_DDG`."
-            )
-        # filter out edges with missing experimental values
-        mask = ~np.isnan(x)
-        x = x[mask]
-        y = y[mask]
-        abs_errors = np.abs(y - x)
-        datasets[label] = abs_errors
+        merged = src_df.join(exp_df, how="left")
+        # skip edges without an experimental reference DDG
+        merged = merged.dropna(subset=["value_exp"])
+        datasets[label] = np.abs(merged[value_col] - merged["value_exp"]).values
 
-    fig = ecdf_plot(
+    # finally check all datasets are the same length
+    if len({len(v) for v in datasets.values()}) != 1:
+        raise ValueError(
+            "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
+        )
+
+    # allow callers to override quantity/units via kwargs
+    quantity = kwargs.pop("quantity", plot_meta["ecdf_quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
+    return ecdf_plot(
         datasets,
         title=title,
         filename=filename,
         xlabel="Edgewise",
+        quantity=quantity,
+        units=units,
         **kwargs,
     )
-    return fig
 
 
 def ecdf_plot_DGs(
-    graphs: list[FEMap | nx.MultiDiGraph],
-    labels: list[str],
+    femap: FEMap,
+    sources: list[str] | None = None,
+    labels: list[str] | None = None,
     title: str | None = "ECDF of Nodewise Absolute Errors",
     filename: str | None = None,
     centralizing: bool = True,
+    observable_type: ABSOLUTE_ANALYSIS_TYPES = "dg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
     """
-    Plot ECDF of absolute errors for nodewise absolute free energies in a graph.
+    Plot ECDF of absolute errors for nodewise absolute free energies from multiple sources within a single FEMap.
+
+    Each computational source in the FEMap is plotted as a separate ECDF curve.
 
     Parameters
     ----------
-    graphs: list[FEMap | nx.MultiDiGraph]
-        A list of graph objects with relative free energy edges.
-    labels: list[str]
-        A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default = "ECDF of Absolute Errors"
-        Title for the plot. If None, no title is set.
-    filename : str | None, default = None
+    femap : FEMap
+        A single FEMap containing one or more computational absolute sources together with experimental absolute measurements.
+    sources : list[str] | None, default None
+        Computational source names to include in the plot.
+        If ``None``, all computational sources are used.
+    labels : list[str] | None, default None
+        Display labels for the legend, one per source.  If ``None``, the source
+        names are used directly, this should be used with ``sources`` to ensure the correct label is applied to the corresponding source.
+    title : str | None, default "ECDF of Nodewise Absolute Errors"
+        Title for the plot.
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
-    centralizing : bool, default = True
+    centralizing : bool, default True
         whether to center both calculated and experimental values around zero before calculating absolute errors.
+    observable_type : {"dg", "pic50"}, default "dg"
+        The observable type to plot values in.  Defaults to ``dg`` (kcal/mol).
+        Use ``pic50`` to report pIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"pic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -804,58 +1085,81 @@ def ecdf_plot_DGs(
     plt.Figure
         The matplotlib Figure object containing the ECDF plot which can be edited further.
 
-    Notes
-    -----
-    We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. The absolute errors are calculated after centering both
-    calculated and experimental values around zero.
-
     Raises
     ------
     ValueError
-        If any nodes are missing a calculated DG value.
+        If any ligands are missing a calculated DG value, if the number of sources and labels do not match or if no
+        computational results are in the graph.
     """
-    # extract the nodewise absolute errors for each graph
+    df = femap.get_absolute_dataframe(observable_type=observable_type, temperature=temperature)
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
+    value_col = plot_meta["value_col"]
+    comp_mask = df["computational"]
+    all_comp_sources = df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
+
+    if sources is None:
+        sources = all_comp_sources
+    if labels is None:
+        labels = list(sources)
+
+    if len(sources) != len(labels):
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
+
+    exp_df = (
+        df[~comp_mask]
+        .drop_duplicates(subset=["label"])
+        .set_index("label")[[value_col]]
+        .rename(columns={value_col: "value_exp"})
+    )
+
     datasets = {}
-    for graph, label in zip(graphs, labels):
-        # handle the case where a FEMap is provided
-        if isinstance(graph, FEMap):
-            graph = graph.to_legacy_graph()
+    for source, label in zip(sources, labels):
+        src_df = df[comp_mask & (df["source"] == source)].set_index("label")[[value_col]]
+        if src_df.empty:
+            raise ValueError(f"No computed absolute values found for source '{source}'.")
 
-        # if the experimental value is missing, add a nan so we can filter it out
-        x = np.array([node[1].get("exp_DG", np.nan) for node in graph.nodes(data=True)])
-        y = np.array([node[1].get("calc_DG", np.nan) for node in graph.nodes(data=True)])
-        # if any nodes are missing calculated values raise an error
-        if np.any(np.isnan(y)) or y.size == 0:
-            raise ValueError(
-                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
-            )
-        # filter out nodes with missing experimental values
-        mask = ~np.isnan(x)
-        x = x[mask]
-        y = y[mask]
-        # we need to shift the arrays to both be centered around zero if requested
+        merged = src_df.join(exp_df, how="left")
+        merged = merged.dropna(subset=["value_exp"])
+        x = merged["value_exp"].values
+        y = merged[value_col].values
         if centralizing:
-            x -= np.mean(x)
-            y -= np.mean(y)
-        abs_errors = np.abs(y - x)
-        datasets[label] = abs_errors
+            x = x - x.mean()
+            y = y - y.mean()
+        datasets[label] = np.abs(y - x)
 
-    fig = ecdf_plot(
+    if len({len(v) for v in datasets.values()}) != 1:
+        raise ValueError(
+            "Inconsistent number of computational nodes across sources, make sure all nodes have a result for each source."
+        )
+
+    # allow callers to override quantity/units via kwargs
+    quantity = kwargs.pop("quantity", plot_meta["ecdf_quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
+    return ecdf_plot(
         datasets,
         title=title,
         xlabel="Nodewise",
-        quantity=r"$|\Delta$G$_{calc} - \Delta$G$_{exp}|$",
+        quantity=quantity,
+        units=units,
         filename=filename,
         **kwargs,
     )
-    return fig
 
 
 def ecdf_plot_all_DDGs(
-    graphs: list[FEMap | nx.MultiDiGraph],
-    labels: list[str],
+    femap: FEMap,
+    sources: list[str] | None = None,
+    labels: list[str] | None = None,
     title: str | None = "ECDF of Pairwise (all-to-all) Absolute Errors",
     filename: str | None = None,
+    observable_type: RELATIVE_ANALYSIS_TYPES = "ddg",
+    temperature: Quantity = 298.15 * unit.kelvin,
     **kwargs,
 ) -> plt.Figure:
     """
@@ -863,14 +1167,22 @@ def ecdf_plot_all_DDGs(
 
     Parameters
     ----------
-    graphs: list[FEMap | nx.MultiDiGraph]
-        A list of graph objects with relative free energy edges.
-    labels: list[str]
-        A list of labels corresponding to each graph, these will be used in the legend.
-    title : str | None, default = "ECDF of Absolute Errors"
-        Title for the plot. If None, no title is set.
-    filename : str | None, default = None
+    femap : FEMap
+        A single FEMap containing one or more computational absolute sources together with experimental absolute measurements.
+    sources : list[str] | None, default None
+        Computational source names to include.  If ``None``, all computational
+        sources in the absolute dataframe are used.
+    labels : list[str] | None, default None
+        Display labels for the legend.  Defaults to the source names.
+    title : str | None, default "ECDF of Pairwise (all-to-all) Absolute Errors"
+        Title for the plot.
+    filename : str | None, default None
         If provided, the plot will be saved to this filename.
+    observable_type : {"ddg", "dpic50"}, default "ddg"
+        The observable type to plot values in.  Defaults to ``ddg`` (kcal/mol).
+        Use ``dpic50`` to report DpIC50 values.
+    temperature : Quantity, default 298.15 * unit.kelvin
+        Temperature used for the unit conversion, only used if observable_type is ``"dpic50"``.
     **kwargs
         Additional keyword arguments to pass to `ecdf_plot`.
 
@@ -879,52 +1191,139 @@ def ecdf_plot_all_DDGs(
     plt.Figure
         The matplotlib Figure object containing the ECDF plot which can be edited further.
 
+    Raises
+    ------
+    ValueError
+        If the FEMap contains no computed absolute values, if a requested
+        source cannot be found, or if ``sources`` and ``labels`` differ in
+        length.
+
     Notes
     -----
-    We assume that the graphs have nodes with 'calc_DG' and 'exp_DG' attributes. If any nodes are missing an experimental value,
-    they will be skipped in the absolute error calculation.
+    Ligands without experimental absolute values are excluded before computing
+    pairwise combinations. Only unique (unordered) pairs are included, so N
+    ligands contribute N*(N-1)/2 data points.
+    """
+    rel_df = femap.get_all_to_all_relative_dataframe(
+        symmetrical=False, observable_type=observable_type, temperature=temperature
+    )
+    plot_meta = _OBSERVABLE_METADATA[observable_type.lower()]
+    value_col = plot_meta["value_col"]
+    comp_mask = rel_df["computational"]
+    all_comp_sources = rel_df.loc[comp_mask, "source"].unique().tolist()
+
+    if not all_comp_sources:
+        raise ValueError(
+            "The FEMap contains no computed absolute values which are need to obtain the all-to-all pairwise DDGs. "
+            "Call generate_absolute_values() first or add calculated absolute measurements directly."
+        )
+
+    if sources is None:
+        sources = all_comp_sources
+    if labels is None:
+        labels = list(sources)
+
+    if len(sources) != len(labels):
+        raise ValueError(f"`sources` and `labels` must have the same length, got {len(sources)} and {len(labels)}.")
+
+    exp_df = rel_df[~comp_mask].set_index(["labelA", "labelB"])[[value_col]].rename(columns={value_col: "value_exp"})
+
+    datasets = {}
+    for source, label in zip(sources, labels):
+        src_df = rel_df[comp_mask & (rel_df["source"] == source)].set_index(["labelA", "labelB"])[[value_col]]
+        if src_df.empty:
+            raise ValueError(f"No computational edges found for source '{source}'.")
+
+        merged = src_df.join(exp_df, how="left")
+        # skip edges without an experimental reference DDG
+        merged = merged.dropna(subset=["value_exp"])
+        datasets[label] = np.abs(merged[value_col] - merged["value_exp"]).values
+
+    # finally check all datasets are the same length
+    if len({len(v) for v in datasets.values()}) != 1:
+        raise ValueError(
+            "Inconsistent number of computational edges across sources, make sure all edges have a result for each source."
+        )
+
+    # allow callers to override quantity/units via kwargs
+    quantity = kwargs.pop("quantity", plot_meta["ecdf_quantity"])
+    units = kwargs.pop("units", plot_meta["units"])
+    return ecdf_plot(
+        datasets,
+        title=title,
+        xlabel="Pairwise",
+        quantity=quantity,
+        units=units,
+        filename=filename,
+        **kwargs,
+    )
+
+
+def plot_cycle_closure(
+    fe_map: FEMap,
+    filename: str | None,
+    max_cycle_length: int = 5,
+    sources: list[str] | None = None,
+    bin_width: float = 0.5,
+) -> plt.Figure:
+    """
+    Plot a histogram of cycle closure errors, taking the ``cc_per_edge (kcal/mol)``
+    which is the cycle closure divided by the square root of the cycle length.
+
+    Parameters
+    ----------
+    fe_map : FEMap
+        FEMap object containing the calculated edges.
+    filename : str | None, default None
+        If provided, the plot will be saved to this filename.
+    max_cycle_length : int, default 5
+        Only consider cycles up to this length. Defaults to 5.
+    sources : list[str] | None, default None
+        List of sources to plot. If None, all sources are plotted.
+    bin_width : float, default 0.5
+        Width of histogram bins in kcal/mol. Default: 0.5
+
+    Returns
+    -------
+    plt.Figure
+        The matplotlib Figure object containing the histogram which can be edited further.
 
     Raises
     ------
     ValueError
-        If any nodes are missing a calculated DG value.
+        If the FEMap contains no cycles, or if a requested
+        source cannot be found.
     """
-    # extract the all-to-all absolute errors for each graph
-    datasets = {}
-    for graph, label in zip(graphs, labels):
-        # handle the case where a FEMap is provided
-        if isinstance(graph, FEMap):
-            graph = graph.to_legacy_graph()
+    df = fe_map.get_cycle_closure_dataframe(max_cycle_length=max_cycle_length)
 
-        nodes = graph.nodes(data=True)
+    if df.empty:
+        raise ValueError("The FEMap does not contain cycles.")
 
-        # if the experimental value is missing, add a nan so we can filter it out
-        exp = np.array([node[1].get("exp_DG", np.nan) for node in nodes])
-        calc = np.array([node[1].get("calc_DG", np.nan) for node in nodes])
-        # if any nodes are missing calculated values raise an error
-        if np.any(np.isnan(calc)) or calc.size == 0:
-            raise ValueError(
-                f"Graph with label {label} has nodes with missing calculated DG values, which should be stored as `calc_DG`."
-            )
-        # filter out nodes with missing experimental values
-        mask = ~np.isnan(exp)
-        exp = exp[mask]
-        calc = calc[mask]
-        # do all to plot_all we are taking the abs error so we only need the error once per pair
-        errors = []
-        for a, b in itertools.combinations(range(len(calc)), 2):
-            # transform a -> b has a DDG of calc[b] - calc[a]
-            calc_ddg = calc[b] - calc[a]
-            exp_ddg = exp[b] - exp[a]
-            errors.append(calc_ddg - exp_ddg)
+    if sources is not None:
+        df = df[df["source"].isin(sources)]
+        if df.empty:
+            raise ValueError(f"No cycles found for sources {sources}.")
 
-        datasets[label] = np.abs(errors)
+    unique_sources = df["source"].unique()
 
-    fig = ecdf_plot(
-        datasets,
-        title=title,
-        xlabel="Pairwise",
-        filename=filename,
-        **kwargs,
-    )
+    fig, ax = plt.subplots(figsize=(5, 4))
+
+    max_val = df["cc_per_edge (kcal/mol)"].max()
+    bins = np.arange(0, max_val + bin_width, bin_width).tolist()
+
+    for source in unique_sources:
+        source_df = df[df["source"] == source]
+        ax.hist(source_df["cc_per_edge (kcal/mol)"], bins=bins, alpha=0.6, label=source)
+
+    ax.set_xlabel(r"Cycle closure per edge (kcal mol$^{-1}$)")
+    ax.set_ylabel("Count")
+    ax.set_title("Cycle closure distribution")
+    ax.legend()
+    fig.tight_layout()
+
+    if filename is None:
+        plt.show()
+    else:
+        fig.savefig(filename, bbox_inches="tight", dpi=300)
+
     return fig

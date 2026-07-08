@@ -10,10 +10,11 @@ measurements stored in an FEMap.
 import abc
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
+from openff.units import Quantity
 
 from cinnabar import stats
 from cinnabar._due import Doi, due
@@ -44,12 +45,12 @@ class EstimatorResult:
     ----------
     estimator : str
         The class name of the estimator that produced this result,
-        e.g. ``"MLEEstimator"``.  Set automatically by `Estimator.estimate`.
+        e.g. ``"MLEEstimator"``.  Set automatically by ``Estimator.estimate``.
     source : str
         The composed source label stamped on the output measurements,
         e.g. ``"MLE"`` for a single-source map or ``"MLE(openff-sage)"`` when
         multiple input sources are present.  Set automatically by
-        `Estimator.estimate`.
+        ``Estimator.estimate``.
     """
 
     estimator: str = field(default="", init=False)
@@ -68,7 +69,7 @@ class MLEEstimatorResult(EstimatorResult):
 
     ligand_order : list
         Ordered list of ligand labels whose index maps to rows/columns of
-        covariance_matrix
+        ``covariance_matrix``
     """
 
     covariance_matrix: np.ndarray
@@ -201,7 +202,7 @@ class MLEEstimator(Estimator):
 
     Parameters
     ----------
-    source : str, optional
+    source : str, default "MLE"
         Label attached to the returned measurements and used as the storage
         key on the FEMap. Defaults to MLE.
 
@@ -227,6 +228,8 @@ class MLEEstimator(Estimator):
         measurements : list[Measurement]
             Relative computational edges plus any experimental or computational absolute
             measurements for a single source.
+        source : str
+            The composed source label to stamp on returned measurements and use as the key for storing the result on the FEMap.
 
         Returns
         -------
@@ -246,7 +249,7 @@ class MLEEstimator(Estimator):
         ref = ReferenceState(label=source)
         ligand_order = list(graph.nodes)
 
-        out_measurements: List[Measurement] = []
+        out_measurements: list[Measurement] = []
         for label, f_i, df_i in zip(ligand_order, f_i_calc, variance):
             out_measurements.append(
                 Measurement(
@@ -264,8 +267,8 @@ class MLEEstimator(Estimator):
             Measurement(
                 labelA=ReferenceState(),
                 labelB=ref,
-                DG=0.1 * unit,
-                uncertainty=0.0 * unit,
+                DG=Quantity(0.1, units=unit),
+                uncertainty=Quantity(0.0, units=unit),
                 computational=True,
                 source=source,
             )
@@ -277,7 +280,7 @@ class MLEEstimator(Estimator):
         )
 
     @staticmethod
-    def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: Union[str, None] = None) -> (np.ndarray, np.ndarray):
+    def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None) -> (np.ndarray, np.ndarray):
         """
         Compute maximum likelihood estimate of free energies and covariance in their estimates.
         The number 'factor' is the node attribute on which the MLE will be calculated,
@@ -415,7 +418,7 @@ class MLEEstimator(Estimator):
 
     @staticmethod
     def _build_graph_from_measurements(
-        measurements: List[Measurement],
+        measurements: list[Measurement],
     ) -> tuple[nx.DiGraph, object]:
         """Build a legacy graph from the list of measurements for use in the MLE method, this is copied over from the
         to_legacy_graph method of FEMap.

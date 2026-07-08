@@ -14,3 +14,6 @@ API Tutorials
     :maxdepth: 1
 
     cinnabar-api
+    calculating-metrics
+    ecdf-plots
+    cycle-closure
