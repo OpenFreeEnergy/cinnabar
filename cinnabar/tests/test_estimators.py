@@ -138,9 +138,8 @@ def test_mle_bidirectional_edges():
     graph = nx.DiGraph()
     graph.add_edge(0, 1, f_ij=1.0, f_dij=0.5)
     graph.add_edge(1, 0, f_ij=-2.0, f_dij=0.5)  # repeated edge
-
-    with pytest.raises(ValueError, match="Multiple edges detected between nodes 1 and 0."):
-        MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
+    output_absolutes, _ = MLEEstimator.mle(graph, factor="f_ij", node_factor="f_i")
+    assert np.allclose(output_absolutes, [-0.75, 0.75])
 
 
 def test_mle_zero_uncertainty():

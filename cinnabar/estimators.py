@@ -318,13 +318,7 @@ class MLEEstimator(Estimator):
         # track the edges we have seen
         edges = []
         for a, b in graph.edges:
-            if (edge_name := (a, b) if str(a) < str(b) else (b, a)) in edges:
-                # TODO this should be supported behavior
-                raise ValueError(
-                    f"Multiple edges detected between nodes {a} and {b}. MLE cannot be performed on graphs with multiple "
-                    f"edges between the same nodes. The results should be combined into a single estimate and uncertainty "
-                    f"before performing MLE. See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html#limitations for more details."
-                )
+            edge_name = (a, b) if str(a) < str(b) else (b, a)
             edges.append(edge_name)
 
         n_nodes = graph.number_of_nodes()
