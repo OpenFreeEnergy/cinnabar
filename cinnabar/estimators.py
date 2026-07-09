@@ -298,8 +298,6 @@ class MLEEstimator(Estimator):
             The graph for which an estimate is to be computed
             Each edge must have attributes 'f_ij' and 'df_ij' for the free energy and uncertainty
             estimate
-            Will have 'bayesian_f_ij' and 'bayesian_df_ij' added to each edge
-            and 'bayesian_f_i' and 'bayesian_df_i' added to each node.
         factor : string, default = 'f_ij'
             node attribute of nx.Graph that will be used for MLE
         node_factor : string, default = None
@@ -331,13 +329,16 @@ class MLEEstimator(Estimator):
         z = np.zeros((n_nodes,))
         F_matrix = np.zeros((n_nodes, n_nodes))
 
+        # single node harmonic wells
         for n, data in graph.nodes(data=True):
             if node_label in data:
                 i = node_name_to_index[n]
                 z[i] = data[node_factor] / (data[node_label] ** 2)
                 F_matrix[i, i] = 1 / (data[node_label] ** 2)
 
+        # harmonic edge constraints
         for a, b, data in graph.edges(data=True):
+            # self edges are ignored without warning to the user
             if a == b:
                 continue
 
