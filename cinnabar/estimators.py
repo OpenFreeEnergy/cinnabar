@@ -243,7 +243,7 @@ class MLEEstimator(Estimator):
         """
         graph, unit = self._build_graph_from_measurements(measurements)
 
-        f_i_calc, C_calc = self.mle(graph, factor="calc_DDG")
+        f_i_calc, C_calc = self.mle(graph, edge_data_label="calc_DDG")
         variance = np.diagonal(C_calc) ** 0.5
 
         ref = ReferenceState(label=source)
@@ -280,11 +280,13 @@ class MLEEstimator(Estimator):
         )
 
     @staticmethod
-    def mle(graph: nx.DiGraph, factor: str = "f_ij", node_factor: str | None = None) -> tuple[np.ndarray, np.ndarray]:
+    def mle(
+        graph: nx.DiGraph, edge_data_label: str = "f_ij", node_data_label: str | None = None
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Compute maximum likelihood estimate of free energies and covariance in their estimates.
-        The number 'factor' is the node attribute on which the MLE will be calculated,
-        where d'factor' will be used as the standard error of the factor
+        The number 'edge_data_label' is the node attribute on which the MLE will be calculated,
+        where d'edge_data_label' will be used as the standard error of the edge_data_label
 
         Reference : https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528
         Xu, Huafeng. "Optimal measurement network of pairwise differences."
@@ -298,9 +300,9 @@ class MLEEstimator(Estimator):
             The graph for which an estimate is to be computed
             Each edge must have attributes 'f_ij' and 'df_ij' for the free energy and uncertainty
             estimate
-        factor : string, default = 'f_ij'
+        edge_data_label : string, default = 'f_ij'
             node attribute of nx.Graph that will be used for MLE
-        node_factor : string, default = None
+        node_data_label : string, default = None
             optional - provide if there is node data (i.e. absolute values) 'f_i' or 'exp_DG' to
             include will expect a corresponding uncertainty 'f_di' or 'exp_dDG'
         Returns
@@ -321,7 +323,7 @@ class MLEEstimator(Estimator):
 
         n_nodes = graph.number_of_nodes()
 
-        node_label = None if node_factor is None else node_factor.replace("_", "_d")
+        node_label = None if node_data_label is None else node_data_label.replace("_", "_d")
         node_name_to_index = {name: i for i, name in enumerate(graph.nodes())}
         # Adapted from the multibind implementation (Kenney IM & Beckstein O, 2023)
         # https://github.com/Becksteinlab/multibind/blob/7c93f605d99ff67d9adef890c9302bccd2caa1b5/multibind/multibind.py#L319
@@ -333,10 +335,10 @@ class MLEEstimator(Estimator):
         for n, data in graph.nodes(data=True):
             if node_label in data:
                 i = node_name_to_index[n]
-                z[i] = data[node_factor] / (data[node_label] ** 2)
+                z[i] = data[node_data_label] / (data[node_label] ** 2)
                 F_matrix[i, i] = 1 / (data[node_label] ** 2)
 
-        # harmonic edge constraints
+        # harmonic edge restraints
         for a, b, data in graph.edges(data=True):
             # self edges are ignored without warning to the user
             if a == b:
@@ -345,8 +347,8 @@ class MLEEstimator(Estimator):
             i = node_name_to_index[a]
             j = node_name_to_index[b]
 
-            deltaij = data[factor]
-            if (varij := data[factor.replace("_", "_d")] ** 2) == 0:
+            deltaij = data[edge_data_label]
+            if (varij := data[edge_data_label.replace("_", "_d")] ** 2) == 0:
                 raise ValueError(
                     f"MLE solver will fail with zero reported uncertainty for calculated differences. Edge ({a}, {b}) has zero uncertainty check inputs."
                 )

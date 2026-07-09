@@ -872,7 +872,7 @@ class FEMap:
                 d["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
         # apply MLE for calculated DG values
         if self.check_weakly_connected():
-            f_i_calc, C_calc = MLEEstimator.mle(g, factor="calc_DDG")
+            f_i_calc, C_calc = MLEEstimator.mle(g, edge_data_label="calc_DDG")
             variance = np.diagonal(C_calc)
             variance = variance**0.5
 
