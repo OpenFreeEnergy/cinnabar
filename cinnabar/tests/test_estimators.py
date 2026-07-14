@@ -134,13 +134,20 @@ def test_mle_relative():
 
 
 def test_mle_bidirectional_edges():
-    """Make sure an error is raised if there are repeated edges in the graph."""
     graph = nx.DiGraph()
     graph.add_edge(0, 1, f_ij=1.0, f_dij=0.5)
     graph.add_edge(1, 0, f_ij=-2.0, f_dij=0.5)  # repeated edge
     output_absolutes, _ = MLEEstimator.mle(graph, edge_data_label="f_ij", node_data_label="f_i")
     assert np.allclose(output_absolutes, [-0.75, 0.75])
 
+def test_mle_repeated_edge():
+    graph = nx.DiGraph()
+    graph.add_edge(0, 1, f_ij=1.0, f_dij=0.5)
+    graph.add_edge(0, 1, f_ij=1.5, f_dij=0.1)  # repeated edge
+    output_absolutes, _ = MLEEstimator.mle(graph, edge_data_label="f_ij", node_data_label="f_i")
+    output_absolutes -= output_absolutes[0]
+    assert output_absolutes[1] > 1.25
+    assert output_absolutes[1] < 1.5
 
 def test_mle_zero_uncertainty():
     """

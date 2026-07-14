@@ -301,7 +301,7 @@ class MLEEstimator(Estimator):
             Each edge must have attributes 'f_ij' and 'df_ij' for the free energy and uncertainty
             estimate
         edge_data_label : string, default = 'f_ij'
-            node attribute of nx.Graph that will be used for MLE
+            edge data label of the calculated data for MLE
         node_data_label : string, default = None
             optional - provide if there is node data (i.e. absolute values) 'f_i' or 'exp_DG' to
             include will expect a corresponding uncertainty 'f_di' or 'exp_dDG'
