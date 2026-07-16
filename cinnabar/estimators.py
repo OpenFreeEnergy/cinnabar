@@ -314,13 +314,6 @@ class MLEEstimator(Estimator):
             C[i,j] is the covariance of the free energy estimates of i and j
 
         """
-        # if we have bidirectional edge results we need to raise an error as they can not be used with MLE
-        # track the edges we have seen
-        edges = []
-        for a, b in graph.edges:
-            edge_name = (a, b) if str(a) < str(b) else (b, a)
-            edges.append(edge_name)
-
         n_nodes = graph.number_of_nodes()
 
         node_label = None if node_data_label is None else node_data_label.replace("_", "_d")
