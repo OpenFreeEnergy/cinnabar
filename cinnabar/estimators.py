@@ -17,7 +17,7 @@ import numpy as np
 from openff.units import Quantity
 
 from cinnabar import stats
-from cinnabar._due import Doi, due
+from cinnabar._due import BibTeX, Doi, due
 from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
@@ -28,6 +28,24 @@ due.cite(
     description="Compute maximum likelihood estimate of free energies and covariance in their estimates",
     path="cinnabar.estimators.MLEEstimator.mle",
     cite_module=True,
+)
+
+due.cite(
+    BibTeX("""
+@article{Kenney2023Biophysical,
+  author = {Kenney, Ian Michael and Beckstein, Oliver},
+  title = {Thermodynamically Consistent Determination of Free Energies and Rates in Kinetic Cycle Models},
+  journal = {Biophysical Reports},
+  volume = {3},
+  number = {3},
+  pages = {100120},
+  year = {2023},
+  month = {sep},
+  doi = {10.1016/j.bpr.2023.100120}
+}
+"""),
+    description="Compute maximum likelihood estimate of free energies and covariance in their estimates",
+    path="cinnabar.estimators.MLEEstimator.mle",
 )
 
 
@@ -288,9 +306,13 @@ class MLEEstimator(Estimator):
         The number 'edge_data_label' is the node attribute on which the MLE will be calculated,
         where d'edge_data_label' will be used as the standard error of the edge_data_label
 
-        Reference : https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528
-        Xu, Huafeng. "Optimal measurement network of pairwise differences."
-        Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
+        References :
+        - Xu, Huafeng. "Optimal measurement network of pairwise differences."
+          Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
+          URL: https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528.
+        - Kenney, I.M. & Beckstein, O., 2023. Thermodynamically Consistent Determination
+          of Free Energies and Rates in Kinetic Cycle Models. Biophysical Reports, 3(3), p.100120.
+          URL: https://doi.org/10.1016/j.bpr.2023.100120
 
         NOTE: Self-edges (edges that connect a node to itself) will be ignored.
 
