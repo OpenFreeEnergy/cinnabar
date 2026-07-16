@@ -227,8 +227,6 @@ class MLEEstimator(Estimator):
     Notes
     -----
     * Requires the computational sub-graph to be weakly connected.
-    * Cannot handle multiple edges between the same pair of nodes; combine
-      replicates into a single estimate before calling this estimator.
     """
 
     def __init__(self, source: str = "MLE"):
@@ -383,7 +381,7 @@ class MLEEstimator(Estimator):
     @staticmethod
     def _build_graph_from_measurements(
         measurements: list[Measurement],
-    ) -> tuple[nx.DiGraph, object]:
+    ) -> tuple[nx.MultiDiGraph, object]:
         """Build a legacy graph from the list of measurements for use in the MLE method, this is copied over from the
         to_legacy_graph method of FEMap.
 
@@ -394,7 +392,7 @@ class MLEEstimator(Estimator):
 
         Returns
         -------
-        graph : nx.DiGraph
+        graph : nx.MultiDiGraph
             Input graph ready for stats.mle
         unit : unit
             The unit shared by all measurements (validated to be consistent).
@@ -402,8 +400,7 @@ class MLEEstimator(Estimator):
         Raises
         ------
         ValueError
-            If measurements have mixed units or duplicate computational edges
-            exist between the same pair of nodes.
+            If no measurements are provided or if measurements have mixed units.
         """
         if not measurements:
             raise ValueError("No measurements provided")
@@ -412,8 +409,7 @@ class MLEEstimator(Estimator):
             raise ValueError(f"All measurements must share the same units before running an estimator. Found: {units}")
         unit = units.pop()
 
-        graph = nx.DiGraph()
-        edges_seen: list[tuple] = []
+        graph = nx.MultiDiGraph()
 
         # populate the edges of the graph along with their computational binding free energies
         for m in filter(lambda m: m.computational, measurements):
@@ -421,23 +417,12 @@ class MLEEstimator(Estimator):
                 # TODO this is never hit in the tests and should be supported behavior
                 continue
             edge_name = (m.labelA, m.labelB) if str(m.labelA) < str(m.labelB) else (m.labelB, m.labelA)
-            if edge_name in edges_seen:
-                # TODO this is a limitation of the software, not the method. Support for multiple edges should be a priority
-                raise ValueError(
-                    f"Multiple edges detected between nodes {m.labelA} and {m.labelB}. "
-                    "MLE cannot be performed on graphs with multiple edges between the "
-                    "same nodes. The results should be combined into a single estimate "
-                    "and uncertainty before performing MLE. "
-                    "See https://cinnabar.openfree.energy/en/latest/concepts/estimators.html"
-                    "#limitations for more details."
-                )
             graph.add_edge(
                 m.labelA,
                 m.labelB,
                 calc_DDG=m.DG.magnitude,
                 calc_dDDG=m.uncertainty.magnitude,
             )
-            edges_seen.append(edge_name)
 
         # annotate nodes with experimental absolute values, this doesn't add edges
         for m in filter(lambda m: not m.computational, measurements):
