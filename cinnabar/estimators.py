@@ -305,12 +305,9 @@ class MLEEstimator(Estimator):
         where d'edge_data_label' will be used as the standard error of the edge_data_label
 
         References :
-        - Xu, Huafeng. "Optimal measurement network of pairwise differences."
-          Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728.
-          URL: https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528.
-        - Kenney, I.M. & Beckstein, O., 2023. Thermodynamically consistent determination
-          of free energies and rates in kinetic cycle models. Biophysical Reports, 3(3), p.100120.
-          URL: https://doi.org/10.1016/j.bpr.2023.100120
+
+        - Xu, Huafeng. "Optimal measurement network of pairwise differences." Journal of Chemical Information and Modeling 59.11 (2019): 4720-4728. URL: https://pubs.acs.org/doi/abs/10.1021/acs.jcim.9b00528.
+        - Kenney, I.M. & Beckstein, O., 2023. Thermodynamically consistent determination of free energies and rates in kinetic cycle models. Biophysical Reports, 3(3), p.100120. URL: https://doi.org/10.1016/j.bpr.2023.100120
 
         NOTE: Self-edges (edges that connect a node to itself) will be ignored.
 
