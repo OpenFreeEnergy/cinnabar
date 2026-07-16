@@ -142,13 +142,13 @@ def test_mle_bidirectional_edges():
 
 
 def test_mle_repeated_edge():
-    graph = nx.DiGraph()
+    graph = nx.MultiDiGraph()
     graph.add_edge(0, 1, f_ij=1.0, f_dij=0.5)
     graph.add_edge(0, 1, f_ij=1.5, f_dij=0.1)  # repeated edge
     output_absolutes, _ = MLEEstimator.mle(graph, edge_data_label="f_ij", node_data_label="f_i")
     output_absolutes -= output_absolutes[0]
-    assert output_absolutes[1] > 1.25
-    assert output_absolutes[1] < 1.5
+    expected = (1.0 / 0.5**2 + 1.5 / 0.1**2) / (1 / 0.5**2 + 1 / 0.1**2)
+    assert output_absolutes[1] == pytest.approx(expected)
 
 
 def test_mle_zero_uncertainty():
