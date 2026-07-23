@@ -21,8 +21,8 @@ import numpy as np
 import pandas as pd
 from openff.units import Quantity, unit
 
-from cinnabar import stats
 from cinnabar.conversion import convert_observable
+from cinnabar.estimators import MLEEstimator
 from cinnabar.measurements import Measurement, ReferenceState
 
 if TYPE_CHECKING:
@@ -872,7 +872,7 @@ class FEMap:
                 d["exp_dDDG"] = (dDG_A**2 + dDG_B**2) ** 0.5
         # apply MLE for calculated DG values
         if self.check_weakly_connected():
-            f_i_calc, C_calc = stats.mle(g, factor="calc_DDG")
+            f_i_calc, C_calc = MLEEstimator.mle(g, edge_data_label="calc_DDG")
             variance = np.diagonal(C_calc)
             variance = variance**0.5
 
