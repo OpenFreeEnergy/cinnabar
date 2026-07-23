@@ -10,6 +10,20 @@ The full release history can be viewed `at the GitHub cinnabar releases page <ht
 
 .. current developments
 
+v0.6.1
+====================
+
+**Added:**
+
+* ``compare_and_rank_results`` function to check for statistically significant differences between multiple sources in the same FEMap `PR#174 <https://github.com/OpenFreeEnergy/cinnabar/pull/174>`_.
+
+**Changed:**
+
+* Methods concerning MLE setup and calculation moved from ``cinnabar.stats`` to ``cinnabar.estimators.MLEestimator`` as static methods
+* Adds support for bi-directional and multiple single-direction ddG estimates to the MLE estimator.
+
+
+
 v0.6.0
 ====================
 
