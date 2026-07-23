@@ -348,13 +348,12 @@ def test_generate_absolute_values_repeated_edges():
         labelB="ligB",
         value=1.5 * unit.kilocalorie_per_mole,
         uncertainty=0.1 * unit.kilocalorie_per_mole,
-        source="test"
+        source="test",
     )
     femap.generate_absolute_values()
     abs_df = femap.get_absolute_dataframe()
     assert np.allclose(abs_df["DG (kcal/mol)"].values, [-0.74038, 0.74038])
     assert np.allclose(abs_df["uncertainty (kcal/mol)"].values, [0.049029, 0.049029])
-
 
 
 @pytest.mark.parametrize(
