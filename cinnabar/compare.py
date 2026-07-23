@@ -47,6 +47,10 @@ def compare_and_rank_results(
     - Prediction types "nodewise" and "edgewise" correspond to DGs and edgewise DDGs respectively.
     - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the ``Holm``
           method to control the family-wise error rate in a low number of comparisons. For more information see https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method.
+    - In cases where one method clearly outperforms another the bootstrap p-value may be reported as 0.0 because none
+        of the  bootstrap differences cross zero. This is a limitation of the bootstrap testing method. In such cases
+        the confidence interval around the difference metric should be used to interpret the significance of the
+        difference instead and a p-value of 0.0 should not be reported as the level of significance.
 
     Returns
     -------
