@@ -311,6 +311,52 @@ def test_generate_absolute_values_mixed_units():
         m.generate_absolute_values()
 
 
+def test_generate_absolute_values_bi_directional_edges(example_map):
+    """Make sure absolute values can be generated with bidirectional edges."""
+    femap = cinnabar.FEMap()
+    femap.add_relative_calculation(
+        labelA="ligA",
+        labelB="ligB",
+        value=1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.5 * unit.kilocalorie_per_mole,
+        source="test",
+    )
+    femap.add_relative_calculation(
+        labelA="ligB",
+        labelB="ligA",
+        value=-2.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.5 * unit.kilocalorie_per_mole,
+        source="test",
+    )
+    femap.generate_absolute_values()
+    abs_df = femap.get_absolute_dataframe()
+    assert np.allclose(abs_df["DG (kcal/mol)"].values, [-0.75, 0.75])
+
+
+def test_generate_absolute_values_repeated_edges():
+    """Make sure absolute values can be generated with repeated edges."""
+    femap = cinnabar.FEMap()
+    femap.add_relative_calculation(
+        labelA="ligA",
+        labelB="ligB",
+        value=1.0 * unit.kilocalorie_per_mole,
+        uncertainty=0.5 * unit.kilocalorie_per_mole,
+        source="test",
+    )
+    femap.add_relative_calculation(
+        labelA="ligA",
+        labelB="ligB",
+        value=1.5 * unit.kilocalorie_per_mole,
+        uncertainty=0.1 * unit.kilocalorie_per_mole,
+        source="test"
+    )
+    femap.generate_absolute_values()
+    abs_df = femap.get_absolute_dataframe()
+    assert np.allclose(abs_df["DG (kcal/mol)"].values, [-0.74038, 0.74038])
+    assert np.allclose(abs_df["uncertainty (kcal/mol)"].values, [0.049029, 0.049029])
+
+
+
 @pytest.mark.parametrize(
     "dataframe_func, expected",
     [
