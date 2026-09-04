@@ -37,7 +37,7 @@ def compare_and_rank_results(
     rank_metric : {"MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"}, default "MUE"
         The metric used to rank the models.
     metrics_to_compute : list[{"MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"}] | None, default None
-        A list of metrics to compute for each model. If ``None``, all metrics appropriate for the ``prediction_type`` 
+        A list of metrics to compute for each model. If ``None``, all metrics appropriate for the ``prediction_type``
         will be computed.
     num_bootstraps : int, default 1000
         The number of bootstrap samples to use for estimating confidence intervals.
@@ -52,13 +52,13 @@ def compare_and_rank_results(
 
     Note
     ----
-    - The comparison method uses a joint bootstrapping procedure that generates a distribution of differences in the 
+    - The comparison method uses a joint bootstrapping procedure that generates a distribution of differences in the
       rank metric and checks for significant differences using a method inspired by. [1]_
     - Each source must be evaluated on the same set of edges.
     - Prediction types "nodewise" and "edgewise" correspond to DGs and edgewise DDGs respectively.
-    - For ``prediction_type="nodewise"`` with ``centralizing=True``, absolute values are mean-centered before metric 
+    - For ``prediction_type="nodewise"`` with ``centralizing=True``, absolute values are mean-centered before metric
       evaluation. This removes global offsets and ranks models by relative fluctuations about their own means.
-    - Consequently, centered metrics (for example RMSE, MUE, and RAE) are informative only if the removed offset is 
+    - Consequently, centered metrics (for example RMSE, MUE, and RAE) are informative only if the removed offset is
       treated as nuisance and residuals are interpreted as random noise. If the offset reflects real systematic bias,
       centered metrics can understate that bias.
     - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the

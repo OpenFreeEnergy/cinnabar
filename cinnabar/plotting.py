@@ -591,7 +591,7 @@ def plot_DGs(
     femap : FEMap
         FEMap object with absolute free energies to plot.
     source : str
-        The name of the source label of the computational absolute values, if absolute values are generated with the 
+        The name of the source label of the computational absolute values, if absolute values are generated with the
         MLE estimator this should be "MLE".
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
