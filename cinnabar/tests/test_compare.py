@@ -146,7 +146,14 @@ def test_nodewise_rmse_is_mean_centered_for_generated_absolute_values():
     assert rmse == pytest.approx(0.0)
 
 
-def test_nodewise_rmse_is_mean_centered_for_direct_absolute_values():
+@pytest.mark.parametrize(
+    "centralizing, expected_rmse",
+    [
+        (True, 0.0),
+        (False, 5.0),
+    ],
+)
+def test_nodewise_rmse_direct_absolute_values_respects_centralizing(centralizing, expected_rmse):
     compare_map = FEMap()
 
     experimental_values = {
@@ -176,47 +183,11 @@ def test_nodewise_rmse_is_mean_centered_for_direct_absolute_values():
         rank_metric="RMSE",
         metrics_to_compute=["RMSE"],
         num_bootstraps=20,
+        centralizing=centralizing,
     )
 
     rmse = summary_df.loc[summary_df["Model"] == "offset", "RMSE"].iloc[0]
-    assert rmse == pytest.approx(0.0)
-
-
-def test_nodewise_rmse_without_centering_retains_offset_error():
-    compare_map = FEMap()
-
-    experimental_values = {
-        "ligand_a": -8.0,
-        "ligand_b": -7.0,
-        "ligand_c": -6.0,
-    }
-
-    for label, value in experimental_values.items():
-        compare_map.add_experimental_measurement(
-            label=label,
-            value=value * unit.kilocalorie_per_mole,
-            uncertainty=0.1 * unit.kilocalorie_per_mole,
-        )
-
-    for label, value in experimental_values.items():
-        compare_map.add_absolute_calculation(
-            label=label,
-            value=(value + 5.0) * unit.kilocalorie_per_mole,
-            uncertainty=0.1 * unit.kilocalorie_per_mole,
-            source="offset",
-        )
-
-    summary_df, _ = compare_and_rank_results(
-        compare_map,
-        prediction_type="nodewise",
-        rank_metric="RMSE",
-        metrics_to_compute=["RMSE"],
-        num_bootstraps=20,
-        centralizing=False,
-    )
-
-    rmse = summary_df.loc[summary_df["Model"] == "offset", "RMSE"].iloc[0]
-    assert rmse == pytest.approx(5.0)
+    assert rmse == pytest.approx(expected_rmse)
 
 
 def test_invalid_prediction_type(fe_map):
