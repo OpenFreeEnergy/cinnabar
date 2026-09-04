@@ -9,6 +9,11 @@ from cinnabar import FEMap
 from cinnabar.stats import _AVAILABLE_STATS
 
 
+def _centralize_absolute_values(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Mean-center absolute values before computing nodewise statistics."""
+    return y_true - np.mean(y_true), y_pred - np.mean(y_pred)
+
+
 def compare_and_rank_results(
     femap: FEMap,
     prediction_type: Literal["nodewise", "edgewise"] = "edgewise",
@@ -17,6 +22,7 @@ def compare_and_rank_results(
     num_bootstraps: int = 1_000,
     confidence_level: float = 0.95,
     alpha: float = 0.05,
+    centralizing: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Compare and rank multiple result sources on a single FEMap based on the chosen performance metric and return an ordered table of
@@ -31,7 +37,8 @@ def compare_and_rank_results(
     rank_metric : {"MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"}, default "MUE"
         The metric used to rank the models.
     metrics_to_compute : list[{"MUE", "RMSE", "RAE", "R2", "rho", "KTAU", "PI"}] | None, default None
-        A list of metrics to compute for each model. If ``None``, all metrics appropriate for the ``prediction_type`` will be computed.
+        A list of metrics to compute for each model. If ``None``, all metrics appropriate for the ``prediction_type`` 
+        will be computed.
     num_bootstraps : int, default 1000
         The number of bootstrap samples to use for estimating confidence intervals.
     confidence_level : float, default 0.95
@@ -39,18 +46,28 @@ def compare_and_rank_results(
     alpha : float, default 0.05
         The significance level (Type I error probability) for determining statistical significance
         in pairwise comparisons. Lower values are more conservative and require stronger evidence for significance.
+    centralizing : bool, default True
+        Only used for ``prediction_type="nodewise"``. If ``True``, mean-center absolute experimental and
+        calculated values before computing metrics. If ``False``, compute metrics on raw absolute values.
 
     Note
     ----
-    - The comparison method uses a joint bootstrapping procedure that generates a distribution of differences in the rank metric and checks for significant differences using a method inspired by. [1]_
+    - The comparison method uses a joint bootstrapping procedure that generates a distribution of differences in the 
+      rank metric and checks for significant differences using a method inspired by. [1]_
     - Each source must be evaluated on the same set of edges.
     - Prediction types "nodewise" and "edgewise" correspond to DGs and edgewise DDGs respectively.
-    - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the ``Holm``
-          method to control the family-wise error rate in a low number of comparisons. For more information see https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method.
+    - For ``prediction_type="nodewise"`` with ``centralizing=True``, absolute values are mean-centered before metric 
+      evaluation. This removes global offsets and ranks models by relative fluctuations about their own means.
+    - Consequently, centered metrics (for example RMSE, MUE, and RAE) are informative only if the removed offset is 
+      treated as nuisance and residuals are interpreted as random noise. If the offset reflects real systematic bias,
+      centered metrics can understate that bias.
+    - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the
+      ``Holm`` method to control the family-wise error rate in a low number of comparisons. For more information see
+      https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method.
     - In cases where one method clearly outperforms another the bootstrap p-value may be reported as 0.0 because none
-        of the  bootstrap differences cross zero. This is a limitation of the bootstrap testing method. In such cases
-        the confidence interval around the difference metric should be used to interpret the significance of the
-        difference instead and a p-value of 0.0 should not be reported as the level of significance.
+      of the  bootstrap differences cross zero. This is a limitation of the bootstrap testing method. In such cases
+      the confidence interval around the difference metric should be used to interpret the significance of the
+      difference instead and a p-value of 0.0 should not be reported as the level of significance.
 
     Returns
     -------
@@ -70,6 +87,8 @@ def compare_and_rank_results(
         raise ValueError("confidence_level must be a number between 0 and 1 (exclusive).")
     if not isinstance(alpha, (int, float)) or not (0 < alpha < 1):
         raise ValueError("alpha must be a number between 0 and 1 (exclusive).")
+    if not isinstance(centralizing, bool):
+        raise ValueError("centralizing must be a bool.")
 
     # get the predictions and experimental values from the FEMaps and align them into a DataFrame
     predictions_by_key: dict[tuple[str, str] | str, dict[str, float]] = defaultdict(dict)
@@ -148,6 +167,8 @@ def compare_and_rank_results(
         for source in sources:
             y_true = bootstrap_sample["exp"].values
             y_pred = bootstrap_sample[f"{source}_calc"].values
+            if prediction_type == "nodewise" and centralizing:
+                y_true, y_pred = _centralize_absolute_values(y_true, y_pred)
             for metric in metrics_to_compute:
                 value = _AVAILABLE_STATS[metric](y_true, y_pred)
                 metrics_by_source[source][metric].append(value)
@@ -170,6 +191,8 @@ def compare_and_rank_results(
             # compute the sample metric
             x = predictions_df[f"{source}_calc"].values
             y = predictions_df["exp"].values
+            if prediction_type == "nodewise" and centralizing:
+                y, x = _centralize_absolute_values(y, x)
             sample_value = _AVAILABLE_STATS[metric](y, x)
             bootstrap_values = np.array(metrics_by_source[source][metric])
             lower = np.percentile(bootstrap_values, (1 - confidence_level) / 2 * 100)

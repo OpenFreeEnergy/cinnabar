@@ -580,12 +580,19 @@ def plot_DGs(
 ):
     """Function to plot absolute free energies.
 
+    Note
+    ----
+    With ``centralizing=True``, both experimental and calculated absolute values are mean-centered before plotting and
+    before reporting statistics on the plot. Centered metrics (for example RMSE and MUE) therefore emphasize relative
+    fluctuations, not absolute offset. Use ``centralizing=False`` when absolute bias is part of the scientific question.
+
     Parameters
     ----------
     femap : FEMap
         FEMap object with absolute free energies to plot.
     source : str
-        The name of the source label of the computational absolute values, if absolute values are generated with the MLE estimator this should be "MLE".
+        The name of the source label of the computational absolute values, if absolute values are generated with the 
+        MLE estimator this should be "MLE".
     method_name : string, default ""
         Name of method associated with results, e.g. "openfe" by default an empty string.
     target_name : string, default ""
@@ -594,6 +601,12 @@ def plot_DGs(
         Title for the plot.
     filename : str | None, default None
         Filename for plot if None the plot will be displayed.
+    plotly : bool, default False
+        Whether to use plotly for plotting.
+    centralizing : bool, default True
+        Mean-center both experimental and calculated absolute values before plotting and metric calculation.
+    shift : float, default 0.
+        Constant added after centering when ``centralizing=True``.
     bootstrap_x_uncertainty : bool, default False
         Whether to account for uncertainty in x when bootstrapping.
     bootstrap_y_uncertainty : bool, default False

@@ -101,6 +101,124 @@ def test_nodewise_comparison(fe_map):
         assert "p-value corrected" not in comparison_df.columns
 
 
+def test_nodewise_rmse_is_mean_centered_for_generated_absolute_values():
+    compare_map = FEMap()
+
+    experimental_values = {
+        "ligand_a": -8.0,
+        "ligand_b": -7.0,
+        "ligand_c": -6.0,
+    }
+
+    for label, value in experimental_values.items():
+        compare_map.add_experimental_measurement(
+            label=label,
+            value=value * unit.kilocalorie_per_mole,
+            uncertainty=0.1 * unit.kilocalorie_per_mole,
+        )
+
+    relative_predictions = {
+        ("ligand_a", "ligand_b"): 1.0,
+        ("ligand_b", "ligand_c"): 1.0,
+        ("ligand_a", "ligand_c"): 2.0,
+    }
+
+    for (label_a, label_b), value in relative_predictions.items():
+        compare_map.add_relative_calculation(
+            labelA=label_a,
+            labelB=label_b,
+            value=value * unit.kilocalorie_per_mole,
+            uncertainty=0.1 * unit.kilocalorie_per_mole,
+            source="relative",
+        )
+
+    compare_map.generate_absolute_values()
+
+    summary_df, _ = compare_and_rank_results(
+        compare_map,
+        prediction_type="nodewise",
+        rank_metric="RMSE",
+        metrics_to_compute=["RMSE"],
+        num_bootstraps=20,
+    )
+
+    rmse = summary_df.loc[summary_df["Model"] == "MLE", "RMSE"].iloc[0]
+    assert rmse == pytest.approx(0.0)
+
+
+def test_nodewise_rmse_is_mean_centered_for_direct_absolute_values():
+    compare_map = FEMap()
+
+    experimental_values = {
+        "ligand_a": -8.0,
+        "ligand_b": -7.0,
+        "ligand_c": -6.0,
+    }
+
+    for label, value in experimental_values.items():
+        compare_map.add_experimental_measurement(
+            label=label,
+            value=value * unit.kilocalorie_per_mole,
+            uncertainty=0.1 * unit.kilocalorie_per_mole,
+        )
+
+    for label, value in experimental_values.items():
+        compare_map.add_absolute_calculation(
+            label=label,
+            value=(value + 5.0) * unit.kilocalorie_per_mole,
+            uncertainty=0.1 * unit.kilocalorie_per_mole,
+            source="offset",
+        )
+
+    summary_df, _ = compare_and_rank_results(
+        compare_map,
+        prediction_type="nodewise",
+        rank_metric="RMSE",
+        metrics_to_compute=["RMSE"],
+        num_bootstraps=20,
+    )
+
+    rmse = summary_df.loc[summary_df["Model"] == "offset", "RMSE"].iloc[0]
+    assert rmse == pytest.approx(0.0)
+
+
+def test_nodewise_rmse_without_centering_retains_offset_error():
+    compare_map = FEMap()
+
+    experimental_values = {
+        "ligand_a": -8.0,
+        "ligand_b": -7.0,
+        "ligand_c": -6.0,
+    }
+
+    for label, value in experimental_values.items():
+        compare_map.add_experimental_measurement(
+            label=label,
+            value=value * unit.kilocalorie_per_mole,
+            uncertainty=0.1 * unit.kilocalorie_per_mole,
+        )
+
+    for label, value in experimental_values.items():
+        compare_map.add_absolute_calculation(
+            label=label,
+            value=(value + 5.0) * unit.kilocalorie_per_mole,
+            uncertainty=0.1 * unit.kilocalorie_per_mole,
+            source="offset",
+        )
+
+    summary_df, _ = compare_and_rank_results(
+        compare_map,
+        prediction_type="nodewise",
+        rank_metric="RMSE",
+        metrics_to_compute=["RMSE"],
+        num_bootstraps=20,
+        centralizing=False,
+    )
+
+    rmse = summary_df.loc[summary_df["Model"] == "offset", "RMSE"].iloc[0]
+    assert rmse == pytest.approx(5.0)
+
+
 def test_invalid_prediction_type(fe_map):
     with pytest.raises(ValueError, match="Invalid prediction_type: pairwise"):
         compare_and_rank_results(
@@ -191,4 +309,12 @@ def test_bad_alpha(fe_map, alpha):
         _, _ = compare_and_rank_results(
             fe_map,
             alpha=alpha,
+        )
+
+
+def test_bad_centralizing_type(fe_map):
+    with pytest.raises(ValueError, match="centralizing must be a bool"):
+        _, _ = compare_and_rank_results(
+            fe_map,
+            centralizing="yes",
         )
