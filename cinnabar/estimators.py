@@ -46,6 +46,7 @@ due.cite(
 """),
     description="Compute maximum likelihood estimate of free energies and covariance in their estimates",
     path="cinnabar.estimators.MLEEstimator.mle",
+    cite_module=True
 )
 
 
