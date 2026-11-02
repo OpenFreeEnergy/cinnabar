@@ -47,6 +47,14 @@ def compare_and_rank_results(
     - Prediction types "nodewise" and "edgewise" correspond to DGs and edgewise DDGs respectively.
     - When we have more than 2 models, we apply multiple testing correction to the pairwise comparisons using the ``Holm``
           method to control the family-wise error rate in a low number of comparisons. For more information see https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method.
+    - The Holm correction is applied across *all* pairwise comparisons in the ``FEMap``, so the significance flags and
+        the resulting ``CLD`` groupings depend on the full set of models being compared and not only on the pair in
+        question. Adding or removing a source changes the number of hypotheses (``n * (n - 1) / 2`` for ``n``
+        models) and therefore the Holm thresholds, so a pair that was flagged significant with ``n`` models may become
+        non-significant with ``n + 1`` models even though its predictions are unchanged. This is expected behaviour for
+        family-wise error rate control rather than an instability in the CLD assignment. If groupings must be
+        comparable across analyses, fix the set of models up front, or interpret a specific pair using its raw
+        ``p-value`` and the confidence interval on the difference, which do not depend on the other models.
     - In cases where one method clearly outperforms another the bootstrap p-value may be reported as 0.0 because none
         of the  bootstrap differences cross zero. This is a limitation of the bootstrap testing method. In such cases
         the confidence interval around the difference metric should be used to interpret the significance of the
