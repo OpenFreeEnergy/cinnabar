@@ -1,6 +1,7 @@
 import pytest
 from openff.units import unit
 from pint.errors import DimensionalityError
+from pint.testing import assert_allclose as assert_quantity_allclose
 
 import cinnabar
 
@@ -89,8 +90,8 @@ def test_Ki_to_DG(Ki, uncertainty, dG, dG_uncertainty, label, temp):
 
     assert Ki_to_DG.DG.units == unit.kilocalorie_per_mole
     assert Ki_to_DG.uncertainty.units == unit.kilocalorie_per_mole
-    assert pytest.approx(dG, 0.001) == Ki_to_DG.DG
-    assert pytest.approx(dG_uncertainty, 0.01) == Ki_to_DG.uncertainty
+    assert_quantity_allclose(dG, Ki_to_DG.DG, rtol=0.001)
+    assert_quantity_allclose(dG_uncertainty, Ki_to_DG.uncertainty, rtol=0.01)
 
 
 def test_negative_Ki():
